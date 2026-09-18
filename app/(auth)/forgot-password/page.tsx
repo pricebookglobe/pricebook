@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 
 export default function ForgotPasswordPage() {
@@ -34,14 +33,7 @@ export default function ForgotPasswordPage() {
     <main className="velvet-field flex min-h-screen items-center justify-center px-5 py-16">
       <div className="w-full max-w-sm rounded-lg border border-white/10 bg-white/[0.06] p-8 shadow-2xl backdrop-blur-xl">
         <div className="flex flex-col items-center text-center">
-          <Image
-            src="/pricebook-logo.png"
-            alt="PriceBook"
-            width={120}
-            height={65}
-            priority
-            className="h-auto w-28"
-          />
+          <img src="/pricebook-logo.png" alt="PriceBook" className="h-auto w-28" />
           <h1 className="mt-4 font-display text-xl font-semibold text-white">Reset your password</h1>
         </div>
 
