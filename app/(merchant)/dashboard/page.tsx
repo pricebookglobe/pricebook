@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getStoreRanking, type RankingRow } from "@/lib/api";
 import { RankingBadge } from "@/components/merchant/RankingBadge";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
+import { PageShell } from "@/components/shared/PageShell";
 
 export default function MerchantDashboard() {
   const router = useRouter();
@@ -35,17 +36,17 @@ export default function MerchantDashboard() {
   }, [router]);
 
   return (
-    <main className="mx-auto min-h-screen max-w-xl px-5 py-10">
-      <header className="mb-8 flex items-start justify-between">
+    <PageShell>
+      <header className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-ink">
+          <h1 className="font-display text-xl font-semibold text-ink">
             {storeName ?? "Your store"}
           </h1>
           <p className="mt-1 text-sm text-ash">Ranked daily against every store in your 5km zone.</p>
         </div>
         <a
           href="/inventory/add"
-          className="rounded-sm bg-ink px-3 py-1.5 font-display text-sm font-medium text-field"
+          className="rounded-sm bg-value px-3 py-1.5 font-display text-sm font-medium text-white hover:bg-value/90"
         >
           + Add item
         </a>
@@ -59,6 +60,6 @@ export default function MerchantDashboard() {
       {rows.map((row) => (
         <RankingBadge key={row.category} row={row} />
       ))}
-    </main>
+    </PageShell>
   );
 }

@@ -5,6 +5,7 @@ import { GeolocationProvider, useGeolocation } from "@/components/shared/Geoloca
 import { SearchBar } from "@/components/search/SearchBar";
 import { ResultRow } from "@/components/search/ResultRow";
 import { searchProducts, type SearchResponse } from "@/lib/api";
+import { PageShell } from "@/components/shared/PageShell";
 
 function CustomerHome() {
   const { coords, status } = useGeolocation();
@@ -34,13 +35,10 @@ function CustomerHome() {
     : null;
 
   return (
-    <main className="mx-auto min-h-screen max-w-xl px-5 py-10">
-      <header className="mb-8 flex items-start justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-ink">PriceBook</h1>
-          <p className="mt-1 text-sm text-ash">Track best prices, near you first.</p>
-        </div>
-        <div className="flex gap-3 pt-1 font-mono text-xs text-ash">
+    <PageShell>
+      <header className="mb-6 flex items-start justify-between">
+        <p className="text-sm text-ash">Track best prices, near you first.</p>
+        <div className="flex gap-3 pt-0.5 font-mono text-xs text-ash">
           <a href="/login" className="underline hover:text-ink">Log in</a>
           <a href="/signup/customer" className="underline hover:text-ink">Sign up</a>
           <a href="/signup/merchant" className="underline hover:text-ink">Sell on PriceBook</a>
@@ -91,7 +89,7 @@ function CustomerHome() {
           ))}
         </section>
       )}
-    </main>
+    </PageShell>
   );
 }
 

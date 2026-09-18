@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import type { StructuredProduct } from "@/lib/aiVision";
+import { PageShell } from "@/components/shared/PageShell";
 
 export default function AddItemPage() {
   const router = useRouter();
@@ -110,9 +111,9 @@ export default function AddItemPage() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-xl px-5 py-10">
-      <header className="mb-8">
-        <h1 className="font-display text-2xl font-semibold text-ink">Add an item</h1>
+    <PageShell>
+      <header className="mb-6">
+        <h1 className="font-display text-xl font-semibold text-ink">Add an item</h1>
         <p className="mt-1 text-sm text-ash">Describe it, snap it, or upload a photo — then set your price.</p>
       </header>
 
@@ -247,6 +248,6 @@ export default function AddItemPage() {
           </div>
         </div>
       )}
-    </main>
+    </PageShell>
   );
 }

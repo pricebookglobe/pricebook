@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
+import { PageShell } from "@/components/shared/PageShell";
 
 export default function CustomerSignup() {
   const router = useRouter();
@@ -36,9 +37,9 @@ export default function CustomerSignup() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-sm px-5 py-16">
-      <h1 className="font-display text-2xl font-semibold text-ink">Create your account</h1>
-      <p className="mt-1 text-sm text-ash">Find the best local prices, saved to your name.</p>
+    <PageShell maxWidth="max-w-sm">
+      <h1 className="text-center font-display text-xl font-semibold text-ink">Create your account</h1>
+      <p className="mt-1 text-center text-sm text-ash">Find the best local prices, saved to your name.</p>
 
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-3">
         <label className="text-sm text-ash">
@@ -89,6 +90,6 @@ export default function CustomerSignup() {
           Sign up as a merchant
         </a>
       </p>
-    </main>
+    </PageShell>
   );
 }
