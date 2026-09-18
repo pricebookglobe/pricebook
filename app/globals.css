@@ -20,3 +20,21 @@ body {
 .ledger-row:first-child {
   @apply border-t border-line;
 }
+
+/* Velvet auth background: two soft light blooms drifting slowly across a
+   deep green-blue field, used behind the login/signup cards. One orchestrated
+   motion, not per-element hover effects — see /login for usage. */
+.velvet-field {
+  background: radial-gradient(ellipse at 20% 30%, #1c5c53 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 70%, #17415f 0%, transparent 55%),
+    linear-gradient(160deg, #0b2b34 0%, #0e2436 55%, #0a1f2e 100%);
+  background-size: 180% 180%, 180% 180%, 100% 100%;
+  animation: velvet-drift 26s ease-in-out infinite alternate;
+}
+@keyframes velvet-drift {
+  0% { background-position: 15% 20%, 85% 80%, 0 0; }
+  100% { background-position: 35% 45%, 65% 55%, 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .velvet-field { animation: none; }
+}
