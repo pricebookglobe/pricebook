@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap");
+
+html {
+  background: #F6F5F1;
+}
+
+body {
+  @apply font-body text-ink antialiased;
+}
+
+/* A single ledger-row divider style used across price comparison lists,
+   so "cheapest first" reads like a receipt, not a stack of cards. */
+.ledger-row {
+  @apply flex items-baseline justify-between gap-4 border-b border-line py-3;
+}
+.ledger-row:first-child {
+  @apply border-t border-line;
+}
