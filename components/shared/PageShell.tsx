@@ -11,7 +11,7 @@ export function PageShell({
         <div className="mb-6 flex justify-center">
           <img src="/pricebook-logo-dark.png" alt="PriceBook" className="h-auto w-20" />
         </div>
-        <div className="rounded-lg border border-white/10 bg-field/95 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+        <div className="rounded-lg border border-white/10 bg-field-raised p-6 shadow-2xl sm:p-8">
           {children}
         </div>
       </div>
