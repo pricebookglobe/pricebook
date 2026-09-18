@@ -12,6 +12,8 @@ export default function AddItemPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [storeId, setStoreId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [lastImageBase64, setLastImageBase64] = useState<string | null>(null);
   const [textQuery, setTextQuery] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [product, setProduct] = useState<StructuredProduct | null>(null);
@@ -37,12 +39,14 @@ export default function AddItemPage() {
         return;
       }
       setStoreId(store.id);
+      setAccessToken(data.session.access_token);
     });
   }, [router]);
 
   async function extract(input: { text?: string; imageBase64?: string }) {
     setExtracting(true);
     setError(null);
+    setLastImageBase64(input.imageBase64 ?? null);
     try {
       const res = await fetch("/api/products/extract", {
         method: "POST",
@@ -87,14 +91,17 @@ export default function AddItemPage() {
       const productRes = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(product)
+        body: JSON.stringify({ ...product, imageBase64: lastImageBase64 ?? undefined })
       });
       if (!productRes.ok) throw new Error((await productRes.json()).error);
       const { product_id } = await productRes.json();
 
       const invRes = await fetch(`/api/stores/${storeId}/inventory`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+        },
         body: JSON.stringify({ product_id, price: parseFloat(price), currency })
       });
       if (!invRes.ok) throw new Error((await invRes.json()).error);
@@ -103,6 +110,7 @@ export default function AddItemPage() {
       setProduct(null);
       setPrice("");
       setTextQuery("");
+      setLastImageBase64(null);
     } catch (e: any) {
       setError(e.message ?? "Couldn't save this item.");
     } finally {

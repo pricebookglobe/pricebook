@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceSupabase } from "@/lib/supabaseClient";
 import { embedProductDescription, type StructuredProduct } from "@/lib/aiVision";
+import { uploadProductImage } from "@/lib/storage";
 
 export async function POST(req: NextRequest) {
-  const body: StructuredProduct = await req.json();
+  const body: StructuredProduct & { imageBase64?: string } = await req.json();
   if (!body.product_name || !body.category) {
     return NextResponse.json({ error: "product_name and category are required" }, { status: 400 });
   }
 
   const supabase = createServiceSupabase();
 
-  // Reuse an existing product if the name/brand/size/unit already match —
-  // avoids duplicate catalog entries every time a merchant adds the same item.
   let query = supabase
     .from("products")
     .select("id")
@@ -37,6 +36,13 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
+
+  // A photo taken during "Add item" becomes the product's listing photo —
+  // best-effort, never blocks saving the product if the upload fails.
+  if (body.imageBase64) {
+    const imageUrl = await uploadProductImage(body.imageBase64, created.id);
+    if (imageUrl) await supabase.from("products").update({ image_url: imageUrl }).eq("id", created.id);
+  }
 
   const embedding = await embedProductDescription(body);
   const { error: embedError } = await supabase

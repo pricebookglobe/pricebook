@@ -6,6 +6,7 @@ import { getStoreRanking, type RankingRow } from "@/lib/api";
 import { RankingBadge } from "@/components/merchant/RankingBadge";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { PageShell } from "@/components/shared/PageShell";
+import { AccountMenu } from "@/components/shared/AccountMenu";
 
 export default function MerchantDashboard() {
   const router = useRouter();
@@ -44,13 +45,23 @@ export default function MerchantDashboard() {
           </h1>
           <p className="mt-1 text-sm text-ash">Ranked daily against every store in your 5km zone.</p>
         </div>
+        <AccountMenu />
+      </header>
+
+      <div className="mb-6 flex gap-2">
+        <a
+          href="/inventory"
+          className="rounded-sm border border-line bg-field-raised px-3 py-1.5 font-display text-sm text-ink hover:border-ink/30"
+        >
+          Manage inventory
+        </a>
         <a
           href="/inventory/add"
           className="rounded-sm bg-value px-3 py-1.5 font-display text-sm font-medium text-white hover:bg-value/90"
         >
           + Add item
         </a>
-      </header>
+      </div>
 
       {loading && <p className="text-sm text-ash">Loading…</p>}
       {!loading && rows.length === 0 && (

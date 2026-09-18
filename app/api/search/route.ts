@@ -16,6 +16,7 @@ const SIMILARITY_FALLBACK_THRESHOLD = 0.75;
 
 export async function POST(req: NextRequest) {
   const { text, imageBase64, lat, lng } = await req.json();
+  const authToken = req.headers.get("authorization")?.replace("Bearer ", "");
 
   if (typeof lat !== "number" || typeof lng !== "number") {
     return NextResponse.json({ error: "lat and lng are required" }, { status: 400 });
@@ -53,6 +54,19 @@ export async function POST(req: NextRequest) {
 
     const strongMatches = results.filter((r) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
     const webEstimate = strongMatches.length ? null : await webFallbackSearch(structured);
+
+    // Log to search history if the caller is logged in — best-effort, never
+    // fails the search itself if this insert has a problem.
+    if (authToken) {
+      const { data: userData } = await supabase.auth.getUser(authToken);
+      if (userData.user) {
+        await supabase.from("search_history").insert({
+          user_id: userData.user.id,
+          query_text: text ?? structured.product_name,
+          category: structured.category
+        });
+      }
+    }
 
     return NextResponse.json({
       query: structured,

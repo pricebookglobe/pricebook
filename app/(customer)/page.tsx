@@ -6,6 +6,8 @@ import { SearchBar } from "@/components/search/SearchBar";
 import { ResultRow } from "@/components/search/ResultRow";
 import { searchProducts, type SearchResponse } from "@/lib/api";
 import { PageShell } from "@/components/shared/PageShell";
+import { AccountMenu } from "@/components/shared/AccountMenu";
+import { createBrowserSupabase } from "@/lib/supabaseClient";
 
 function CustomerHome() {
   const { coords, status } = useGeolocation();
@@ -21,7 +23,14 @@ function CustomerHome() {
     setBusy(true);
     setError(null);
     try {
-      const res = await searchProducts({ ...input, lat: coords.lat, lng: coords.lng });
+      const supabase = createBrowserSupabase();
+      const { data } = await supabase.auth.getSession();
+      const res = await searchProducts({
+        ...input,
+        lat: coords.lat,
+        lng: coords.lng,
+        accessToken: data.session?.access_token
+      });
       setResult(res);
     } catch (e: any) {
       setError(e.message ?? "Something went wrong.");
@@ -38,11 +47,7 @@ function CustomerHome() {
     <PageShell>
       <header className="mb-6 flex items-start justify-between">
         <p className="text-sm text-ash">Track best prices, near you first.</p>
-        <div className="flex gap-3 pt-0.5 font-mono text-xs text-ash">
-          <a href="/login" className="underline hover:text-ink">Log in</a>
-          <a href="/signup/customer" className="underline hover:text-ink">Sign up</a>
-          <a href="/signup/merchant" className="underline hover:text-ink">Sell on PriceBook</a>
-        </div>
+        <AccountMenu />
       </header>
 
       <SearchBar onSearch={handleSearch} busy={busy} />

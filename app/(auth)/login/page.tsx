@@ -73,7 +73,7 @@ function LoginForm() {
         <a href="/forgot-password" className="text-ash underline hover:text-ink">
           Forgot password?
         </a>
-        <a href="/signup/customer" className="text-ink underline hover:text-value">
+        <a href="/signup" className="text-ink underline hover:text-value">
           Sign up
         </a>
       </div>

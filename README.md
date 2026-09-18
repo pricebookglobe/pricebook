@@ -64,6 +64,39 @@ with PostGIS + pgvector, and OpenAI GPT-4o for multimodal product search.
    `product_embeddings` (call `embedProductDescription` from `lib/aiVision.ts`
    for real embeddings), and `store_inventory` so search has something to find.
 
+- **Accounts, settings, and search history** — `/signup` lets people choose
+  customer or merchant. Logged-in users get an account drawer
+  (`components/shared/AccountMenu.tsx`) with role-aware links and a red
+  **Log out**. `/settings` lets a customer change name + email (password
+  re-entry required) and a merchant change email only (Supabase's built-in
+  double-opt-in email confirmation handles the "verify the new address"
+  part automatically). `/history` shows a customer's past searches with
+  per-row delete and "Delete all" (`search_history` table, logged
+  automatically by `/api/search` whenever the caller is signed in).
+- **Merchant inventory management** — `/inventory` lists everything a store
+  sells with a photo (from the image used during "Add item," uploaded to
+  Supabase Storage), price, and a delete button. The inventory API route
+  now actually checks the caller owns the store before writing — the first
+  version trusted the store ID in the URL with no auth check at all.
+
+## Branded email sender (action needed, not code)
+
+Password-reset and confirmation emails currently come from Supabase's
+default sender. To send them from a `pricebook.institute-of-ai.org` (or
+`institute-of-ai.org`) address instead:
+
+1. In Supabase: **Project Settings → Auth → SMTP Settings**, turn on
+   "Enable Custom SMTP."
+2. Point it at a real SMTP provider you control for that domain — your DNS
+   already has AWS SES records for `send.institute-of-ai.org`, so reusing
+   SES (with an SMTP username/password generated in the SES console) is the
+   quickest path; Resend or SendGrid work the same way if you'd rather.
+3. Set the "Sender email" to something like `noreply@institute-of-ai.org`
+   (or verify a `pricebook.institute-of-ai.org` identity in SES first if
+   you want that exact subdomain in the From address).
+4. Save, then trigger a password reset to confirm it arrives from the new
+   address.
+
 ## What's stubbed or simplified, on purpose
 
 - **Web fallback** (`lib/webFallback.ts`): returns a reference link, not yet

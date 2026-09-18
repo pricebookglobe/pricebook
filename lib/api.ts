@@ -25,11 +25,16 @@ export async function searchProducts(params: {
   imageBase64?: string;
   lat: number;
   lng: number;
+  accessToken?: string;
 }): Promise<SearchResponse> {
+  const { accessToken, ...body } = params;
   const res = await fetch("/api/search", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params)
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+    },
+    body: JSON.stringify(body)
   });
   if (!res.ok) throw new Error((await res.json()).error ?? "Search failed");
   return res.json();
