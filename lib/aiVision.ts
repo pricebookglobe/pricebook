@@ -1,6 +1,14 @@
 import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Lazy singleton: constructing OpenAI() throws immediately if the key is
+// missing, which would otherwise crash Next.js's build-time page-data
+// collection (env vars aren't guaranteed loaded at that step). Building
+// the client on first real call keeps the build itself env-independent.
+let _openai: OpenAI | null = null;
+function openai(): OpenAI {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return _openai;
+}
 
 export type StructuredProduct = {
   product_name: string;
@@ -17,7 +25,7 @@ const EXTRACTION_SHAPE =
 export async function extractProductFromImage(
   imageBase64: string
 ): Promise<StructuredProduct> {
-  const response = await openai.chat.completions.create({
+  const response = await openai().chat.completions.create({
     model: "gpt-4o",
     messages: [
       {
@@ -44,7 +52,7 @@ export async function extractProductFromImage(
 
 /** Free-text query -> the same structured shape (handles typos, synonyms, local phrasing). */
 export async function parseTextQuery(text: string): Promise<StructuredProduct> {
-  const response = await openai.chat.completions.create({
+  const response = await openai().chat.completions.create({
     model: "gpt-4o",
     messages: [
       {
@@ -69,7 +77,7 @@ export async function embedProductDescription(
     .join(" ")
     .trim();
 
-  const res = await openai.embeddings.create({
+  const res = await openai().embeddings.create({
     model: "text-embedding-3-small",
     input: text
   });

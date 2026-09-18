@@ -3,10 +3,13 @@ import { createServiceSupabase } from "@/lib/supabaseClient";
 import { extractProductFromImage, parseTextQuery, embedProductDescription } from "@/lib/aiVision";
 import { webFallbackSearch } from "@/lib/webFallback";
 
+// "country" is an approximation (a large fixed radius), not a real
+// border-aware query — good enough for an MVP, worth swapping for a
+// country-code match on `stores` once that column exists.
 const RADII_M = {
-  immediate: 5_000,
-  extended: 25_000,
-  city: 60_000
+  neighborhood: 5_000,
+  town: 25_000,
+  country: 1_000_000
 } as const;
 
 const SIMILARITY_FALLBACK_THRESHOLD = 0.75;
@@ -22,15 +25,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // 1. Structured extraction — image takes priority when both are present.
     const structured = imageBase64
       ? await extractProductFromImage(imageBase64)
       : await parseTextQuery(text);
 
-    // 2. Embed for semantic matching.
     const embedding = await embedProductDescription(structured);
 
-    // 3. Widen the radius tier by tier until something turns up.
     const supabase = createServiceSupabase();
     let tierUsed: keyof typeof RADII_M | null = null;
     let results: any[] = [];
@@ -51,7 +51,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Web fallback only when nothing local clears the similarity bar.
     const strongMatches = results.filter((r) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
     const webEstimate = strongMatches.length ? null : await webFallbackSearch(structured);
 

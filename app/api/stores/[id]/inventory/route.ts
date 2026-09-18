@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const { product_id, price, in_stock = true } = await req.json();
+  const { product_id, price, currency = "JOD", in_stock = true } = await req.json();
   if (!product_id || typeof price !== "number") {
     return NextResponse.json({ error: "product_id and numeric price are required" }, { status: 400 });
   }
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { error: invError } = await supabase
     .from("store_inventory")
     .upsert(
-      { store_id: params.id, product_id, price, in_stock, updated_at: new Date().toISOString() },
+      { store_id: params.id, product_id, price, currency, in_stock, updated_at: new Date().toISOString() },
       { onConflict: "store_id,product_id" }
     );
   if (invError) return NextResponse.json({ error: invError.message }, { status: 500 });

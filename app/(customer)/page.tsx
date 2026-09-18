@@ -35,9 +35,16 @@ function CustomerHome() {
 
   return (
     <main className="mx-auto min-h-screen max-w-xl px-5 py-10">
-      <header className="mb-8">
-        <h1 className="font-display text-2xl font-semibold text-ink">PriceBook</h1>
-        <p className="mt-1 text-sm text-ash">Track best prices, near you first.</p>
+      <header className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-ink">PriceBook</h1>
+          <p className="mt-1 text-sm text-ash">Track best prices, near you first.</p>
+        </div>
+        <div className="flex gap-3 pt-1 font-mono text-xs text-ash">
+          <a href="/login" className="underline hover:text-ink">Log in</a>
+          <a href="/signup/customer" className="underline hover:text-ink">Sign up</a>
+          <a href="/signup/merchant" className="underline hover:text-ink">Sell on PriceBook</a>
+        </div>
       </header>
 
       <SearchBar onSearch={handleSearch} busy={busy} />
