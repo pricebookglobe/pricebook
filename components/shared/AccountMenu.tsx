@@ -1,53 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Package, Clock, Settings as SettingsIcon, LogOut, Users, ShieldCheck } from "lucide-react";
+import { Package, Clock, Settings as SettingsIcon, LogOut, LayoutDashboard } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-
-type Profile = {
-  full_name: string | null;
-  email: string;
-  role: "customer" | "merchant" | "admin";
-  delete_history_on_logout: boolean;
-};
+import { useAccount } from "@/lib/AccountProvider";
 
 export function AccountMenu() {
   const router = useRouter();
   const { t } = useLanguage();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [storeName, setStoreName] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
-
-  useEffect(() => {
-    const supabase = createBrowserSupabase();
-    supabase.auth.getUser().then(async ({ data: userData, error: userError }) => {
-      if (userError || !userData.user) {
-        setLoading(false);
-        return;
-      }
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      if (!accessToken) {
-        setLoading(false);
-        return;
-      }
-      setToken(accessToken);
-      const res = await fetch("/api/me", { headers: { Authorization: `Bearer ${accessToken}` } });
-      if (res.ok) {
-        const p: Profile = await res.json();
-        setProfile(p);
-        if (p.role === "merchant") {
-          const storeRes = await fetch("/api/merchant/store", { headers: { Authorization: `Bearer ${accessToken}` } });
-          const store = await storeRes.json();
-          if (store) setStoreName(store.name);
-        }
-      }
-      setLoading(false);
-    });
-  }, []);
+  const { profile, storeName, token, loading } = useAccount();
 
   async function handleLogout() {
     const supabase = createBrowserSupabase();
@@ -69,14 +32,17 @@ export function AccountMenu() {
     router.refresh();
   }
 
-  if (loading) return <div className="h-52 w-32" />; // avoid layout shift while checking session
+  // Only the very first load (before the root-level AccountProvider has
+  // resolved) shows this placeholder — navigating between pages afterward
+  // never hits this state again, since the context isn't re-fetched.
+  if (loading) return <div className="h-52 w-32" />;
 
   if (!profile) {
     return (
       <div className="flex gap-3 font-mono text-xs text-ash">
-        <a href="/login" className="underline hover:text-ink">{t("Log in")}</a>
-        <a href="/signup" className="underline hover:text-ink">{t("Sign up")}</a>
-        <a href="/signup/merchant" className="underline hover:text-ink">{t("Sell on PriceBook")}</a>
+        <Link href="/login" className="underline hover:text-ink">{t("Log in")}</Link>
+        <Link href="/signup" className="underline hover:text-ink">{t("Sign up")}</Link>
+        <Link href="/signup/merchant" className="underline hover:text-ink">{t("Sell on PriceBook")}</Link>
       </div>
     );
   }
@@ -86,9 +52,9 @@ export function AccountMenu() {
 
   return (
     <div className="flex h-full flex-col items-center text-center">
-      <a href="/" className="flex flex-col items-center">
+      <Link href="/" className="flex flex-col items-center">
         <img src="/pricebook-icon-transparent.png" alt="PriceBook" className="h-auto w-16" />
-      </a>
+      </Link>
 
       <div className="mt-4 flex flex-col items-center">
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-display text-sm font-medium text-field">
@@ -100,26 +66,26 @@ export function AccountMenu() {
 
       <nav className="mt-6 flex w-full flex-col gap-0.5 text-sm">
         {profile.role === "admin" ? (
-          <>
-            <a href="/admin/users" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
-              <Users size={16} strokeWidth={1.75} /> Users
-            </a>
-            <a href="/admin/verify-stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
-              <ShieldCheck size={16} strokeWidth={1.75} /> Stores
-            </a>
-          </>
+          <Link href="/admin" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+            <LayoutDashboard size={16} strokeWidth={1.75} /> Admin platform
+          </Link>
         ) : profile.role === "merchant" ? (
-          <a href="/inventory" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
-            <Package size={16} strokeWidth={1.75} /> {t("Products")}
-          </a>
+          <>
+            <Link href="/overview" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+              <LayoutDashboard size={16} strokeWidth={1.75} /> Overview
+            </Link>
+            <Link href="/inventory" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+              <Package size={16} strokeWidth={1.75} /> {t("Products")}
+            </Link>
+          </>
         ) : (
-          <a href="/history" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+          <Link href="/history" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
             <Clock size={16} strokeWidth={1.75} /> {t("Search history")}
-          </a>
+          </Link>
         )}
-        <a href="/settings" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+        <Link href="/settings" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
           <SettingsIcon size={16} strokeWidth={1.75} /> {t("Settings")}
-        </a>
+        </Link>
       </nav>
 
       <button

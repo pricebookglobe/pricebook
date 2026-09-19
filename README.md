@@ -21,7 +21,7 @@ is on, a merchant signing up lands on a "check your email" step before
 finishing store setup (`/store-profile` picks up where signup left off,
 including the CR certificate and store photo upload).
 
-## Promote yourself to admin (needed for /admin/verify-stores)
+## Promote yourself to admin (needed for /admin)
 
 Nothing in the UI can grant the admin role — that's intentional, it should
 never be self-service. Run this once in Supabase's SQL Editor, with your
@@ -31,7 +31,7 @@ own account's email:
 update users set role = 'admin' where email = 'you@example.com';
 ```
 
-Then visit `/admin/verify-stores` while logged in as that account to
+Then visit `/admin` while logged in as that account to
 approve or reject pending merchant registrations.
 
 ## Get it running locally
@@ -84,6 +84,10 @@ approve or reject pending merchant registrations.
 - **Merchant dashboard**: competitiveness ranking per category, a
   verification-pending banner, view count, and links to inventory
   management, adding items, and messages.
+- **Merchant Store Overview** (`/overview`): product count, store-page view
+  count, and an average "cheaper than X% of town" score, plus a per-product
+  table ranking this store's price against every other store in the same
+  city selling that product (`get_store_product_positions`, migration 0009).
 - **Add item** (`/inventory/add`): text, photo, or camera → GPT-4o extracts
   name/brand/manufacturer/size/unit/category into an editable form → set
   price + currency → saves via `/api/products` (find-or-create + embed,

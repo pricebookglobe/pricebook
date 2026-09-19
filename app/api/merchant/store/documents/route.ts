@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
         <p><strong>Store admin email:</strong> ${fullStore.admin_email ?? "—"}</p>
         <p><strong>CR certificate:</strong> ${fullStore.cr_certificate_url ? `<a href="${fullStore.cr_certificate_url}">View document</a>` : "not uploaded"}</p>
         <p><strong>Store photo:</strong> ${fullStore.store_photo_url ? `<a href="${fullStore.store_photo_url}">View photo</a>` : "not uploaded"}</p>
-        <p>Review and approve at <a href="https://pricebook.institute-of-ai.org/admin/verify-stores">/admin/verify-stores</a>.</p>
+        <p>Review and approve at <a href="https://pricebook.institute-of-ai.org/admin">/admin</a>.</p>
       `
     });
   }
