@@ -26,14 +26,14 @@ export function Pagination({
         <button
           onClick={() => onPageChange(Math.max(0, page - 1))}
           disabled={page === 0}
-          className="rounded-sm border border-line px-3 py-1.5 text-ink hover:border-ink/40 disabled:opacity-40"
+          className="rounded-sm bg-ink px-3 py-1.5 font-medium text-field hover:bg-ink/90 disabled:opacity-40"
         >
           ← Back
         </button>
         <button
           onClick={() => onPageChange(Math.min(totalPages - 1, page + 1))}
           disabled={page >= totalPages - 1}
-          className="rounded-sm border border-line px-3 py-1.5 text-ink hover:border-ink/40 disabled:opacity-40"
+          className="rounded-sm bg-value px-3 py-1.5 font-medium text-white hover:bg-value/90 disabled:opacity-40"
         >
           Next →
         </button>
