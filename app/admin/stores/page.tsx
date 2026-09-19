@@ -124,7 +124,7 @@ export default function AdminStoresPage() {
         />
       </div>
 
-      {notice && <p className="mb-3 text-sm text-value">{notice}</p>}
+      {notice && <p className="mb-3 text-sm text-ink">{notice}</p>}
 
       <table className="data-table">
         <thead>

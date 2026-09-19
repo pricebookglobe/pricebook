@@ -30,6 +30,7 @@ export default function AdminUsersPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<UserRow | null>(null);
+  const [pendingFreeze, setPendingFreeze] = useState<UserRow | null>(null);
   const [page, setPage] = useState(0);
 
   async function load(currentToken: string, q?: string) {
@@ -125,7 +126,7 @@ export default function AdminUsersPage() {
         </button>
       </form>
 
-      {notice && <p className="mb-3 text-sm text-value">{notice}</p>}
+      {notice && <p className="mb-3 text-sm text-ink">{notice}</p>}
 
       <table className="data-table">
         <thead>
@@ -150,7 +151,7 @@ export default function AdminUsersPage() {
                 <RowActionsMenu
                   disabled={busyId === u.id}
                   actions={[
-                    { label: u.is_frozen ? "Unfreeze" : "Freeze", onClick: () => toggleFreeze(u) },
+                    { label: u.is_frozen ? "Unfreeze" : "Freeze", onClick: () => (u.is_frozen ? toggleFreeze(u) : setPendingFreeze(u)) },
                     { label: "Reset password", onClick: () => sendReset(u) },
                     { label: "Delete", onClick: () => setPendingDelete(u), danger: true }
                   ]}
@@ -162,6 +163,18 @@ export default function AdminUsersPage() {
       </table>
 
       <Pagination page={page} totalItems={users.length} onPageChange={setPage} />
+
+      <ConfirmDialog
+        open={!!pendingFreeze}
+        title="Freeze this account?"
+        message={pendingFreeze ? `${pendingFreeze.full_name || pendingFreeze.email} won't be able to log in until you unfreeze the account.` : ""}
+        confirmLabel="Freeze"
+        onCancel={() => setPendingFreeze(null)}
+        onConfirm={() => {
+          if (pendingFreeze) toggleFreeze(pendingFreeze);
+          setPendingFreeze(null);
+        }}
+      />
 
       <ConfirmDialog
         open={!!pendingDelete}
