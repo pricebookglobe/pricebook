@@ -6,6 +6,7 @@ import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { ClearableSearch } from "@/components/admin/ClearableSearch";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 
 type UserRow = {
   id: string;
@@ -27,6 +28,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<UserRow | null>(null);
 
   async function load(currentToken: string, q?: string) {
     const url = q ? `/api/admin/users?search=${encodeURIComponent(q)}` : "/api/admin/users";
@@ -86,7 +88,6 @@ export default function AdminUsersPage() {
 
   async function deleteUser(u: UserRow) {
     if (!token) return;
-    if (!confirm(`Permanently delete ${u.email}? This cannot be undone.`)) return;
     setBusyId(u.id);
     const res = await fetch(`/api/admin/users/${u.id}`, {
       method: "DELETE",
@@ -147,7 +148,7 @@ export default function AdminUsersPage() {
                   actions={[
                     { label: u.is_frozen ? "Unfreeze" : "Freeze", onClick: () => toggleFreeze(u) },
                     { label: "Reset password", onClick: () => sendReset(u) },
-                    { label: "Delete", onClick: () => deleteUser(u), danger: true }
+                    { label: "Delete", onClick: () => setPendingDelete(u), danger: true }
                   ]}
                 />
               </td>
@@ -155,6 +156,18 @@ export default function AdminUsersPage() {
           ))}
         </tbody>
       </table>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title="Delete user?"
+        message={pendingDelete ? `Permanently delete ${pendingDelete.email}? This cannot be undone.` : ""}
+        confirmLabel="Delete"
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) deleteUser(pendingDelete);
+          setPendingDelete(null);
+        }}
+      />
     </AppPage>
   );
 }

@@ -6,6 +6,7 @@ import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { ClearableSearch } from "@/components/admin/ClearableSearch";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 
 type StoreRow = {
   id: string;
@@ -27,6 +28,7 @@ export default function AdminStoresPage() {
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<StoreRow | null>(null);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -69,7 +71,6 @@ export default function AdminStoresPage() {
 
   async function deleteStore(s: StoreRow) {
     if (!token) return;
-    if (!confirm(`Permanently delete ${s.name}'s account? This removes the store too and cannot be undone.`)) return;
     setBusyId(s.id);
     const res = await fetch(`/api/admin/users/${s.owner_id}`, {
       method: "DELETE",
@@ -124,7 +125,7 @@ export default function AdminStoresPage() {
                     { label: "Freeze", onClick: () => toggleFreeze(s, true) },
                     { label: "Unfreeze", onClick: () => toggleFreeze(s, false) },
                     { label: "Reset password", onClick: () => sendReset(s) },
-                    { label: "Delete", onClick: () => deleteStore(s), danger: true }
+                    { label: "Delete", onClick: () => setPendingDelete(s), danger: true }
                   ]}
                 />
               </td>
@@ -132,6 +133,18 @@ export default function AdminStoresPage() {
           ))}
         </tbody>
       </table>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title="Delete store account?"
+        message={pendingDelete ? `Permanently delete ${pendingDelete.name}'s account? This removes the store too and cannot be undone.` : ""}
+        confirmLabel="Delete"
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) deleteStore(pendingDelete);
+          setPendingDelete(null);
+        }}
+      />
     </AppPage>
   );
 }
