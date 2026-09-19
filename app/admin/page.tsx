@@ -7,6 +7,7 @@ import { AppPage } from "@/components/shared/AppPage";
 import { ClearableSearch } from "@/components/admin/ClearableSearch";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { Pagination, paginate } from "@/components/admin/Pagination";
 
 type UserRow = {
   id: string;
@@ -29,6 +30,7 @@ export default function AdminUsersPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<UserRow | null>(null);
+  const [page, setPage] = useState(0);
 
   async function load(currentToken: string, q?: string) {
     const url = q ? `/api/admin/users?search=${encodeURIComponent(q)}` : "/api/admin/users";
@@ -58,6 +60,7 @@ export default function AdminUsersPage() {
     e.preventDefault();
     if (!token) return;
     setLoading(true);
+    setPage(0);
     await load(token, search);
     setLoading(false);
   }
@@ -112,6 +115,7 @@ export default function AdminUsersPage() {
           onChange={setSearch}
           onClear={async () => {
             setSearch("");
+            setPage(0);
             if (token) await load(token);
           }}
           placeholder="Search by name or email…"
@@ -134,7 +138,7 @@ export default function AdminUsersPage() {
           </tr>
         </thead>
         <tbody>
-          {users.map((u) => (
+          {paginate(users, page).map((u) => (
             <tr key={u.id}>
               <td>{u.full_name || [u.first_name, u.last_name].filter(Boolean).join(" ") || "—"}</td>
               <td className="font-mono text-xs">{u.email}</td>
@@ -156,6 +160,8 @@ export default function AdminUsersPage() {
           ))}
         </tbody>
       </table>
+
+      <Pagination page={page} totalItems={users.length} onPageChange={setPage} />
 
       <ConfirmDialog
         open={!!pendingDelete}

@@ -7,6 +7,7 @@ import { AppPage } from "@/components/shared/AppPage";
 import { ClearableSearch } from "@/components/admin/ClearableSearch";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { Pagination, paginate } from "@/components/admin/Pagination";
 
 type StoreRow = {
   id: string;
@@ -29,6 +30,7 @@ export default function AdminStoresPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<StoreRow | null>(null);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -96,7 +98,18 @@ export default function AdminStoresPage() {
       <p className="mb-6 text-sm text-ash">Every registered store — actions here manage the store's admin account.</p>
 
       <div className="mb-4 flex gap-2">
-        <ClearableSearch value={search} onChange={setSearch} onClear={() => setSearch("")} placeholder="Search by store name or city…" />
+        <ClearableSearch
+          value={search}
+          onChange={(v) => {
+            setSearch(v);
+            setPage(0);
+          }}
+          onClear={() => {
+            setSearch("");
+            setPage(0);
+          }}
+          placeholder="Search by store name or city…"
+        />
       </div>
 
       {notice && <p className="mb-3 text-sm text-value">{notice}</p>}
@@ -112,7 +125,7 @@ export default function AdminStoresPage() {
           </tr>
         </thead>
         <tbody>
-          {filtered.map((s) => (
+          {paginate(filtered, page).map((s) => (
             <tr key={s.id}>
               <td>{s.name}</td>
               <td>{s.city}</td>
@@ -133,6 +146,8 @@ export default function AdminStoresPage() {
           ))}
         </tbody>
       </table>
+
+      <Pagination page={page} totalItems={filtered.length} onPageChange={setPage} />
 
       <ConfirmDialog
         open={!!pendingDelete}

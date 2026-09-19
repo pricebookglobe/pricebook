@@ -6,6 +6,7 @@ import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { ClearableSearch } from "@/components/admin/ClearableSearch";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
+import { Pagination, paginate } from "@/components/admin/Pagination";
 
 type StoreRow = {
   id: string;
@@ -29,6 +30,7 @@ export default function PendingStoresPage() {
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -65,18 +67,33 @@ export default function PendingStoresPage() {
   if (loading) return <AppPage maxWidth="max-w-4xl"><p className="text-sm text-ash">…</p></AppPage>;
   if (forbidden) return <AppPage maxWidth="max-w-4xl"><p className="text-sm text-flag">Admins only.</p></AppPage>;
 
+  const filtered = stores.filter(
+    (s) => !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.city.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <AppPage maxWidth="max-w-4xl">
       <h1 className="mb-1 font-display text-xl font-semibold text-ink">Store requests</h1>
       <p className="mb-6 text-sm text-ash">New store signups waiting on approval.</p>
 
       <div className="mb-4 flex gap-2">
-        <ClearableSearch value={search} onChange={setSearch} onClear={() => setSearch("")} placeholder="Search by store name or city…" />
+        <ClearableSearch
+          value={search}
+          onChange={(v) => {
+            setSearch(v);
+            setPage(0);
+          }}
+          onClear={() => {
+            setSearch("");
+            setPage(0);
+          }}
+          placeholder="Search by store name or city…"
+        />
       </div>
 
       {stores.length === 0 && <p className="text-sm text-ash">No pending requests right now.</p>}
 
-      {stores.filter((s) => !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.city.toLowerCase().includes(search.toLowerCase())).map((s) => (
+      {paginate(filtered, page).map((s) => (
         <div key={s.id} className="mb-3 rounded border border-line bg-field p-4">
           <div className="flex items-start justify-between">
             <div>
@@ -115,6 +132,8 @@ export default function PendingStoresPage() {
           )}
         </div>
       ))}
+
+      <Pagination page={page} totalItems={filtered.length} onPageChange={setPage} />
     </AppPage>
   );
 }
