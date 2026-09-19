@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { PageShell } from "@/components/shared/PageShell";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { COUNTRIES, statesFor } from "@/lib/geography";
 
 export default function CustomerSignup() {
   const router = useRouter();
@@ -14,18 +15,22 @@ export default function CustomerSignup() {
     lastName: "",
     email: "",
     address: "",
-    city: "",
     country: "",
+    state: "",
+    city: "",
     password: "",
     confirmPassword: ""
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
   }
+
+  const availableStates = statesFor(form.country);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,6 +41,7 @@ export default function CustomerSignup() {
     setBusy(true);
     setError(null);
 
+    const countryName = COUNTRIES.find((c) => c.code === form.country)?.name ?? form.country;
     const supabase = createBrowserSupabase();
     const { error } = await supabase.auth.signUp({
       email: form.email,
@@ -47,8 +53,8 @@ export default function CustomerSignup() {
           last_name: form.lastName,
           full_name: `${form.firstName} ${form.lastName}`.trim(),
           address: form.address,
-          city: form.city,
-          country: form.country
+          city: form.state ? `${form.city}, ${form.state}` : form.city,
+          country: countryName
         }
       }
     });
@@ -110,7 +116,44 @@ export default function CustomerSignup() {
             className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
           />
         </label>
-        <div className="grid grid-cols-2 gap-3">
+
+        <label className="text-sm text-ash">
+          Country
+          <select
+            required
+            value={form.country}
+            onChange={(e) => update("country", e.target.value)}
+            className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+          >
+            <option value="">—</option>
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {availableStates && (
+          <label className="text-sm text-ash">
+            State / Province
+            <select
+              required
+              value={form.state}
+              onChange={(e) => update("state", e.target.value)}
+              className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+            >
+              <option value="">—</option>
+              {availableStates.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {form.country && (
           <label className="text-sm text-ash">
             {t("City")}
             <input
@@ -120,16 +163,7 @@ export default function CustomerSignup() {
               className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
             />
           </label>
-          <label className="text-sm text-ash">
-            Country
-            <input
-              required
-              value={form.country}
-              onChange={(e) => update("country", e.target.value)}
-              className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
-            />
-          </label>
-        </div>
+        )}
 
         <label className="text-sm text-ash">
           {t("Password")}
@@ -157,11 +191,19 @@ export default function CustomerSignup() {
           <div className="mt-1 flex items-center rounded border border-line bg-field">
             <input
               required
-              type={showPassword ? "text" : "password"}
+              type={showConfirmPassword ? "text" : "password"}
               value={form.confirmPassword}
               onChange={(e) => update("confirmPassword", e.target.value)}
               className="w-full bg-transparent px-3 py-2 text-ink outline-none"
             />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((s) => !s)}
+              className="px-3 text-ash hover:text-ink"
+              aria-label="Toggle password visibility"
+            >
+              {showConfirmPassword ? "🙈" : "👁"}
+            </button>
           </div>
         </label>
 
