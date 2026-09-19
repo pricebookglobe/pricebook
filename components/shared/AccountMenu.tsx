@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Package, Clock, Settings as SettingsIcon, LogOut, LayoutDashboard } from "lucide-react";
@@ -11,8 +12,9 @@ export function AccountMenu() {
   const router = useRouter();
   const { t } = useLanguage();
   const { profile, storeName, storeLogoUrl, token, loading } = useAccount();
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
 
-  async function handleLogout() {
+  async function confirmLogout() {
     const supabase = createBrowserSupabase();
     if (token) {
       try {
@@ -39,10 +41,10 @@ export function AccountMenu() {
 
   if (!profile) {
     return (
-      <div className="flex gap-3 font-mono text-xs text-ash">
-        <Link href="/login" className="underline hover:text-ink">{t("Log in")}</Link>
-        <Link href="/signup" className="underline hover:text-ink">{t("Sign up")}</Link>
-        <Link href="/signup/merchant" className="underline hover:text-ink">{t("Sell on PriceBook")}</Link>
+      <div className="flex gap-3 font-mono text-xs text-field/70">
+        <Link href="/login" className="underline hover:text-field">{t("Log in")}</Link>
+        <Link href="/signup" className="underline hover:text-field">{t("Sign up")}</Link>
+        <Link href="/signup/merchant" className="underline hover:text-field">{t("Sell on PriceBook")}</Link>
       </div>
     );
   }
@@ -60,44 +62,67 @@ export function AccountMenu() {
         {storeLogoUrl ? (
           <img src={storeLogoUrl} alt="" className="h-9 w-9 rounded-full object-cover" />
         ) : (
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-display text-sm font-medium text-field">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-value font-display text-sm font-medium text-white">
             {initial}
           </span>
         )}
-        <p className="mt-2 font-display text-[15px] font-semibold leading-tight text-ink">{displayName}</p>
-        <p className="font-mono text-[10px] uppercase tracking-wide text-ash">{profile.role}</p>
+        <p className="mt-2 font-display text-[15px] font-semibold leading-tight text-field">{displayName}</p>
+        <p className="font-mono text-[10px] uppercase tracking-wide text-field/50">{profile.role}</p>
       </div>
 
       <nav className="mt-6 flex w-full flex-col gap-0.5 text-sm">
         {profile.role === "admin" ? (
-          <Link href="/admin" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+          <Link href="/admin" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
             <LayoutDashboard size={16} strokeWidth={1.75} /> Admin platform
           </Link>
         ) : profile.role === "merchant" ? (
           <>
-            <Link href="/overview" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+            <Link href="/overview" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
               <LayoutDashboard size={16} strokeWidth={1.75} /> Overview
             </Link>
-            <Link href="/inventory" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+            <Link href="/inventory" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
               <Package size={16} strokeWidth={1.75} /> {t("Products")}
             </Link>
           </>
         ) : (
-          <Link href="/history" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+          <Link href="/history" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
             <Clock size={16} strokeWidth={1.75} /> {t("Search history")}
           </Link>
         )}
-        <Link href="/settings" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+        <Link href="/settings" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
           <SettingsIcon size={16} strokeWidth={1.75} /> {t("Settings")}
         </Link>
       </nav>
 
       <button
-        onClick={handleLogout}
+        onClick={() => setConfirmingLogout(true)}
         className="mt-auto flex items-center justify-center gap-1.5 rounded-sm bg-red-600 px-4 py-2 font-mono text-[11px] font-medium text-white hover:bg-red-700"
       >
         <LogOut size={14} strokeWidth={2} /> {t("Log out")}
       </button>
+
+      {confirmingLogout && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-lg bg-white p-6 text-left shadow-2xl">
+            <h2 className="font-display text-lg font-semibold text-ink">Log out?</h2>
+            <p className="mt-2 text-sm text-ash">Are you sure you want to log out of your account?</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmingLogout(false)}
+                className="rounded-sm bg-blue-600 px-4 py-2 font-display text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Discard
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="rounded-sm bg-red-600 px-4 py-2 font-display text-sm font-medium text-white hover:bg-red-700"
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

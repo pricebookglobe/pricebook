@@ -141,12 +141,27 @@ export default function AdminPlatformPage() {
         <h2 className="mb-3 font-display text-[15px] font-medium text-ink">Registered users</h2>
 
         <form onSubmit={handleUserSearch} className="mb-4 flex gap-2">
-          <input
-            value={userSearch}
-            onChange={(e) => setUserSearch(e.target.value)}
-            placeholder="Search by name or email…"
-            className="flex-1 rounded border border-line bg-field px-3 py-2 text-sm text-ink outline-none"
-          />
+          <div className="relative flex-1">
+            <input
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              placeholder="Search by name or email…"
+              className="w-full rounded border border-line bg-field px-3 py-2 pr-8 text-sm text-ink outline-none"
+            />
+            {userSearch && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setUserSearch("");
+                  if (token) await loadUsers(token);
+                }}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-ash hover:text-ink"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           <button type="submit" className="rounded-sm bg-ink px-4 py-2 font-display text-sm text-field">
             Search
           </button>

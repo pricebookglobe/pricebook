@@ -66,3 +66,10 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .velvet-field { animation: none; }
 }
+
+/* App-dashboard background: a calm blue gradient behind white content
+   cards — used only on logged-in app pages via AppPage, distinct from the
+   brighter velvet-field used on public login/signup screens. */
+.app-gradient {
+  background: linear-gradient(135deg, #E4F0FB 0%, #BFDCF5 40%, #7FB3E0 100%);
+}
