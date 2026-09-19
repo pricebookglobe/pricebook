@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { PageShell } from "@/components/shared/PageShell";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type Profile = { full_name: string | null; email: string; role: "customer" | "merchant" | "admin" };
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -52,7 +54,7 @@ export default function SettingsPage() {
       password: currentPassword
     });
     if (reauthError) {
-      setError("Current password is incorrect.");
+      setError(t("Current password is incorrect."));
       setBusy(false);
       return;
     }
@@ -65,7 +67,7 @@ export default function SettingsPage() {
 
     if (Object.keys(updates).length === 0) {
       setBusy(false);
-      setSaved("Nothing to update.");
+      setSaved(t("Nothing to update."));
       return;
     }
 
@@ -86,8 +88,8 @@ export default function SettingsPage() {
     setBusy(false);
     setSaved(
       updates.email
-        ? "Saved. Check your new email address to confirm the change."
-        : "Saved."
+        ? t("Saved. Check your new email address to confirm the change.")
+        : t("Saved.")
     );
   }
 
@@ -101,15 +103,15 @@ export default function SettingsPage() {
 
   return (
     <PageShell maxWidth="max-w-sm">
-      <h1 className="text-center font-display text-xl font-semibold text-ink">Settings</h1>
+      <h1 className="text-center font-display text-xl font-semibold text-ink">{t("Settings")}</h1>
       <p className="mt-1 text-center text-sm text-ash">
-        {profile.role === "merchant" ? "Merchants can update their email." : "Update your name or email."}
+        {profile.role === "merchant" ? t("Merchants can update their email.") : t("Update your name or email.")}
       </p>
 
       <form onSubmit={handleSave} className="mt-6 flex flex-col gap-3">
         {profile.role !== "merchant" && (
           <label className="text-sm text-ash">
-            Full name
+            {t("Full name")}
             <input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -119,7 +121,7 @@ export default function SettingsPage() {
         )}
 
         <label className="text-sm text-ash">
-          Email
+          {t("Email")}
           <input
             type="email"
             value={email}
@@ -129,7 +131,7 @@ export default function SettingsPage() {
         </label>
 
         <label className="text-sm text-ash">
-          Current password <span className="text-ash/70">(required to save changes)</span>
+          {t("Current password")} <span className="text-ash/70">(required to save changes)</span>
           <input
             required
             type="password"
@@ -147,7 +149,7 @@ export default function SettingsPage() {
           disabled={busy}
           className="mt-1 rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-field disabled:opacity-40"
         >
-          {busy ? "Saving…" : "Save changes"}
+          {busy ? t("Saving…") : t("Save changes")}
         </button>
       </form>
 
@@ -155,7 +157,7 @@ export default function SettingsPage() {
         onClick={handleLogout}
         className="mt-6 w-full rounded-sm bg-red-50 px-4 py-2 font-display text-sm font-medium text-red-600 hover:bg-red-100"
       >
-        Log out
+        {t("Log out")}
       </button>
     </PageShell>
   );

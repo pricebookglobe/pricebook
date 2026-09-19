@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type Props = {
   onSearch: (input: { text?: string; imageBase64?: string }) => void;
@@ -8,6 +9,7 @@ type Props = {
 };
 
 export function SearchBar({ onSearch, busy }: Props) {
+  const { t } = useLanguage();
   const [text, setText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -40,7 +42,7 @@ export function SearchBar({ onSearch, busy }: Props) {
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Organic whole milk 1L, or a brand name…"
+        placeholder={t("Organic whole milk 1L, or a brand name…")}
         className="flex-1 bg-transparent font-body text-[15px] text-ink placeholder:text-ash outline-none"
         disabled={busy}
       />
@@ -52,7 +54,7 @@ export function SearchBar({ onSearch, busy }: Props) {
         className="rounded-sm px-2 py-1 text-sm text-ash hover:text-ink"
         aria-label="Snap a photo"
       >
-        Snap
+        {t("Snap")}
       </button>
       <input
         ref={cameraInputRef}
@@ -70,7 +72,7 @@ export function SearchBar({ onSearch, busy }: Props) {
         className="rounded-sm px-2 py-1 text-sm text-ash hover:text-ink"
         aria-label="Upload a photo"
       >
-        Upload
+        {t("Upload")}
       </button>
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 
@@ -79,7 +81,7 @@ export function SearchBar({ onSearch, busy }: Props) {
         disabled={busy || !text.trim()}
         className="rounded-sm bg-ink px-4 py-1.5 font-display text-sm font-medium text-field disabled:opacity-40"
       >
-        {busy ? "Searching…" : "Find price"}
+        {busy ? t("Searching…") : t("Find price")}
       </button>
     </form>
   );

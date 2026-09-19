@@ -8,8 +8,16 @@ import { searchProducts, type SearchResponse } from "@/lib/api";
 import { PageShell } from "@/components/shared/PageShell";
 import { AccountMenu } from "@/components/shared/AccountMenu";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+
+const TIER_LABEL: Record<string, string> = {
+  neighborhood: "neighborhood zone",
+  town: "town zone",
+  country: "country zone"
+};
 
 function CustomerHome() {
+  const { t } = useLanguage();
   const { coords, status } = useGeolocation();
   const [result, setResult] = useState<SearchResponse | null>(null);
   const [busy, setBusy] = useState(false);
@@ -17,7 +25,7 @@ function CustomerHome() {
 
   async function handleSearch(input: { text?: string; imageBase64?: string }) {
     if (!coords) {
-      setError("Turn on location so we can find prices near you.");
+      setError(t("Turn on location so we can find prices near you."));
       return;
     }
     setBusy(true);
@@ -46,7 +54,7 @@ function CustomerHome() {
   return (
     <PageShell>
       <header className="mb-6 flex items-start justify-between">
-        <p className="text-sm text-ash">Track best prices, near you first.</p>
+        <p className="text-sm text-ash">{t("Track best prices, near you first.")}</p>
         <AccountMenu />
       </header>
 
@@ -54,7 +62,7 @@ function CustomerHome() {
 
       {status === "denied" && (
         <p className="mt-3 text-sm text-flag">
-          Location is off, so we can't sort by distance. Enable it in your browser to see nearby prices.
+          {t("Location is off, so we can't sort by distance. Enable it in your browser to see nearby prices.")}
         </p>
       )}
       {error && <p className="mt-3 text-sm text-flag">{error}</p>}
@@ -68,20 +76,20 @@ function CustomerHome() {
             </h2>
             {result.tier && (
               <span className="font-mono text-xs uppercase tracking-wide text-ash">
-                {result.tier} zone
+                {t(TIER_LABEL[result.tier] ?? result.tier)}
               </span>
             )}
           </div>
 
           {result.local_results.length === 0 && (
             <p className="text-sm text-ash">
-              No store nearby carries this yet.
+              {t("No store nearby carries this yet.")}
               {result.web_estimate?.source_url && (
                 <>
                   {" "}
-                  Reference:{" "}
+                  {t("Reference:")}{" "}
                   <a className="underline" href={result.web_estimate.source_url} target="_blank" rel="noreferrer">
-                    see online
+                    {t("see online")}
                   </a>
                   .
                 </>
@@ -89,9 +97,23 @@ function CustomerHome() {
             </p>
           )}
 
-          {result.local_results.map((r) => (
-            <ResultRow key={r.store_id + r.product_id} result={r} isCheapest={r.store_id === cheapestId} />
-          ))}
+          {result.local_results.length > 0 && (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>{t("Store")}</th>
+                  <th className="num">{t("Distance")}</th>
+                  <th className="num">{t("Price")}</th>
+                  <th>{t("Actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.local_results.map((r) => (
+                  <ResultRow key={r.store_id + r.product_id} result={r} isCheapest={r.store_id === cheapestId} />
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       )}
     </PageShell>

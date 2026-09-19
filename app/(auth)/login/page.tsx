@@ -4,10 +4,12 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { PageShell } from "@/components/shared/PageShell";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,11 +34,11 @@ function LoginForm() {
 
   return (
     <PageShell maxWidth="max-w-sm">
-      <h1 className="text-center font-display text-xl font-semibold text-ink">Log in</h1>
+      <h1 className="text-center font-display text-xl font-semibold text-ink">{t("Log in")}</h1>
 
       {params.get("justSignedUp") && (
         <p className="mt-4 rounded-sm bg-value-soft px-3 py-2 text-center text-sm text-value">
-          Check your email to confirm your account, then log in here.
+          {t("Check your email to confirm your account, then log in here.")}
         </p>
       )}
 
@@ -45,17 +47,17 @@ function LoginForm() {
           required
           type="email"
           value={email}
-          placeholder="Email"
+          placeholder={t("Email")}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded border border-line bg-field-raised px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
+          className="w-full rounded border border-line bg-field px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
         />
         <input
           required
           type="password"
           value={password}
-          placeholder="Password"
+          placeholder={t("Password")}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded border border-line bg-field-raised px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
+          className="w-full rounded border border-line bg-field px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
         />
 
         {error && <p className="text-center text-sm text-flag">{error}</p>}
@@ -65,16 +67,16 @@ function LoginForm() {
           disabled={busy}
           className="mt-1 rounded-sm bg-value px-4 py-2.5 font-display text-sm font-medium text-white transition-colors hover:bg-value/90 disabled:opacity-40"
         >
-          {busy ? "Logging in…" : "Log in"}
+          {busy ? t("Logging in…") : t("Log in")}
         </button>
       </form>
 
       <div className="mt-5 flex items-center justify-between text-sm">
         <a href="/forgot-password" className="text-ash underline hover:text-ink">
-          Forgot password?
+          {t("Forgot password?")}
         </a>
         <a href="/signup" className="text-ink underline hover:text-value">
-          Sign up
+          {t("Sign up")}
         </a>
       </div>
     </PageShell>

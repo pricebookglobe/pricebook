@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import type { StructuredProduct } from "@/lib/aiVision";
 import { PageShell } from "@/components/shared/PageShell";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export default function AddItemPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -121,8 +123,8 @@ export default function AddItemPage() {
   return (
     <PageShell>
       <header className="mb-6">
-        <h1 className="font-display text-xl font-semibold text-ink">Add an item</h1>
-        <p className="mt-1 text-sm text-ash">Describe it, snap it, or upload a photo — then set your price.</p>
+        <h1 className="font-display text-xl font-semibold text-ink">{t("Add an item")}</h1>
+        <p className="mt-1 text-sm text-ash">{t("Describe it, snap it, or upload a photo — then set your price.")}</p>
       </header>
 
       {!product && (
@@ -137,7 +139,7 @@ export default function AddItemPage() {
             <input
               value={textQuery}
               onChange={(e) => setTextQuery(e.target.value)}
-              placeholder="e.g. Al Ain fresh milk 1L"
+              placeholder={t("e.g. Al Ain fresh milk 1L")}
               className="flex-1 bg-transparent text-[15px] text-ink placeholder:text-ash outline-none"
               disabled={extracting}
             />
@@ -147,7 +149,7 @@ export default function AddItemPage() {
               disabled={extracting}
               className="rounded-sm px-2 py-1 text-sm text-ash hover:text-ink"
             >
-              Snap
+              {t("Snap")}
             </button>
             <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
             <button
@@ -156,7 +158,7 @@ export default function AddItemPage() {
               disabled={extracting}
               className="rounded-sm px-2 py-1 text-sm text-ash hover:text-ink"
             >
-              Upload
+              {t("Upload")}
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
             <button
@@ -164,19 +166,19 @@ export default function AddItemPage() {
               disabled={extracting || !textQuery.trim()}
               className="rounded-sm bg-ink px-4 py-1.5 font-display text-sm font-medium text-field disabled:opacity-40"
             >
-              {extracting ? "Reading…" : "Identify"}
+              {extracting ? t("Reading…") : t("Identify")}
             </button>
           </form>
-          {saved && <p className="text-sm text-value">Saved — add another item, or head back to your dashboard.</p>}
+          {saved && <p className="text-sm text-value">{t("Saved — add another item, or head back to your dashboard.")}</p>}
         </div>
       )}
 
       {product && (
         <div className="mt-2 flex flex-col gap-3 rounded border border-line bg-field-raised p-4">
-          <p className="font-mono text-xs uppercase tracking-wide text-ash">Confirm the details</p>
+          <p className="font-mono text-xs uppercase tracking-wide text-ash">{t("Confirm the details")}</p>
 
           <label className="text-sm text-ash">
-            Product name
+            {t("Item") /* product name label */}
             <input
               value={product.product_name}
               onChange={(e) => updateProductField("product_name", e.target.value)}
@@ -185,7 +187,7 @@ export default function AddItemPage() {
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="text-sm text-ash">
-              Brand
+              {t("Brand")}
               <input
                 value={product.brand ?? ""}
                 onChange={(e) => updateProductField("brand", e.target.value)}
@@ -193,7 +195,7 @@ export default function AddItemPage() {
               />
             </label>
             <label className="text-sm text-ash">
-              Category
+              {t("Category")}
               <input
                 value={product.category}
                 onChange={(e) => updateProductField("category", e.target.value)}
@@ -201,7 +203,7 @@ export default function AddItemPage() {
               />
             </label>
             <label className="text-sm text-ash">
-              Size
+              {t("Size")}
               <input
                 type="number"
                 value={product.size ?? ""}
@@ -210,7 +212,7 @@ export default function AddItemPage() {
               />
             </label>
             <label className="text-sm text-ash">
-              Unit
+              {t("Unit")}
               <input
                 value={product.unit ?? ""}
                 onChange={(e) => updateProductField("unit", e.target.value)}
@@ -221,7 +223,7 @@ export default function AddItemPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <label className="text-sm text-ash">
-              Price
+              {t("Price")}
               <input
                 type="number"
                 step="0.01"
@@ -231,7 +233,7 @@ export default function AddItemPage() {
               />
             </label>
             <label className="text-sm text-ash">
-              Currency
+              {t("Currency")}
               <input
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value.toUpperCase())}
@@ -248,10 +250,10 @@ export default function AddItemPage() {
               disabled={saving || !price}
               className="rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-field disabled:opacity-40"
             >
-              {saving ? "Saving…" : "Save item"}
+              {saving ? t("Saving…") : t("Save item")}
             </button>
             <button onClick={() => setProduct(null)} className="rounded-sm px-4 py-2 font-display text-sm text-ash">
-              Cancel
+              {t("Cancel")}
             </button>
           </div>
         </div>

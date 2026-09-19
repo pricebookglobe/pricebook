@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type Profile = { full_name: string | null; email: string; role: "customer" | "merchant" | "admin" };
 
 export function AccountMenu() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -39,9 +41,9 @@ export function AccountMenu() {
   if (!profile) {
     return (
       <div className="flex gap-3 font-mono text-xs text-ash">
-        <a href="/login" className="underline hover:text-ink">Log in</a>
-        <a href="/signup" className="underline hover:text-ink">Sign up</a>
-        <a href="/signup/merchant" className="underline hover:text-ink">Sell on PriceBook</a>
+        <a href="/login" className="underline hover:text-ink">{t("Log in")}</a>
+        <a href="/signup" className="underline hover:text-ink">{t("Sign up")}</a>
+        <a href="/signup/merchant" className="underline hover:text-ink">{t("Sell on PriceBook")}</a>
       </div>
     );
   }
@@ -75,11 +77,11 @@ export function AccountMenu() {
 
             <nav className="flex flex-col gap-1 text-sm">
               {profile.role === "merchant" ? (
-                <a href="/dashboard" className="rounded-sm px-3 py-2 text-ink hover:bg-field">Dashboard</a>
+                <a href="/dashboard" className="rounded-sm px-3 py-2 text-ink hover:bg-field">{t("Dashboard")}</a>
               ) : (
-                <a href="/history" className="rounded-sm px-3 py-2 text-ink hover:bg-field">Search history</a>
+                <a href="/history" className="rounded-sm px-3 py-2 text-ink hover:bg-field">{t("Search history")}</a>
               )}
-              <a href="/settings" className="rounded-sm px-3 py-2 text-ink hover:bg-field">Settings</a>
+              <a href="/settings" className="rounded-sm px-3 py-2 text-ink hover:bg-field">{t("Settings")}</a>
             </nav>
 
             <div className="mt-auto">
@@ -87,7 +89,7 @@ export function AccountMenu() {
                 onClick={handleLogout}
                 className="w-full rounded-sm bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
               >
-                Log out
+                {t("Log out")}
               </button>
             </div>
           </div>

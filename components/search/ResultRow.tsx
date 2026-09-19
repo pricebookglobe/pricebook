@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { SearchResult } from "@/lib/api";
 import { reportPrice } from "@/lib/api";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 function formatDistance(meters: number): string {
   return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(1)} km`;
@@ -16,14 +17,8 @@ const TRUST_COLOR: Record<SearchResult["trust_badge"], string> = {
   unrated: "bg-ash/40"
 };
 
-const TRUST_LABEL: Record<SearchResult["trust_badge"], string> = {
-  green: "Trusted pricing",
-  orange: "Some price disputes",
-  red: "Frequently disputed",
-  unrated: "Not yet rated"
-};
-
 export function ResultRow({ result, isCheapest }: { result: SearchResult; isCheapest: boolean }) {
+  const { t } = useLanguage();
   const [reported, setReported] = useState<"correct_price" | "wrong_price" | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -49,56 +44,48 @@ export function ResultRow({ result, isCheapest }: { result: SearchResult; isChea
   }
 
   return (
-    <div className="ledger-row flex-col items-stretch gap-1">
-      <div className="flex items-baseline justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span
-              className={"h-1.5 w-1.5 rounded-full " + TRUST_COLOR[result.trust_badge]}
-              title={TRUST_LABEL[result.trust_badge]}
-            />
-            <span className="truncate font-display text-[15px] font-medium text-ink">{result.store_name}</span>
-          </div>
-          <div className="mt-0.5 flex items-center gap-2 font-mono text-xs text-ash">
-            <span>{formatDistance(result.distance_m)} away</span>
+    <tr>
+      <td>
+        <div className="flex items-center gap-2">
+          <span className={"h-2 w-2 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />
+          <div className="min-w-0">
+            <p className="truncate font-medium">{result.store_name}</p>
             <a
               href={`https://www.google.com/maps?q=${result.store_lat},${result.store_lng}`}
               target="_blank"
               rel="noreferrer"
-              className="underline"
+              className="font-mono text-[11px] text-ash underline"
             >
-              view on map
+              {t("view on map")}
             </a>
           </div>
         </div>
-
-        <div className="flex items-baseline gap-2">
-          {isCheapest && (
-            <span className="rounded-sm bg-value-soft px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide text-value">
-              Cheapest
-            </span>
-          )}
-          <span className="font-display text-lg font-semibold text-ink">
-            {result.price.toFixed(2)}
-            <span className="ml-1 text-xs font-normal text-ash">{result.currency}</span>
+      </td>
+      <td className="num font-mono text-xs text-ash">{formatDistance(result.distance_m)}</td>
+      <td className="num">
+        {isCheapest && (
+          <span className="mr-2 rounded-sm bg-value-soft px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide text-value">
+            {t("Cheapest")}
           </span>
-        </div>
-      </div>
-
-      <div className="flex gap-3 font-mono text-[11px] text-ash">
-        {reported ? (
-          <span className="text-value">Thanks — marked as {reported === "correct_price" ? "correct" : "wrong"}.</span>
-        ) : (
-          <>
-            <button disabled={busy} onClick={() => handleReport("correct_price")} className="underline hover:text-ink">
-              Price is correct
-            </button>
-            <button disabled={busy} onClick={() => handleReport("wrong_price")} className="underline hover:text-flag">
-              Price is wrong
-            </button>
-          </>
         )}
-      </div>
-    </div>
+        {result.price.toFixed(2)} <span className="text-xs font-normal text-ash">{result.currency}</span>
+      </td>
+      <td>
+        {reported ? (
+          <span className="font-mono text-[11px] text-value">
+            {reported === "correct_price" ? t("Thanks — marked as correct.") : t("Thanks — marked as wrong.")}
+          </span>
+        ) : (
+          <div className="flex flex-col gap-0.5 font-mono text-[11px] text-ash">
+            <button disabled={busy} onClick={() => handleReport("correct_price")} className="text-left underline hover:text-ink">
+              {t("Price is correct")}
+            </button>
+            <button disabled={busy} onClick={() => handleReport("wrong_price")} className="text-left underline hover:text-flag">
+              {t("Price is wrong")}
+            </button>
+          </div>
+        )}
+      </td>
+    </tr>
   );
 }

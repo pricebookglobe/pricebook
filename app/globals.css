@@ -12,13 +12,30 @@ body {
   @apply font-body text-ink antialiased;
 }
 
-/* A single ledger-row divider style used across price comparison lists,
-   so "cheapest first" reads like a receipt, not a stack of cards. */
-.ledger-row {
-  @apply flex items-baseline justify-between gap-4 border-b border-line py-3;
+/* Professional data table, used for search results, inventory, history,
+   and rankings — real <table> markup, English (LTR) column order and
+   numeric right-alignment regardless of the page's own text direction. */
+.data-table {
+  @apply w-full border-collapse overflow-hidden rounded border border-line;
+  direction: ltr;
 }
-.ledger-row:first-child {
-  @apply border-t border-line;
+.data-table thead th {
+  @apply border-b border-line bg-field px-3 py-2 text-left font-mono text-[11px] font-medium uppercase tracking-wide text-ash;
+}
+.data-table thead th.num {
+  @apply text-right;
+}
+.data-table tbody td {
+  @apply border-b border-line px-3 py-3 align-middle text-[14px] text-ink;
+}
+.data-table tbody td.num {
+  @apply text-right font-display font-medium;
+}
+.data-table tbody tr:last-child td {
+  @apply border-b-0;
+}
+.data-table tbody tr:hover {
+  @apply bg-field;
 }
 
 /* Velvet auth background: two soft light blooms drifting slowly across a

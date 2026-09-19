@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { PageShell } from "@/components/shared/PageShell";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export default function ForgotPasswordPage() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -32,11 +34,11 @@ export default function ForgotPasswordPage() {
 
   return (
     <PageShell maxWidth="max-w-sm">
-      <h1 className="text-center font-display text-xl font-semibold text-ink">Reset your password</h1>
+      <h1 className="text-center font-display text-xl font-semibold text-ink">{t("Reset your password")}</h1>
 
       {sent ? (
         <p className="mt-6 text-center text-sm text-ash">
-          If an account exists for that email, a reset link is on its way. Check your inbox.
+          {t("If an account exists for that email, a reset link is on its way. Check your inbox.")}
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
@@ -44,9 +46,9 @@ export default function ForgotPasswordPage() {
             required
             type="email"
             value={email}
-            placeholder="Email"
+            placeholder={t("Email")}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded border border-line bg-field-raised px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
+            className="w-full rounded border border-line bg-field px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
           />
 
           {error && <p className="text-center text-sm text-flag">{error}</p>}
@@ -56,14 +58,14 @@ export default function ForgotPasswordPage() {
             disabled={busy}
             className="mt-1 rounded-sm bg-value px-4 py-2.5 font-display text-sm font-medium text-white transition-colors hover:bg-value/90 disabled:opacity-40"
           >
-            {busy ? "Sending…" : "Send reset link"}
+            {busy ? t("Sending…") : t("Send reset link")}
           </button>
         </form>
       )}
 
       <div className="mt-5 text-center text-sm">
         <a href="/login" className="text-ash underline hover:text-ink">
-          Back to log in
+          {t("Back to log in")}
         </a>
       </div>
     </PageShell>
