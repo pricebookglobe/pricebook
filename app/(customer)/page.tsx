@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GeolocationProvider, useGeolocation } from "@/components/shared/GeolocationProvider";
@@ -77,12 +78,12 @@ function SignedOutHome() {
       </form>
 
       <div className="mt-5 flex items-center justify-between text-sm">
-        <a href="/forgot-password" className="text-ash underline hover:text-ink">
+        <Link href="/forgot-password" className="text-ash underline hover:text-ink">
           {t("Forgot password?")}
-        </a>
-        <a href="/signup" className="text-ink underline hover:text-value">
+        </Link>
+        <Link href="/signup" className="text-ink underline hover:text-value">
           {t("Sign up")}
-        </a>
+        </Link>
       </div>
     </PageShell>
   );

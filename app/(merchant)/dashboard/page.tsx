@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoreRanking, type RankingRow } from "@/lib/api";
@@ -52,15 +53,15 @@ export default function MerchantDashboard() {
       )}
 
       <div className="mb-6 flex gap-2">
-        <a href="/inventory" className="rounded-sm border border-line bg-field px-3 py-1.5 font-display text-sm text-ink hover:border-ink/30">
+        <Link href="/inventory" className="rounded-sm border border-line bg-field px-3 py-1.5 font-display text-sm text-ink hover:border-ink/30">
           {t("Manage inventory")}
-        </a>
-        <a href="/inventory/add" className="rounded-sm bg-value px-3 py-1.5 font-display text-sm font-medium text-white hover:bg-value/90">
+        </Link>
+        <Link href="/inventory/add" className="rounded-sm bg-value px-3 py-1.5 font-display text-sm font-medium text-white hover:bg-value/90">
           {t("+ Add item")}
-        </a>
-        <a href="/messages" className="rounded-sm border border-line bg-field px-3 py-1.5 font-display text-sm text-ink hover:border-ink/30">
+        </Link>
+        <Link href="/messages" className="rounded-sm border border-line bg-field px-3 py-1.5 font-display text-sm text-ink hover:border-ink/30">
           Messages {messageCount > 0 && `(${messageCount})`}
-        </a>
+        </Link>
       </div>
 
       {store && (

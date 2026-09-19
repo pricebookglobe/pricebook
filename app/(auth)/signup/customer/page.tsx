@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
@@ -70,9 +71,9 @@ export default function CustomerSignup() {
 
   return (
     <PageShell maxWidth="max-w-sm">
-      <a href="/login" className="mb-4 inline-block text-sm text-ash underline hover:text-ink">
+      <Link href="/login" className="mb-4 inline-block text-sm text-ash underline hover:text-ink">
         ← {t("Back to log in")}
-      </a>
+      </Link>
       <h1 className="text-center font-display text-xl font-semibold text-ink">{t("Create your account")}</h1>
       <p className="mt-1 text-center text-sm text-ash">{t("Find the best local prices, saved to your name.")}</p>
 
@@ -220,9 +221,9 @@ export default function CustomerSignup() {
 
       <p className="mt-6 text-center text-sm text-ash">
         {t("Own a store instead?")}{" "}
-        <a href="/signup/merchant" className="underline text-ink">
+        <Link href="/signup/merchant" className="underline text-ink">
           {t("Sign up as a store admin")}
-        </a>
+        </Link>
       </p>
     </PageShell>
   );

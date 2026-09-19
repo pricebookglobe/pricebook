@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
@@ -59,9 +60,9 @@ export default function InventoryPage() {
     <AppPage>
       <header className="mb-6 flex items-center justify-between">
         <h1 className="font-display text-xl font-semibold text-ink">{t("Your inventory")}</h1>
-        <a href="/inventory/add" className="rounded-sm bg-value px-3 py-1.5 font-display text-sm font-medium text-white hover:bg-value/90">
+        <Link href="/inventory/add" className="rounded-sm bg-value px-3 py-1.5 font-display text-sm font-medium text-white hover:bg-value/90">
           {t("+ Add item")}
-        </a>
+        </Link>
       </header>
 
       {loading && <p className="text-sm text-ash">…</p>}

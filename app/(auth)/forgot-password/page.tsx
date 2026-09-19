@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { PageShell } from "@/components/shared/PageShell";
@@ -64,9 +65,9 @@ export default function ForgotPasswordPage() {
       )}
 
       <div className="mt-5 text-center text-sm">
-        <a href="/login" className="text-ash underline hover:text-ink">
+        <Link href="/login" className="text-ash underline hover:text-ink">
           {t("Back to log in")}
-        </a>
+        </Link>
       </div>
     </PageShell>
   );

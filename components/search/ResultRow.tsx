@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { SearchResult } from "@/lib/api";
 import { reportPrice } from "@/lib/api";
@@ -65,9 +66,9 @@ export function ResultRow({ result, isCheapest }: { result: SearchResult; isChea
         <div className="flex items-center gap-2">
           <span className={"h-2 w-2 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />
           <div className="min-w-0">
-            <a href={`/store/${result.store_id}`} className="truncate font-medium hover:underline">
+            <Link href={`/store/${result.store_id}`} className="truncate font-medium hover:underline">
               {result.store_name}
-            </a>
+            </Link>
             <a
               href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
               target="_blank"
