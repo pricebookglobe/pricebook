@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Package, Clock, Settings as SettingsIcon, LogOut } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
@@ -68,7 +69,7 @@ export function AccountMenu() {
     router.refresh();
   }
 
-  if (loading) return <div className="h-40 w-32" />; // avoid layout shift while checking session
+  if (loading) return <div className="h-52 w-32" />; // avoid layout shift while checking session
 
   if (!profile) {
     return (
@@ -81,34 +82,42 @@ export function AccountMenu() {
   }
 
   const displayName = storeName || profile.full_name || profile.email;
+  const initial = (storeName || profile.full_name || profile.email)[0]?.toUpperCase();
 
   return (
-    <div className="flex flex-col items-center text-center">
-      <a href="/">
-        <img src="/pricebook-icon-transparent.png" alt="PriceBook" className="h-auto w-32" />
+    <div className="flex h-full flex-col items-center text-center">
+      <a href="/" className="flex flex-col items-center">
+        <img src="/pricebook-icon-transparent.png" alt="PriceBook" className="h-auto w-16" />
       </a>
-      <p className="mt-2 font-display text-base font-semibold text-ink">{displayName}</p>
 
-      <nav className="mt-3 flex flex-col items-center gap-2 text-sm">
+      <div className="mt-4 flex flex-col items-center">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-display text-sm font-medium text-field">
+          {initial}
+        </span>
+        <p className="mt-2 font-display text-[15px] font-semibold leading-tight text-ink">{displayName}</p>
+        <p className="font-mono text-[10px] uppercase tracking-wide text-ash">{profile.role}</p>
+      </div>
+
+      <nav className="mt-6 flex w-full flex-col gap-0.5 text-sm">
         {profile.role === "merchant" ? (
-          <a href="/inventory" className="flex items-center gap-1.5 text-ash hover:text-ink">
-            <span aria-hidden>📦</span> {t("Products")}
+          <a href="/inventory" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+            <Package size={16} strokeWidth={1.75} /> {t("Products")}
           </a>
         ) : (
-          <a href="/history" className="flex items-center gap-1.5 text-ash hover:text-ink">
-            <span aria-hidden>🕘</span> {t("Search history")}
+          <a href="/history" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+            <Clock size={16} strokeWidth={1.75} /> {t("Search history")}
           </a>
         )}
-        <a href="/settings" className="flex items-center gap-1.5 text-ash hover:text-ink">
-          <span aria-hidden>⚙︎</span> {t("Settings")}
+        <a href="/settings" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+          <SettingsIcon size={16} strokeWidth={1.75} /> {t("Settings")}
         </a>
       </nav>
 
       <button
         onClick={handleLogout}
-        className="mt-3 rounded-sm bg-red-600 px-3 py-1.5 font-mono text-[11px] font-medium text-white hover:bg-red-700"
+        className="mt-auto flex items-center justify-center gap-1.5 rounded-sm bg-red-600 px-4 py-2 font-mono text-[11px] font-medium text-white hover:bg-red-700"
       >
-        {t("Log out")}
+        <LogOut size={14} strokeWidth={2} /> {t("Log out")}
       </button>
     </div>
   );
