@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Package, Clock, Settings as SettingsIcon, LogOut, LayoutDashboard } from "lucide-react";
+import { Package, Clock, Settings as SettingsIcon, LogOut, LayoutDashboard, ClipboardList } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useAccount } from "@/lib/AccountProvider";
@@ -55,7 +55,7 @@ export function AccountMenu() {
   return (
     <div className="flex h-full flex-col items-center text-center">
       <Link href="/" className="flex flex-col items-center">
-        <img src="/pricebook-icon-transparent.png" alt="PriceBook" className="h-auto w-16" />
+        <img src="/pricebook-icon-dark.png" alt="PriceBook" className="h-auto w-24" />
       </Link>
 
       <div className="mt-4 flex flex-col items-center">
@@ -72,9 +72,14 @@ export function AccountMenu() {
 
       <nav className="mt-6 flex w-full flex-col gap-0.5 text-sm">
         {profile.role === "admin" ? (
-          <Link href="/admin" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
-            <LayoutDashboard size={16} strokeWidth={1.75} /> Admin platform
-          </Link>
+          <>
+            <Link href="/admin" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+              <LayoutDashboard size={16} strokeWidth={1.75} /> Admin platform
+            </Link>
+            <Link href="/admin/pending-stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+              <ClipboardList size={16} strokeWidth={1.75} /> Store requests
+            </Link>
+          </>
         ) : profile.role === "merchant" ? (
           <>
             <Link href="/overview" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
