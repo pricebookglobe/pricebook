@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreVertical } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { ClearableSearch } from "@/components/admin/ClearableSearch";
+import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 
 type UserRow = {
   id: string;
@@ -26,7 +26,6 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   async function load(currentToken: string, q?: string) {
@@ -64,7 +63,6 @@ export default function AdminUsersPage() {
   async function toggleFreeze(u: UserRow) {
     if (!token) return;
     setBusyId(u.id);
-    setOpenMenuId(null);
     const nextFrozen = !u.is_frozen;
     await fetch(`/api/admin/users/${u.id}/freeze`, {
       method: "POST",
@@ -78,7 +76,6 @@ export default function AdminUsersPage() {
   async function sendReset(u: UserRow) {
     if (!token) return;
     setBusyId(u.id);
-    setOpenMenuId(null);
     await fetch(`/api/admin/users/${u.id}/reset-password`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` }
@@ -89,7 +86,6 @@ export default function AdminUsersPage() {
 
   async function deleteUser(u: UserRow) {
     if (!token) return;
-    setOpenMenuId(null);
     if (!confirm(`Permanently delete ${u.email}? This cannot be undone.`)) return;
     setBusyId(u.id);
     const res = await fetch(`/api/admin/users/${u.id}`, {
@@ -145,31 +141,15 @@ export default function AdminUsersPage() {
               <td>
                 <span className={u.is_frozen ? "text-flag" : "text-value"}>{u.is_frozen ? "Frozen" : "Active"}</span>
               </td>
-              <td className="relative num">
-                <button
+              <td className="num">
+                <RowActionsMenu
                   disabled={busyId === u.id}
-                  onClick={() => setOpenMenuId(openMenuId === u.id ? null : u.id)}
-                  className="rounded-sm p-1 text-ash hover:bg-field hover:text-ink"
-                  aria-label="Actions"
-                >
-                  <MoreVertical size={16} />
-                </button>
-                {openMenuId === u.id && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-                    <div className="absolute right-0 top-8 z-20 w-40 rounded border border-line bg-field-raised py-1 text-left shadow-lg">
-                      <button onClick={() => toggleFreeze(u)} className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field">
-                        {u.is_frozen ? "Unfreeze" : "Freeze"}
-                      </button>
-                      <button onClick={() => sendReset(u)} className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field">
-                        Reset password
-                      </button>
-                      <button onClick={() => deleteUser(u)} className="block w-full px-3 py-2 text-left text-sm text-flag hover:bg-field">
-                        Delete
-                      </button>
-                    </div>
-                  </>
-                )}
+                  actions={[
+                    { label: u.is_frozen ? "Unfreeze" : "Freeze", onClick: () => toggleFreeze(u) },
+                    { label: "Reset password", onClick: () => sendReset(u) },
+                    { label: "Delete", onClick: () => deleteUser(u), danger: true }
+                  ]}
+                />
               </td>
             </tr>
           ))}

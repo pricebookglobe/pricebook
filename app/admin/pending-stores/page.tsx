@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreVertical } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { ClearableSearch } from "@/components/admin/ClearableSearch";
+import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 
 type StoreRow = {
   id: string;
@@ -28,7 +28,6 @@ export default function PendingStoresPage() {
   const [stores, setStores] = useState<StoreRow[]>([]);
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,7 +52,6 @@ export default function PendingStoresPage() {
   async function decide(id: string, status: "approved" | "rejected") {
     if (!token) return;
     setBusyId(id);
-    setOpenMenuId(null);
     await fetch(`/api/admin/stores/${id}/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -86,38 +84,14 @@ export default function PendingStoresPage() {
               <p className="text-sm text-ash">{s.address}, {s.city}</p>
             </div>
 
-            <div className="relative">
-              <button
-                disabled={busyId === s.id}
-                onClick={() => setOpenMenuId(openMenuId === s.id ? null : s.id)}
-                className="rounded-sm p-1 text-ash hover:bg-field-raised hover:text-ink"
-                aria-label="Actions"
-              >
-                <MoreVertical size={18} />
-              </button>
-              {openMenuId === s.id && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-                  <div className="absolute right-0 top-8 z-20 w-40 rounded border border-line bg-field-raised py-1 text-left shadow-lg">
-                    <button
-                      onClick={() => {
-                        setExpandedId(expandedId === s.id ? null : s.id);
-                        setOpenMenuId(null);
-                      }}
-                      className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field"
-                    >
-                      View details
-                    </button>
-                    <button onClick={() => decide(s.id, "approved")} className="block w-full px-3 py-2 text-left text-sm text-value hover:bg-field">
-                      Approve
-                    </button>
-                    <button onClick={() => decide(s.id, "rejected")} className="block w-full px-3 py-2 text-left text-sm text-flag hover:bg-field">
-                      Reject
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+            <RowActionsMenu
+              disabled={busyId === s.id}
+              actions={[
+                { label: "View details", onClick: () => setExpandedId(expandedId === s.id ? null : s.id) },
+                { label: "Approve", onClick: () => decide(s.id, "approved") },
+                { label: "Reject", onClick: () => decide(s.id, "rejected"), danger: true }
+              ]}
+            />
           </div>
 
           {expandedId === s.id && (

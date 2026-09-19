@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreVertical } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { ClearableSearch } from "@/components/admin/ClearableSearch";
+import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 
 type StoreRow = {
   id: string;
@@ -26,7 +26,6 @@ export default function AdminStoresPage() {
   const [stores, setStores] = useState<StoreRow[]>([]);
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,7 +47,6 @@ export default function AdminStoresPage() {
   async function toggleFreeze(s: StoreRow, frozen: boolean) {
     if (!token) return;
     setBusyId(s.id);
-    setOpenMenuId(null);
     await fetch(`/api/admin/users/${s.owner_id}/freeze`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -61,7 +59,6 @@ export default function AdminStoresPage() {
   async function sendReset(s: StoreRow) {
     if (!token) return;
     setBusyId(s.id);
-    setOpenMenuId(null);
     await fetch(`/api/admin/users/${s.owner_id}/reset-password`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` }
@@ -72,7 +69,6 @@ export default function AdminStoresPage() {
 
   async function deleteStore(s: StoreRow) {
     if (!token) return;
-    setOpenMenuId(null);
     if (!confirm(`Permanently delete ${s.name}'s account? This removes the store too and cannot be undone.`)) return;
     setBusyId(s.id);
     const res = await fetch(`/api/admin/users/${s.owner_id}`, {
@@ -121,34 +117,16 @@ export default function AdminStoresPage() {
               <td>{s.city}</td>
               <td className="font-mono text-xs">{s.commercial_registration}</td>
               <td className="capitalize">{s.verification_status}</td>
-              <td className="relative num">
-                <button
+              <td className="num">
+                <RowActionsMenu
                   disabled={busyId === s.id}
-                  onClick={() => setOpenMenuId(openMenuId === s.id ? null : s.id)}
-                  className="rounded-sm p-1 text-ash hover:bg-field hover:text-ink"
-                  aria-label="Actions"
-                >
-                  <MoreVertical size={16} />
-                </button>
-                {openMenuId === s.id && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-                    <div className="absolute right-0 top-8 z-20 w-40 rounded border border-line bg-field-raised py-1 text-left shadow-lg">
-                      <button onClick={() => toggleFreeze(s, true)} className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field">
-                        Freeze
-                      </button>
-                      <button onClick={() => toggleFreeze(s, false)} className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field">
-                        Unfreeze
-                      </button>
-                      <button onClick={() => sendReset(s)} className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field">
-                        Reset password
-                      </button>
-                      <button onClick={() => deleteStore(s)} className="block w-full px-3 py-2 text-left text-sm text-flag hover:bg-field">
-                        Delete
-                      </button>
-                    </div>
-                  </>
-                )}
+                  actions={[
+                    { label: "Freeze", onClick: () => toggleFreeze(s, true) },
+                    { label: "Unfreeze", onClick: () => toggleFreeze(s, false) },
+                    { label: "Reset password", onClick: () => sendReset(s) },
+                    { label: "Delete", onClick: () => deleteStore(s), danger: true }
+                  ]}
+                />
               </td>
             </tr>
           ))}
