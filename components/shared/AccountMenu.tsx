@@ -17,22 +17,28 @@ export function AccountMenu() {
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!data.session) {
+    // getUser() first: it forces Supabase to validate/refresh the token
+    // server-side if needed. Calling getSession() on its own could return
+    // a stale access token from before a refresh, which is exactly what
+    // caused this menu to disagree with the rest of the page.
+    supabase.auth.getUser().then(async ({ data: userData, error: userError }) => {
+      if (userError || !userData.user) {
         setLoading(false);
         return;
       }
-      setToken(data.session.access_token);
-      const res = await fetch("/api/me", {
-        headers: { Authorization: `Bearer ${data.session.access_token}` }
-      });
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+      setToken(token);
+      const res = await fetch("/api/me", { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const p: Profile = await res.json();
         setProfile(p);
         if (p.role === "merchant") {
-          const storeRes = await fetch("/api/merchant/store", {
-            headers: { Authorization: `Bearer ${data.session.access_token}` }
-          });
+          const storeRes = await fetch("/api/merchant/store", { headers: { Authorization: `Bearer ${token}` } });
           const store = await storeRes.json();
           if (store) setStoreName(store.name);
         }
