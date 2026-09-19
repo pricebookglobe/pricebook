@@ -31,6 +31,7 @@ export default function MerchantSignup() {
   const [crFile, setCrFile] = useState<File | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [locating, setLocating] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingReview, setPendingReview] = useState(false);
@@ -198,8 +199,13 @@ export default function MerchantSignup() {
         </label>
         <label className="text-sm text-ash">
           {t("Password")}
-          <input required minLength={8} type="password" value={form.password} onChange={(e) => update("password", e.target.value)}
-            className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none" />
+          <div className="mt-1 flex items-center rounded border border-line bg-field">
+            <input required minLength={8} type={showPassword ? "text" : "password"} value={form.password} onChange={(e) => update("password", e.target.value)}
+              className="w-full bg-transparent px-3 py-2 text-ink outline-none" />
+            <button type="button" onClick={() => setShowPassword((s) => !s)} className="px-3 text-ash hover:text-ink" aria-label="Toggle password visibility">
+              {showPassword ? "🙈" : "👁"}
+            </button>
+          </div>
         </label>
 
         {error && <p className="text-sm text-flag">{error}</p>}

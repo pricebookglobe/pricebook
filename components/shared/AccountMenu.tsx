@@ -83,13 +83,13 @@ export function AccountMenu() {
   const displayName = storeName || profile.full_name || profile.email;
 
   return (
-    <div>
+    <div className="flex flex-col items-center text-center">
       <a href="/">
         <img src="/pricebook-icon-transparent.png" alt="PriceBook" className="h-auto w-32" />
       </a>
       <p className="mt-2 font-display text-base font-semibold text-ink">{displayName}</p>
 
-      <nav className="mt-3 flex flex-col items-start gap-2 text-sm">
+      <nav className="mt-3 flex flex-col items-center gap-2 text-sm">
         {profile.role === "merchant" ? (
           <a href="/inventory" className="flex items-center gap-1.5 text-ash hover:text-ink">
             <span aria-hidden>📦</span> {t("Products")}

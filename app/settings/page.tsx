@@ -17,6 +17,8 @@ export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [deleteOnLogout, setDeleteOnLogout] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,12 +98,6 @@ export default function SettingsPage() {
     setSaved(updates.email ? t("Saved. Check your new email address to confirm the change.") : t("Saved."));
   }
 
-  async function handleLogout() {
-    const supabase = createBrowserSupabase();
-    await supabase.auth.signOut();
-    router.push("/");
-  }
-
   if (!profile) return null;
 
   return (
@@ -126,14 +122,34 @@ export default function SettingsPage() {
 
         <label className="text-sm text-ash">
           New password <span className="text-ash/70">(leave blank to keep current)</span>
-          <input type="password" minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-            className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none" />
+          <div className="mt-1 flex items-center rounded border border-line bg-field">
+            <input
+              type={showNewPassword ? "text" : "password"}
+              minLength={8}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full bg-transparent px-3 py-2 text-ink outline-none"
+            />
+            <button type="button" onClick={() => setShowNewPassword((s) => !s)} className="px-3 text-ash hover:text-ink" aria-label="Toggle password visibility">
+              {showNewPassword ? "🙈" : "👁"}
+            </button>
+          </div>
         </label>
 
         <label className="text-sm text-ash">
           {t("Current password")} <span className="text-ash/70">(required to save changes)</span>
-          <input required type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
-            className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none" />
+          <div className="mt-1 flex items-center rounded border border-line bg-field">
+            <input
+              required
+              type={showCurrentPassword ? "text" : "password"}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full bg-transparent px-3 py-2 text-ink outline-none"
+            />
+            <button type="button" onClick={() => setShowCurrentPassword((s) => !s)} className="px-3 text-ash hover:text-ink" aria-label="Toggle password visibility">
+              {showCurrentPassword ? "🙈" : "👁"}
+            </button>
+          </div>
         </label>
 
         {error && <p className="text-sm text-flag">{error}</p>}
@@ -145,23 +161,16 @@ export default function SettingsPage() {
         </button>
       </form>
 
-      {profile.role !== "merchant" && (
-        <div className="mt-6 rounded border border-line bg-field p-4">
-          <p className="text-sm font-medium text-ink">Privacy</p>
-          <label className="mt-2 flex items-center gap-2 text-sm text-ash">
-            <input type="checkbox" checked={deleteOnLogout} onChange={(e) => setDeleteOnLogout(e.target.checked)} />
-            Delete my search history every time I log out
-          </label>
-          <p className="mt-1 font-mono text-[11px] text-ash">
-            {deleteOnLogout ? "Your history clears on every logout." : "Your history is kept for up to a year."}
-          </p>
-        </div>
-      )}
-
-      <button onClick={handleLogout}
-        className="mt-6 w-full rounded-sm bg-red-50 px-4 py-2 font-display text-sm font-medium text-red-600 hover:bg-red-100">
-        {t("Log out")}
-      </button>
+      <div className="mt-6 rounded border border-line bg-field p-4">
+        <p className="text-sm font-medium text-ink">Privacy</p>
+        <label className="mt-2 flex items-center gap-2 text-sm text-ash">
+          <input type="checkbox" checked={deleteOnLogout} onChange={(e) => setDeleteOnLogout(e.target.checked)} />
+          Delete my search history every time I log out
+        </label>
+        <p className="mt-1 font-mono text-[11px] text-ash">
+          {deleteOnLogout ? "Your history clears on every logout." : "Your history is kept for up to a year."}
+        </p>
+      </div>
     </AppPage>
   );
 }

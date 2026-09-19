@@ -12,6 +12,7 @@ function LoginForm() {
   const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,14 +52,19 @@ function LoginForm() {
           onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded border border-line bg-field px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
         />
-        <input
-          required
-          type="password"
-          value={password}
-          placeholder={t("Password")}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded border border-line bg-field px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
-        />
+        <div className="flex items-center rounded border border-line bg-field">
+          <input
+            required
+            type={showPassword ? "text" : "password"}
+            value={password}
+            placeholder={t("Password")}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full bg-transparent px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
+          />
+          <button type="button" onClick={() => setShowPassword((s) => !s)} className="px-3 text-ash hover:text-ink" aria-label="Toggle password visibility">
+            {showPassword ? "🙈" : "👁"}
+          </button>
+        </div>
 
         {error && <p className="text-center text-sm text-flag">{error}</p>}
 
