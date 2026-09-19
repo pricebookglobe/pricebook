@@ -9,22 +9,48 @@ import { useLanguage } from "@/lib/i18n/LanguageProvider";
 export default function CustomerSignup() {
   const router = useRouter();
   const { t } = useLanguage();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    address: "",
+    city: "",
+    country: "",
+    password: "",
+    confirmPassword: ""
+  });
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function update<K extends keyof typeof form>(key: K, value: string) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
     setBusy(true);
     setError(null);
 
     const supabase = createBrowserSupabase();
     const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName, role: "customer" } }
+      email: form.email,
+      password: form.password,
+      options: {
+        data: {
+          role: "customer",
+          first_name: form.firstName,
+          last_name: form.lastName,
+          full_name: `${form.firstName} ${form.lastName}`.trim(),
+          address: form.address,
+          city: form.city,
+          country: form.country
+        }
+      }
     });
 
     if (error) {
@@ -42,35 +68,98 @@ export default function CustomerSignup() {
       <p className="mt-1 text-center text-sm text-ash">{t("Find the best local prices, saved to your name.")}</p>
 
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-3">
-        <label className="text-sm text-ash">
-          {t("Full name")}
-          <input
-            required
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
-          />
-        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-sm text-ash">
+            First name
+            <input
+              required
+              value={form.firstName}
+              onChange={(e) => update("firstName", e.target.value)}
+              className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+            />
+          </label>
+          <label className="text-sm text-ash">
+            Surname
+            <input
+              required
+              value={form.lastName}
+              onChange={(e) => update("lastName", e.target.value)}
+              className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+            />
+          </label>
+        </div>
         <label className="text-sm text-ash">
           {t("Email")}
           <input
             required
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={form.email}
+            onChange={(e) => update("email", e.target.value)}
             className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
           />
         </label>
         <label className="text-sm text-ash">
-          {t("Password")}
+          {t("Address")}
           <input
             required
-            minLength={8}
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={form.address}
+            onChange={(e) => update("address", e.target.value)}
             className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
           />
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-sm text-ash">
+            {t("City")}
+            <input
+              required
+              value={form.city}
+              onChange={(e) => update("city", e.target.value)}
+              className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+            />
+          </label>
+          <label className="text-sm text-ash">
+            Country
+            <input
+              required
+              value={form.country}
+              onChange={(e) => update("country", e.target.value)}
+              className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+            />
+          </label>
+        </div>
+
+        <label className="text-sm text-ash">
+          {t("Password")}
+          <div className="mt-1 flex items-center rounded border border-line bg-field">
+            <input
+              required
+              minLength={8}
+              type={showPassword ? "text" : "password"}
+              value={form.password}
+              onChange={(e) => update("password", e.target.value)}
+              className="w-full bg-transparent px-3 py-2 text-ink outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              className="px-3 text-ash hover:text-ink"
+              aria-label="Toggle password visibility"
+            >
+              {showPassword ? "🙈" : "👁"}
+            </button>
+          </div>
+        </label>
+        <label className="text-sm text-ash">
+          Confirm password
+          <div className="mt-1 flex items-center rounded border border-line bg-field">
+            <input
+              required
+              type={showPassword ? "text" : "password"}
+              value={form.confirmPassword}
+              onChange={(e) => update("confirmPassword", e.target.value)}
+              className="w-full bg-transparent px-3 py-2 text-ink outline-none"
+            />
+          </div>
         </label>
 
         {error && <p className="text-sm text-flag">{error}</p>}

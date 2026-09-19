@@ -38,13 +38,14 @@ body {
   @apply bg-field;
 }
 
-/* Velvet auth background: two soft light blooms drifting slowly across a
-   deep green-blue field, used behind the login/signup cards. One orchestrated
-   motion, not per-element hover effects — see /login for usage. */
+/* Light greenish-blue field with two soft moving light blooms drifting
+   slowly — the site's primary background, replacing the earlier dark
+   "velvet" version so the logo's original navy/green colors stay legible
+   without needing to be recolored per-background. */
 .velvet-field {
-  background: radial-gradient(ellipse at 20% 30%, #1c5c53 0%, transparent 55%),
-    radial-gradient(ellipse at 80% 70%, #17415f 0%, transparent 55%),
-    linear-gradient(160deg, #0b2b34 0%, #0e2436 55%, #0a1f2e 100%);
+  background: radial-gradient(ellipse at 20% 25%, rgba(180, 230, 210, 0.9) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 75%, rgba(170, 215, 235, 0.9) 0%, transparent 55%),
+    linear-gradient(160deg, #E3F3EF 0%, #D6ECF0 55%, #E8F5F0 100%);
   background-size: 180% 180%, 180% 180%, 100% 100%;
   animation: velvet-drift 26s ease-in-out infinite alternate;
 }

@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   const { data: profile, error } = await supabase
     .from("users")
-    .select("id, full_name, email, role")
+    .select("id, full_name, email, role, delete_history_on_logout")
     .eq("id", userData.user.id)
     .single();
 

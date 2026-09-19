@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
-import { PageShell } from "@/components/shared/PageShell";
+import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type InventoryRow = {
@@ -56,7 +56,7 @@ export default function InventoryPage() {
   }
 
   return (
-    <PageShell>
+    <AppPage>
       <header className="mb-6 flex items-center justify-between">
         <h1 className="font-display text-xl font-semibold text-ink">{t("Your inventory")}</h1>
         <a href="/inventory/add" className="rounded-sm bg-value px-3 py-1.5 font-display text-sm font-medium text-white hover:bg-value/90">
@@ -107,6 +107,6 @@ export default function InventoryPage() {
           </tbody>
         </table>
       )}
-    </PageShell>
+    </AppPage>
   );
 }

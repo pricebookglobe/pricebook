@@ -3,30 +3,35 @@ import { createServiceSupabase } from "@/lib/supabaseClient";
 import { extractProductFromImage, parseTextQuery, embedProductDescription } from "@/lib/aiVision";
 import { webFallbackSearch } from "@/lib/webFallback";
 
-// "country" is an approximation (a large fixed radius), not a real
-// border-aware query — good enough for an MVP, worth swapping for a
-// country-code match on `stores` once that column exists.
+// "city" is an approximation (a large fixed radius), not a real
+// city/country-boundary-aware query — good enough for an MVP, worth
+// swapping for a proper boundary match on `stores` once that exists.
 const RADII_M = {
   neighborhood: 5_000,
   town: 25_000,
-  country: 1_000_000
+  city: 1_000_000
 } as const;
 
 const SIMILARITY_FALLBACK_THRESHOLD = 0.75;
 
 export async function POST(req: NextRequest) {
-  const { text, imageBase64, lat, lng } = await req.json();
+  const { text, imageBase64, structured: preStructured, lat, lng } = await req.json();
   const authToken = req.headers.get("authorization")?.replace("Bearer ", "");
 
   if (typeof lat !== "number" || typeof lng !== "number") {
     return NextResponse.json({ error: "lat and lng are required" }, { status: 400 });
   }
-  if (!text && !imageBase64) {
-    return NextResponse.json({ error: "Provide text or imageBase64" }, { status: 400 });
+  if (!text && !imageBase64 && !preStructured) {
+    return NextResponse.json({ error: "Provide text, imageBase64, or structured" }, { status: 400 });
   }
 
   try {
-    const structured = imageBase64
+    // A guided category-picker submission arrives already structured, so it
+    // skips the GPT extraction step entirely — it's more accurate than
+    // re-parsing text we already know the shape of.
+    const structured = preStructured
+      ? preStructured
+      : imageBase64
       ? await extractProductFromImage(imageBase64)
       : await parseTextQuery(text);
 

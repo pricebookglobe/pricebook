@@ -15,7 +15,7 @@ export type SearchResult = {
 
 export type SearchResponse = {
   query: { product_name: string; brand: string | null; size: number | null; unit: string | null; category: string };
-  tier: "neighborhood" | "town" | "country" | null;
+  tier: "neighborhood" | "town" | "city" | null;
   local_results: SearchResult[];
   web_estimate: { price_estimate: number | null; currency: string; source_url: string | null; note: string } | null;
 };
@@ -23,6 +23,7 @@ export type SearchResponse = {
 export async function searchProducts(params: {
   text?: string;
   imageBase64?: string;
+  structured?: { product_name: string; brand?: string | null; size?: number | null; unit?: string | null; category: string };
   lat: number;
   lng: number;
   accessToken?: string;

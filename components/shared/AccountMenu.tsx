@@ -11,8 +11,9 @@ export function AccountMenu() {
   const router = useRouter();
   const { t } = useLanguage();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [storeName, setStoreName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -21,22 +22,50 @@ export function AccountMenu() {
         setLoading(false);
         return;
       }
+      setToken(data.session.access_token);
       const res = await fetch("/api/me", {
         headers: { Authorization: `Bearer ${data.session.access_token}` }
       });
-      if (res.ok) setProfile(await res.json());
+      if (res.ok) {
+        const p: Profile = await res.json();
+        setProfile(p);
+        if (p.role === "merchant") {
+          const storeRes = await fetch("/api/merchant/store", {
+            headers: { Authorization: `Bearer ${data.session.access_token}` }
+          });
+          const store = await storeRes.json();
+          if (store) setStoreName(store.name);
+        }
+      }
       setLoading(false);
     });
   }, []);
 
   async function handleLogout() {
     const supabase = createBrowserSupabase();
+
+    // If the person opted into clearing history on every logout, do it
+    // before the session token is gone.
+    if (token) {
+      try {
+        const meRes = await fetch("/api/me", { headers: { Authorization: `Bearer ${token}` } });
+        if (meRes.ok) {
+          const me = await meRes.json();
+          if (me.delete_history_on_logout) {
+            await fetch("/api/history", { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+          }
+        }
+      } catch {
+        // best-effort — never block logout on this
+      }
+    }
+
     await supabase.auth.signOut();
     router.push("/");
     router.refresh();
   }
 
-  if (loading) return <div className="h-5 w-24" />; // avoid layout shift while checking session
+  if (loading) return <div className="h-12 w-32" />;
 
   if (!profile) {
     return (
@@ -48,53 +77,27 @@ export function AccountMenu() {
     );
   }
 
+  const displayName = storeName || profile.full_name || profile.email;
+
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-sm border border-line bg-field-raised px-3 py-1.5 text-sm text-ink hover:border-ink/30"
-      >
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-value text-[11px] font-medium text-white">
-          {(profile.full_name || profile.email)[0]?.toUpperCase()}
-        </span>
-        {profile.full_name || profile.email}
-      </button>
-
-      {open && (
-        <>
-          {/* Backdrop closes the drawer on click-away */}
-          <div className="fixed inset-0 z-40 bg-ink/20" onClick={() => setOpen(false)} />
-          <div className="fixed right-0 top-0 z-50 flex h-full w-72 flex-col border-l border-line bg-field-raised p-5 shadow-2xl">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <p className="font-display text-sm font-semibold text-ink">{profile.full_name || "Account"}</p>
-                <p className="text-xs text-ash">{profile.email}</p>
-              </div>
-              <button onClick={() => setOpen(false)} className="text-ash hover:text-ink" aria-label="Close">
-                ✕
-              </button>
-            </div>
-
-            <nav className="flex flex-col gap-1 text-sm">
-              {profile.role === "merchant" ? (
-                <a href="/dashboard" className="rounded-sm px-3 py-2 text-ink hover:bg-field">{t("Dashboard")}</a>
-              ) : (
-                <a href="/history" className="rounded-sm px-3 py-2 text-ink hover:bg-field">{t("Search history")}</a>
-              )}
-              <a href="/settings" className="rounded-sm px-3 py-2 text-ink hover:bg-field">{t("Settings")}</a>
-            </nav>
-
-            <div className="mt-auto">
-              <button
-                onClick={handleLogout}
-                className="w-full rounded-sm bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
-              >
-                {t("Log out")}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+    <div className="flex items-start gap-3">
+      <a href="/">
+        <img src="/pricebook-logo-light.png" alt="PriceBook" className="h-auto w-24" />
+      </a>
+      <div>
+        <p className="mt-1 font-display text-sm font-medium text-ink">{displayName}</p>
+        <div className="mt-1 flex items-center gap-2">
+          <a href="/settings" aria-label={t("Settings")} className="text-ash hover:text-ink" title={t("Settings")}>
+            ⚙︎
+          </a>
+          <button
+            onClick={handleLogout}
+            className="rounded-sm bg-red-50 px-2 py-0.5 font-mono text-[11px] font-medium text-red-600 hover:bg-red-100"
+          >
+            {t("Log out")}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

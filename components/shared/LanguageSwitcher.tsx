@@ -23,7 +23,7 @@ export function LanguageSwitcher() {
             setLanguage(e.target.value);
           }
         }}
-        className="rounded-sm border border-white/20 bg-transparent px-1.5 py-1 text-white/80 outline-none"
+        className="rounded-sm border border-ink/20 bg-transparent px-1.5 py-1 text-ink/80 outline-none"
       >
         {PRESETS.map((p) => (
           <option key={p} value={p} className="text-ink">
@@ -51,9 +51,9 @@ export function LanguageSwitcher() {
             value={customValue}
             onChange={(e) => setCustomValue(e.target.value)}
             placeholder="Any language"
-            className="w-24 rounded-sm border border-white/20 bg-transparent px-1.5 py-1 text-white/80 outline-none placeholder:text-white/40"
+            className="w-24 rounded-sm border border-ink/20 bg-transparent px-1.5 py-1 text-ink/80 outline-none placeholder:text-ink/40"
           />
-          <button type="submit" className="text-white/80 underline">
+          <button type="submit" className="text-ink/80 underline">
             Go
           </button>
         </form>

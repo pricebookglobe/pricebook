@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
     .insert({
       canonical_name: body.product_name,
       brand: body.brand,
+      manufacturer: body.manufacturer ?? null,
       size: body.size,
       unit: body.unit,
       category: body.category

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
-import { PageShell } from "@/components/shared/PageShell";
+import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type HistoryRow = { id: string; query_text: string; category: string | null; searched_at: string };
@@ -44,7 +44,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <PageShell>
+    <AppPage>
       <header className="mb-6 flex items-center justify-between">
         <h1 className="font-display text-xl font-semibold text-ink">{t("Search history")}</h1>
         {rows.length > 0 && (
@@ -84,6 +84,6 @@ export default function HistoryPage() {
           </tbody>
         </table>
       )}
-    </PageShell>
+    </AppPage>
   );
 }

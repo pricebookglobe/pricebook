@@ -13,13 +13,14 @@ function openai(): OpenAI {
 export type StructuredProduct = {
   product_name: string;
   brand: string | null;
+  manufacturer?: string | null;
   size: number | null;
   unit: string | null;
   category: string;
 };
 
 const EXTRACTION_SHAPE =
-  '{"product_name":"","brand":"","size":0,"unit":"","category":""}';
+  '{"product_name":"","brand":"","manufacturer":"","size":0,"unit":"","category":""}';
 
 /** Image (base64, no data: prefix) -> structured product JSON via GPT-4o Vision. */
 export async function extractProductFromImage(
@@ -72,7 +73,7 @@ export async function parseTextQuery(text: string): Promise<StructuredProduct> {
 export async function embedProductDescription(
   structured: StructuredProduct
 ): Promise<number[]> {
-  const text = [structured.brand, structured.product_name, structured.size, structured.unit, structured.category]
+  const text = [structured.brand, structured.manufacturer, structured.product_name, structured.size, structured.unit, structured.category]
     .filter(Boolean)
     .join(" ")
     .trim();

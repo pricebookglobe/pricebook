@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import type { StructuredProduct } from "@/lib/aiVision";
-import { PageShell } from "@/components/shared/PageShell";
+import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export default function AddItemPage() {
@@ -121,7 +121,7 @@ export default function AddItemPage() {
   }
 
   return (
-    <PageShell>
+    <AppPage>
       <header className="mb-6">
         <h1 className="font-display text-xl font-semibold text-ink">{t("Add an item")}</h1>
         <p className="mt-1 text-sm text-ash">{t("Describe it, snap it, or upload a photo — then set your price.")}</p>
@@ -195,6 +195,14 @@ export default function AddItemPage() {
               />
             </label>
             <label className="text-sm text-ash">
+              Manufacturer
+              <input
+                value={product.manufacturer ?? ""}
+                onChange={(e) => updateProductField("manufacturer", e.target.value)}
+                className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+              />
+            </label>
+            <label className="text-sm text-ash">
               {t("Category")}
               <input
                 value={product.category}
@@ -258,6 +266,6 @@ export default function AddItemPage() {
           </div>
         </div>
       )}
-    </PageShell>
+    </AppPage>
   );
 }

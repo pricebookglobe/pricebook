@@ -1,35 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { GeolocationProvider, useGeolocation } from "@/components/shared/GeolocationProvider";
-import { SearchBar } from "@/components/search/SearchBar";
 import { ResultRow } from "@/components/search/ResultRow";
+import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
 import { searchProducts, type SearchResponse } from "@/lib/api";
-import { PageShell } from "@/components/shared/PageShell";
-import { AccountMenu } from "@/components/shared/AccountMenu";
+import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 const TIER_LABEL: Record<string, string> = {
   neighborhood: "neighborhood zone",
   town: "town zone",
-  country: "country zone"
+  city: "city zone"
 };
+
+// Inside this radius, we treat the customer as physically standing in the store.
+const AT_STORE_METERS = 150;
+
+type Mode = "idle" | "choosing" | "text";
 
 function CustomerHome() {
   const { t } = useLanguage();
   const { coords, status } = useGeolocation();
+  const [mode, setMode] = useState<Mode>("idle");
   const [result, setResult] = useState<SearchResponse | null>(null);
+  const [showWiderResults, setShowWiderResults] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  async function handleSearch(input: { text?: string; imageBase64?: string }) {
+  async function runSearch(input: { text?: string; imageBase64?: string; structured?: any }) {
     if (!coords) {
       setError(t("Turn on location so we can find prices near you."));
       return;
     }
     setBusy(true);
     setError(null);
+    setShowWiderResults(false);
     try {
       const supabase = createBrowserSupabase();
       const { data } = await supabase.auth.getSession();
@@ -40,6 +49,7 @@ function CustomerHome() {
         accessToken: data.session?.access_token
       });
       setResult(res);
+      setMode("idle");
     } catch (e: any) {
       setError(e.message ?? "Something went wrong.");
     } finally {
@@ -47,18 +57,73 @@ function CustomerHome() {
     }
   }
 
-  const cheapestId = result?.local_results.length
-    ? [...result.local_results].sort((a, b) => a.price - b.price)[0].store_id
-    : null;
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(",")[1]);
+      reader.onerror = () => reject(new Error("Could not read image"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const imageBase64 = await fileToBase64(file);
+    runSearch({ imageBase64 });
+    e.target.value = "";
+  }
+
+  const sorted = result?.local_results.length
+    ? [...result.local_results].sort((a, b) => a.price - b.price)
+    : [];
+  const cheapestId = sorted[0]?.store_id ?? null;
+  const atStore = sorted.find((r) => r.distance_m <= AT_STORE_METERS) ?? null;
+  const tableRows = atStore && !showWiderResults ? [] : sorted;
 
   return (
-    <PageShell>
-      <header className="mb-6 flex items-start justify-between">
-        <p className="text-sm text-ash">{t("Track best prices, near you first.")}</p>
-        <AccountMenu />
-      </header>
+    <AppPage>
+      <p className="mb-6 text-sm text-ash">{t("Track best prices, near you first.")}</p>
 
-      <SearchBar onSearch={handleSearch} busy={busy} />
+      {mode === "idle" && !busy && (
+        <button
+          onClick={() => setMode("choosing")}
+          className="w-full rounded bg-value px-4 py-3 font-display text-[15px] font-medium text-white hover:bg-value/90"
+        >
+          {t("Find price")}
+        </button>
+      )}
+
+      {mode === "choosing" && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => cameraInputRef.current?.click()}
+            className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink hover:border-value"
+          >
+            {t("Snap")}
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink hover:border-value"
+          >
+            {t("Upload")}
+          </button>
+          <button
+            onClick={() => setMode("text")}
+            className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink hover:border-value"
+          >
+            {t("Search")}
+          </button>
+        </div>
+      )}
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+
+      {mode === "text" && (
+        <GuidedTextEntry onSubmit={(structured) => runSearch({ structured })} onCancel={() => setMode("idle")} />
+      )}
+
+      {busy && <p className="mt-3 text-sm text-ash">{t("Searching…")}</p>}
 
       {status === "denied" && (
         <p className="mt-3 text-sm text-flag">
@@ -81,7 +146,7 @@ function CustomerHome() {
             )}
           </div>
 
-          {result.local_results.length === 0 && (
+          {sorted.length === 0 && (
             <p className="text-sm text-ash">
               {t("No store nearby carries this yet.")}
               {result.web_estimate?.source_url && (
@@ -97,7 +162,27 @@ function CustomerHome() {
             </p>
           )}
 
-          {result.local_results.length > 0 && (
+          {atStore && (
+            <div className="mb-4 rounded border border-value bg-value-soft px-4 py-3">
+              <p className="text-sm text-ink">
+                You are at <strong>{atStore.store_name}</strong> — the price here is{" "}
+                <strong>
+                  {atStore.price.toFixed(2)} {atStore.currency}
+                </strong>
+                .
+              </p>
+              {!showWiderResults && sorted.length > 1 && (
+                <button
+                  onClick={() => setShowWiderResults(true)}
+                  className="mt-2 text-sm text-value underline hover:text-value/80"
+                >
+                  See best prices nearby too
+                </button>
+              )}
+            </div>
+          )}
+
+          {tableRows.length > 0 && (
             <table className="data-table">
               <thead>
                 <tr>
@@ -108,7 +193,7 @@ function CustomerHome() {
                 </tr>
               </thead>
               <tbody>
-                {result.local_results.map((r) => (
+                {tableRows.map((r) => (
                   <ResultRow key={r.store_id + r.product_id} result={r} isCheapest={r.store_id === cheapestId} />
                 ))}
               </tbody>
@@ -116,7 +201,7 @@ function CustomerHome() {
           )}
         </section>
       )}
-    </PageShell>
+    </AppPage>
   );
 }
 

@@ -19,28 +19,44 @@ const TRUST_COLOR: Record<SearchResult["trust_badge"], string> = {
 
 export function ResultRow({ result, isCheapest }: { result: SearchResult; isCheapest: boolean }) {
   const { t } = useLanguage();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [reported, setReported] = useState<"correct_price" | "wrong_price" | null>(null);
   const [busy, setBusy] = useState(false);
+
+  async function requireSession() {
+    const supabase = createBrowserSupabase();
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      window.location.href = "/login";
+      return null;
+    }
+    return data.session.access_token;
+  }
 
   async function handleReport(type: "correct_price" | "wrong_price") {
     setBusy(true);
     try {
-      const supabase = createBrowserSupabase();
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        window.location.href = "/login";
-        return;
-      }
-      await reportPrice({
-        store_id: result.store_id,
-        product_id: result.product_id,
-        report_type: type,
-        accessToken: data.session.access_token
-      });
+      const accessToken = await requireSession();
+      if (!accessToken) return;
+      await reportPrice({ store_id: result.store_id, product_id: result.product_id, report_type: type, accessToken });
       setReported(type);
+      setMenuOpen(false);
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleMessage() {
+    const accessToken = await requireSession();
+    if (!accessToken) return;
+    const message = prompt("Message to the store:");
+    if (!message) return;
+    await fetch(`/api/stores/${result.store_id}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ subject: `About ${result.product_name}`, message })
+    });
+    setMenuOpen(false);
   }
 
   return (
@@ -49,12 +65,14 @@ export function ResultRow({ result, isCheapest }: { result: SearchResult; isChea
         <div className="flex items-center gap-2">
           <span className={"h-2 w-2 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />
           <div className="min-w-0">
-            <p className="truncate font-medium">{result.store_name}</p>
+            <a href={`/store/${result.store_id}`} className="truncate font-medium hover:underline">
+              {result.store_name}
+            </a>
             <a
-              href={`https://www.google.com/maps?q=${result.store_lat},${result.store_lng}`}
+              href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
               target="_blank"
               rel="noreferrer"
-              className="font-mono text-[11px] text-ash underline"
+              className="block font-mono text-[11px] text-ash underline"
             >
               {t("view on map")}
             </a>
@@ -70,20 +88,45 @@ export function ResultRow({ result, isCheapest }: { result: SearchResult; isChea
         )}
         {result.price.toFixed(2)} <span className="text-xs font-normal text-ash">{result.currency}</span>
       </td>
-      <td>
+      <td className="relative num">
         {reported ? (
           <span className="font-mono text-[11px] text-value">
             {reported === "correct_price" ? t("Thanks — marked as correct.") : t("Thanks — marked as wrong.")}
           </span>
         ) : (
-          <div className="flex flex-col gap-0.5 font-mono text-[11px] text-ash">
-            <button disabled={busy} onClick={() => handleReport("correct_price")} className="text-left underline hover:text-ink">
-              {t("Price is correct")}
+          <>
+            <button onClick={() => setMenuOpen((o) => !o)} className="px-2 text-ash hover:text-ink" aria-label="More">
+              ⋯
             </button>
-            <button disabled={busy} onClick={() => handleReport("wrong_price")} className="text-left underline hover:text-flag">
-              {t("Price is wrong")}
-            </button>
-          </div>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-6 z-20 w-48 rounded border border-line bg-field-raised py-1 text-left shadow-lg">
+                  <button
+                    disabled={busy}
+                    onClick={handleMessage}
+                    className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field"
+                  >
+                    Message store
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => handleReport("correct_price")}
+                    className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field"
+                  >
+                    {t("Price is correct")}
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => handleReport("wrong_price")}
+                    className="block w-full px-3 py-2 text-left text-sm text-flag hover:bg-field"
+                  >
+                    {t("Price is wrong")}
+                  </button>
+                </div>
+              </>
+            )}
+          </>
         )}
       </td>
     </tr>
