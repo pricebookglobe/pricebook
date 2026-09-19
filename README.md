@@ -140,6 +140,28 @@ default sender, not a `pricebook.institute-of-ai.org` address. To fix:
 3. Set the "Sender email" to something like `noreply@institute-of-ai.org`.
 4. Save, then trigger a password reset to confirm the new sender address.
 
+## Admin notification emails (new store signups)
+
+Separate from the Supabase Auth emails above: when a merchant finishes
+uploading their CR certificate and store photo, the app itself sends an
+email to the admin (`ADMIN_NOTIFICATION_EMAIL`, defaults to
+`pricebook@institute-of-ai.org`) with the store's details and links to
+both documents, via `lib/email.ts`. This needs its own SMTP credentials —
+reusing the same SES setup from above works well — as four new env vars
+on Render:
+
+```
+SMTP_HOST=email-smtp.<your-ses-region>.amazonaws.com
+SMTP_PORT=587
+SMTP_USER=<SES SMTP username>
+SMTP_PASS=<SES SMTP password>
+EMAIL_FROM=noreply@institute-of-ai.org
+ADMIN_NOTIFICATION_EMAIL=pricebook@institute-of-ai.org
+```
+
+Until these are set, the route logs a warning and skips sending — store
+signups still work, they just won't trigger the notification email.
+
 ## Next build session, in order
 
 1. Seed script (`npm run seed`) so search has data without manual inserts.

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Clock, Settings as SettingsIcon, LogOut } from "lucide-react";
+import { Package, Clock, Settings as SettingsIcon, LogOut, Users, ShieldCheck } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
@@ -99,7 +99,16 @@ export function AccountMenu() {
       </div>
 
       <nav className="mt-6 flex w-full flex-col gap-0.5 text-sm">
-        {profile.role === "merchant" ? (
+        {profile.role === "admin" ? (
+          <>
+            <a href="/admin/users" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+              <Users size={16} strokeWidth={1.75} /> Users
+            </a>
+            <a href="/admin/verify-stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
+              <ShieldCheck size={16} strokeWidth={1.75} /> Stores
+            </a>
+          </>
+        ) : profile.role === "merchant" ? (
           <a href="/inventory" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-ash hover:bg-field hover:text-ink">
             <Package size={16} strokeWidth={1.75} /> {t("Products")}
           </a>
