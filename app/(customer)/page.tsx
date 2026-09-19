@@ -1,11 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { GeolocationProvider, useGeolocation } from "@/components/shared/GeolocationProvider";
 import { ResultRow } from "@/components/search/ResultRow";
 import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
 import { searchProducts, type SearchResponse } from "@/lib/api";
 import { AppPage } from "@/components/shared/AppPage";
+import { PageShell } from "@/components/shared/PageShell";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
@@ -15,10 +17,76 @@ const TIER_LABEL: Record<string, string> = {
   city: "city zone"
 };
 
-// Inside this radius, we treat the customer as physically standing in the store.
 const AT_STORE_METERS = 150;
 
 type Mode = "idle" | "choosing" | "text";
+
+// Logged-out visitors land here — a sign-in screen, not the search tool.
+// Nothing about checking or tracking prices is shown until authenticated.
+function SignedOutHome() {
+  const router = useRouter();
+  const { t } = useLanguage();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const supabase = createBrowserSupabase();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setError(error.message);
+      setBusy(false);
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <PageShell maxWidth="max-w-sm">
+      <h1 className="text-center font-display text-xl font-semibold text-ink">{t("Log in")}</h1>
+
+      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
+        <input
+          required
+          type="email"
+          value={email}
+          placeholder={t("Email")}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full rounded border border-line bg-field px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
+        />
+        <input
+          required
+          type="password"
+          value={password}
+          placeholder={t("Password")}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full rounded border border-line bg-field px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
+        />
+        {error && <p className="text-center text-sm text-flag">{error}</p>}
+        <button
+          type="submit"
+          disabled={busy}
+          className="mt-1 rounded-sm bg-value px-4 py-2.5 font-display text-sm font-medium text-white hover:bg-value/90 disabled:opacity-40"
+        >
+          {busy ? t("Logging in…") : t("Log in")}
+        </button>
+      </form>
+
+      <div className="mt-5 flex items-center justify-between text-sm">
+        <a href="/forgot-password" className="text-ash underline hover:text-ink">
+          {t("Forgot password?")}
+        </a>
+        <a href="/signup" className="text-ink underline hover:text-value">
+          {t("Sign up")}
+        </a>
+      </div>
+    </PageShell>
+  );
+}
 
 function CustomerHome() {
   const { t } = useLanguage();
@@ -96,22 +164,13 @@ function CustomerHome() {
 
       {mode === "choosing" && (
         <div className="flex gap-2">
-          <button
-            onClick={() => cameraInputRef.current?.click()}
-            className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink hover:border-value"
-          >
+          <button onClick={() => cameraInputRef.current?.click()} className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink hover:border-value">
             {t("Snap")}
           </button>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink hover:border-value"
-          >
+          <button onClick={() => fileInputRef.current?.click()} className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink hover:border-value">
             {t("Upload")}
           </button>
-          <button
-            onClick={() => setMode("text")}
-            className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink hover:border-value"
-          >
+          <button onClick={() => setMode("text")} className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink hover:border-value">
             {t("Search")}
           </button>
         </div>
@@ -124,7 +183,6 @@ function CustomerHome() {
       )}
 
       {busy && <p className="mt-3 text-sm text-ash">{t("Searching…")}</p>}
-
       {status === "denied" && (
         <p className="mt-3 text-sm text-flag">
           {t("Location is off, so we can't sort by distance. Enable it in your browser to see nearby prices.")}
@@ -166,16 +224,10 @@ function CustomerHome() {
             <div className="mb-4 rounded border border-value bg-value-soft px-4 py-3">
               <p className="text-sm text-ink">
                 You are at <strong>{atStore.store_name}</strong> — the price here is{" "}
-                <strong>
-                  {atStore.price.toFixed(2)} {atStore.currency}
-                </strong>
-                .
+                <strong>{atStore.price.toFixed(2)} {atStore.currency}</strong>.
               </p>
               {!showWiderResults && sorted.length > 1 && (
-                <button
-                  onClick={() => setShowWiderResults(true)}
-                  className="mt-2 text-sm text-value underline hover:text-value/80"
-                >
+                <button onClick={() => setShowWiderResults(true)} className="mt-2 text-sm text-value underline hover:text-value/80">
                   See best prices nearby too
                 </button>
               )}
@@ -206,6 +258,24 @@ function CustomerHome() {
 }
 
 export default function Page() {
+  const [checking, setChecking] = useState(true);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    const supabase = createBrowserSupabase();
+    supabase.auth.getSession().then(({ data }) => {
+      setSignedIn(!!data.session);
+      setChecking(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(!!session);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  if (checking) return null;
+  if (!signedIn) return <SignedOutHome />;
+
   return (
     <GeolocationProvider>
       <CustomerHome />

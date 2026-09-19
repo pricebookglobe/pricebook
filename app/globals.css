@@ -38,20 +38,27 @@ body {
   @apply bg-field;
 }
 
-/* Light greenish-blue field with two soft moving light blooms drifting
-   slowly — the site's primary background, replacing the earlier dark
-   "velvet" version so the logo's original navy/green colors stay legible
-   without needing to be recolored per-background. */
+/* Multi-color animated field: soft blooms of green, blue, orange, yellow
+   and purple drifting slowly across the page — the site's primary
+   background. Kept soft/desaturated enough that dark text and the logo
+   both stay legible on top of it. */
 .velvet-field {
-  background: radial-gradient(ellipse at 20% 25%, rgba(180, 230, 210, 0.9) 0%, transparent 55%),
-    radial-gradient(ellipse at 80% 75%, rgba(170, 215, 235, 0.9) 0%, transparent 55%),
-    linear-gradient(160deg, #E3F3EF 0%, #D6ECF0 55%, #E8F5F0 100%);
-  background-size: 180% 180%, 180% 180%, 100% 100%;
-  animation: velvet-drift 26s ease-in-out infinite alternate;
+  background: radial-gradient(ellipse at 15% 20%, rgba(150, 220, 190, 0.55) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(160, 200, 235, 0.55) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(245, 200, 140, 0.5) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 85%, rgba(230, 210, 130, 0.5) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(200, 170, 220, 0.45) 0%, transparent 55%),
+    linear-gradient(160deg, #EAF6F1 0%, #E7F1F5 55%, #EFF6EC 100%);
+  background-size: 170% 170%, 170% 170%, 170% 170%, 170% 170%, 190% 190%, 100% 100%;
+  animation: velvet-drift 30s ease-in-out infinite alternate;
 }
 @keyframes velvet-drift {
-  0% { background-position: 15% 20%, 85% 80%, 0 0; }
-  100% { background-position: 35% 45%, 65% 55%, 0 0; }
+  0% {
+    background-position: 10% 15%, 90% 10%, 85% 85%, 15% 90%, 40% 40%, 0 0;
+  }
+  100% {
+    background-position: 30% 35%, 65% 30%, 60% 65%, 35% 65%, 60% 60%, 0 0;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .velvet-field { animation: none; }

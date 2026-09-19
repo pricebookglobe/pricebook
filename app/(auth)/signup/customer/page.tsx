@@ -176,7 +176,7 @@ export default function CustomerSignup() {
       <p className="mt-6 text-center text-sm text-ash">
         {t("Own a store instead?")}{" "}
         <a href="/signup/merchant" className="underline text-ink">
-          {t("Sign up as a merchant")}
+          {t("Sign up as a store admin")}
         </a>
       </p>
     </PageShell>

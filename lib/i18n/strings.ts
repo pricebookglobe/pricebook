@@ -64,7 +64,7 @@ export const UI_STRINGS = [
   "Full name",
   "Creating…",
   "Own a store instead?",
-  "Sign up as a merchant",
+  "Sign up as a store admin",
   "Register your store",
   "Manage your prices and see how you rank nearby.",
   "Commercial name",
