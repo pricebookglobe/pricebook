@@ -82,6 +82,15 @@ export default function MerchantSignup() {
       return;
     }
 
+    // Same as the customer form — a duplicate email can come back as
+    // "success" with no identities instead of an error, which previously
+    // sent existing users down a confusing "check your email" path.
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      setError("This email is already registered. Please log in instead.");
+      setBusy(false);
+      return;
+    }
+
     if (!data.session) {
       router.push("/login?next=/store-profile&justSignedUp=1");
       return;

@@ -44,7 +44,7 @@ export default function CustomerSignup() {
 
     const countryName = COUNTRIES.find((c) => c.code === form.country)?.name ?? form.country;
     const supabase = createBrowserSupabase();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
@@ -62,6 +62,15 @@ export default function CustomerSignup() {
 
     if (error) {
       setError(error.message);
+      setBusy(false);
+      return;
+    }
+
+    // Supabase doesn't always return an error for a duplicate email — to
+    // avoid leaking which emails exist, it can return success with an
+    // empty identities array instead. That's the real signal to catch here.
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      setError("This email is already registered. Please log in instead.");
       setBusy(false);
       return;
     }

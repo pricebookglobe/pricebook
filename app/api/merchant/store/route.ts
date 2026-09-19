@@ -51,8 +51,13 @@ export async function POST(req: NextRequest) {
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
 
   // Make sure this account is flagged as a merchant even if the signup
-  // trigger defaulted it to 'customer' (e.g. Google/OAuth signups later).
-  await auth.supabase.from("users").update({ role: "merchant" }).eq("id", auth.user.id);
+  // trigger defaulted it to 'customer' — but never overwrite an existing
+  // admin's role. Before this guard, an admin who ever tested the merchant
+  // signup flow with their own account would silently lose admin access.
+  const { data: existingProfile } = await auth.supabase.from("users").select("role").eq("id", auth.user.id).single();
+  if (existingProfile?.role !== "admin") {
+    await auth.supabase.from("users").update({ role: "merchant" }).eq("id", auth.user.id);
+  }
 
   return NextResponse.json({ store_id: store.id });
 }
