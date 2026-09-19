@@ -30,7 +30,6 @@ export default function AdminUsersPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<UserRow | null>(null);
-  const [pendingFreeze, setPendingFreeze] = useState<UserRow | null>(null);
   const [page, setPage] = useState(0);
 
   async function load(currentToken: string, q?: string) {
@@ -76,7 +75,6 @@ export default function AdminUsersPage() {
       body: JSON.stringify({ frozen: nextFrozen })
     });
     setUsers((r) => r.map((x) => (x.id === u.id ? { ...x, is_frozen: nextFrozen } : x)));
-    setNotice(`${u.email} ${nextFrozen ? "frozen" : "unfrozen"}.`);
     setBusyId(null);
   }
 
@@ -152,7 +150,7 @@ export default function AdminUsersPage() {
                 <RowActionsMenu
                   disabled={busyId === u.id}
                   actions={[
-                    { label: u.is_frozen ? "Unfreeze" : "Freeze", onClick: () => setPendingFreeze(u) },
+                    { label: u.is_frozen ? "Unfreeze" : "Freeze", onClick: () => toggleFreeze(u) },
                     { label: "Reset password", onClick: () => sendReset(u) },
                     { label: "Delete", onClick: () => setPendingDelete(u), danger: true }
                   ]}
@@ -164,24 +162,6 @@ export default function AdminUsersPage() {
       </table>
 
       <Pagination page={page} totalItems={users.length} onPageChange={setPage} />
-
-      <ConfirmDialog
-        open={!!pendingFreeze}
-        title={pendingFreeze && !pendingFreeze.is_frozen ? "Freeze this account?" : "Unfreeze this account?"}
-        message={
-          pendingFreeze
-            ? !pendingFreeze.is_frozen
-              ? `${pendingFreeze.email} will be locked out and unable to sign in until you unfreeze it.`
-              : `${pendingFreeze.email} will be able to sign in again.`
-            : ""
-        }
-        confirmLabel={pendingFreeze && !pendingFreeze.is_frozen ? "Freeze" : "Unfreeze"}
-        onCancel={() => setPendingFreeze(null)}
-        onConfirm={() => {
-          if (pendingFreeze) toggleFreeze(pendingFreeze);
-          setPendingFreeze(null);
-        }}
-      />
 
       <ConfirmDialog
         open={!!pendingDelete}

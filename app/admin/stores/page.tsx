@@ -8,10 +8,16 @@ import { ClearableSearch } from "@/components/admin/ClearableSearch";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Pagination, paginate } from "@/components/admin/Pagination";
-import { StoreDetailsDialog, type StoreDetails } from "@/components/admin/StoreDetailsDialog";
 
-type StoreRow = StoreDetails & {
+type StoreRow = {
+  id: string;
   owner_id: string;
+  name: string;
+  city: string;
+  commercial_registration: string;
+  contact_person_name: string | null;
+  admin_email: string | null;
+  verification_status: "pending" | "approved" | "rejected";
 };
 
 export default function AdminStoresPage() {
@@ -24,8 +30,6 @@ export default function AdminStoresPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<StoreRow | null>(null);
-  const [pendingFreeze, setPendingFreeze] = useState<{ store: StoreRow; frozen: boolean } | null>(null);
-  const [viewing, setViewing] = useState<StoreRow | null>(null);
   const [page, setPage] = useState(0);
 
   useEffect(() => {
@@ -52,7 +56,6 @@ export default function AdminStoresPage() {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ frozen })
     });
-    setStores((r) => r.map((x) => (x.id === s.id ? { ...x, is_frozen: frozen } : x)));
     setNotice(`${s.name}'s account ${frozen ? "frozen" : "unfrozen"}.`);
     setBusyId(null);
   }
@@ -118,7 +121,6 @@ export default function AdminStoresPage() {
             <th>City</th>
             <th>CR #</th>
             <th>Status</th>
-            <th>Account</th>
             <th className="num">Actions</th>
           </tr>
         </thead>
@@ -129,17 +131,12 @@ export default function AdminStoresPage() {
               <td>{s.city}</td>
               <td className="font-mono text-xs">{s.commercial_registration}</td>
               <td className="capitalize">{s.verification_status}</td>
-              <td>
-                <span className={s.is_frozen ? "text-flag" : "text-value"}>{s.is_frozen ? "Frozen" : "Active"}</span>
-              </td>
               <td className="num">
                 <RowActionsMenu
                   disabled={busyId === s.id}
                   actions={[
-                    { label: "View details", onClick: () => setViewing(s) },
-                    s.is_frozen
-                      ? { label: "Unfreeze", onClick: () => setPendingFreeze({ store: s, frozen: false }) }
-                      : { label: "Freeze", onClick: () => setPendingFreeze({ store: s, frozen: true }) },
+                    { label: "Freeze", onClick: () => toggleFreeze(s, true) },
+                    { label: "Unfreeze", onClick: () => toggleFreeze(s, false) },
                     { label: "Reset password", onClick: () => sendReset(s) },
                     { label: "Delete", onClick: () => setPendingDelete(s), danger: true }
                   ]}
@@ -151,26 +148,6 @@ export default function AdminStoresPage() {
       </table>
 
       <Pagination page={page} totalItems={filtered.length} onPageChange={setPage} />
-
-      <StoreDetailsDialog store={viewing} onClose={() => setViewing(null)} />
-
-      <ConfirmDialog
-        open={!!pendingFreeze}
-        title={pendingFreeze?.frozen ? "Freeze this store's account?" : "Unfreeze this store's account?"}
-        message={
-          pendingFreeze
-            ? pendingFreeze.frozen
-              ? `${pendingFreeze.store.name}'s admin account will be locked out and unable to sign in until you unfreeze it.`
-              : `${pendingFreeze.store.name}'s admin account will be able to sign in again.`
-            : ""
-        }
-        confirmLabel={pendingFreeze?.frozen ? "Freeze" : "Unfreeze"}
-        onCancel={() => setPendingFreeze(null)}
-        onConfirm={() => {
-          if (pendingFreeze) toggleFreeze(pendingFreeze.store, pendingFreeze.frozen);
-          setPendingFreeze(null);
-        }}
-      />
 
       <ConfirmDialog
         open={!!pendingDelete}
