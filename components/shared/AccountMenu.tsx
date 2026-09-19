@@ -82,7 +82,7 @@ export function AccountMenu() {
   return (
     <div className="flex items-start gap-3">
       <a href="/">
-        <img src="/pricebook-logo-light.png" alt="PriceBook" className="h-auto w-24" />
+        <img src="/pricebook-icon-transparent.png" alt="PriceBook" className="h-auto w-12" />
       </a>
       <div>
         <p className="mt-1 font-display text-sm font-medium text-ink">{displayName}</p>

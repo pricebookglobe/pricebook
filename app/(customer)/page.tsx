@@ -263,8 +263,12 @@ export default function Page() {
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
-    supabase.auth.getSession().then(({ data }) => {
-      setSignedIn(!!data.session);
+    // getUser() actually asks Supabase's server to validate the token,
+    // unlike getSession() which can return a stale local session that
+    // looks logged-in here but fails everywhere else (the exact mismatch
+    // that made the header and the page disagree before this fix).
+    supabase.auth.getUser().then(({ data, error }) => {
+      setSignedIn(!error && !!data.user);
       setChecking(false);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
