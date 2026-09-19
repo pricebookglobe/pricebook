@@ -61,7 +61,12 @@ export default function VerifyStoresPage() {
 
   return (
     <AppPage maxWidth="max-w-4xl">
-      <h1 className="mb-6 font-display text-xl font-semibold text-ink">Store verification</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="font-display text-xl font-semibold text-ink">Store verification</h1>
+        <a href="/admin/users" className="font-mono text-xs text-ash underline hover:text-ink">
+          Registered users →
+        </a>
+      </div>
 
       <h2 className="mb-2 font-display text-[15px] font-medium text-ink">Pending ({pending.length})</h2>
       {pending.length === 0 && <p className="text-sm text-ash">Nothing waiting on review.</p>}

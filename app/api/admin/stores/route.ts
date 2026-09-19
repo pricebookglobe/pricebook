@@ -1,19 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceSupabase } from "@/lib/supabaseClient";
-
-async function requireAdmin(req: NextRequest) {
-  const token = req.headers.get("authorization")?.replace("Bearer ", "");
-  if (!token) return { error: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) };
-
-  const supabase = createServiceSupabase();
-  const { data: userData, error: userError } = await supabase.auth.getUser(token);
-  if (userError || !userData.user) return { error: NextResponse.json({ error: "Invalid session" }, { status: 401 }) };
-
-  const { data: profile } = await supabase.from("users").select("role").eq("id", userData.user.id).single();
-  if (profile?.role !== "admin") return { error: NextResponse.json({ error: "Admins only" }, { status: 403 }) };
-
-  return { supabase };
-}
+import { requireAdmin } from "@/lib/adminAuth";
 
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
