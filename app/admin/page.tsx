@@ -132,8 +132,6 @@ export default function AdminPlatformPage() {
   if (loading) return <AppPage maxWidth="max-w-5xl"><p className="text-sm text-ash">…</p></AppPage>;
   if (forbidden) return <AppPage maxWidth="max-w-5xl"><p className="text-sm text-flag">Admins only.</p></AppPage>;
 
-  const pendingStores = stores.filter((s) => s.verification_status === "pending");
-
   return (
     <AppPage maxWidth="max-w-5xl">
       <h1 className="mb-6 font-display text-xl font-semibold text-ink">Admin platform</h1>
@@ -200,59 +198,62 @@ export default function AdminPlatformPage() {
       <section>
         <h2 className="mb-3 font-display text-[15px] font-medium text-ink">Registered stores</h2>
 
-        {pendingStores.length > 0 && (
-          <div className="mb-6">
-            <p className="mb-2 font-mono text-xs uppercase tracking-wide text-ash">Pending review ({pendingStores.length})</p>
-            {pendingStores.map((s) => (
-              <div key={s.id} className="mb-3 rounded border border-line bg-field p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-display text-[15px] font-medium text-ink">{s.name}</p>
-                    <p className="text-sm text-ash">{s.address}, {s.city}</p>
-                    <p className="mt-1 font-mono text-xs text-ash">CR #{s.commercial_registration}</p>
-                    <p className="font-mono text-xs text-ash">Contact: {s.contact_person_name} · {s.admin_email}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button disabled={storeBusyId === s.id} onClick={() => decideStore(s.id, "approved")} className="rounded-sm bg-value px-3 py-1.5 text-sm font-medium text-white">
-                      Approve
-                    </button>
-                    <button disabled={storeBusyId === s.id} onClick={() => decideStore(s.id, "rejected")} className="rounded-sm bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600">
-                      Reject
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-3 flex gap-3">
-                  {s.cr_certificate_url && (
-                    <a href={s.cr_certificate_url} target="_blank" rel="noreferrer" className="text-xs text-ink underline">
-                      View CR certificate
-                    </a>
-                  )}
-                  {s.store_photo_url && (
-                    <a href={s.store_photo_url} target="_blank" rel="noreferrer" className="text-xs text-ink underline">
-                      View store photo
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         <table className="data-table">
           <thead>
             <tr>
               <th>Store</th>
               <th>City</th>
-              <th className="num">Status</th>
+              <th>CR #</th>
+              <th>Contact</th>
+              <th className="num">Status / Actions</th>
             </tr>
           </thead>
           <tbody>
             {stores.map((s) => (
               <tr key={s.id}>
-                <td>{s.name}</td>
+                <td>
+                  {s.name}
+                  {(s.cr_certificate_url || s.store_photo_url) && (
+                    <div className="mt-1 flex gap-2 font-mono text-[11px]">
+                      {s.cr_certificate_url && (
+                        <a href={s.cr_certificate_url} target="_blank" rel="noreferrer" className="text-ash underline hover:text-ink">
+                          CR cert
+                        </a>
+                      )}
+                      {s.store_photo_url && (
+                        <a href={s.store_photo_url} target="_blank" rel="noreferrer" className="text-ash underline hover:text-ink">
+                          Photo
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </td>
                 <td>{s.city}</td>
-                <td className={"num " + (s.verification_status === "approved" ? "text-value" : s.verification_status === "rejected" ? "text-flag" : "text-ash")}>
-                  {s.verification_status}
+                <td className="font-mono text-xs">{s.commercial_registration}</td>
+                <td className="font-mono text-xs">{s.contact_person_name ?? "—"}</td>
+                <td className="num">
+                  {s.verification_status === "pending" ? (
+                    <div className="flex justify-end gap-2">
+                      <button
+                        disabled={storeBusyId === s.id}
+                        onClick={() => decideStore(s.id, "approved")}
+                        className="rounded-sm bg-value px-2.5 py-1 text-xs font-medium text-white"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        disabled={storeBusyId === s.id}
+                        onClick={() => decideStore(s.id, "rejected")}
+                        className="rounded-sm bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  ) : (
+                    <span className={s.verification_status === "approved" ? "text-value" : "text-flag"}>
+                      {s.verification_status}
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
