@@ -40,7 +40,7 @@ function LoginForm() {
 
       {params.get("justSignedUp") && (
         <p className="mt-4 rounded-sm bg-value-soft px-3 py-2 text-center text-sm text-value">
-          {t("Check your email to confirm your account, then log in here.")}
+          {t("Your account is ready — log in below.")}
         </p>
       )}
 

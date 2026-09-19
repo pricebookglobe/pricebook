@@ -145,8 +145,8 @@ export default function MerchantSignup() {
       <PageShell maxWidth="max-w-sm">
         <h1 className="text-center font-display text-xl font-semibold text-ink">Thanks — almost there</h1>
         <p className="mt-3 text-center text-sm text-ash">
-          Your store details are in. Two things need to happen before your dashboard unlocks: confirm the email we
-          just sent you, and our team will review your registration documents. We'll email you once you're approved.
+          Your store details are in. Our team will review your registration documents before your dashboard unlocks
+          — we'll email you once you're approved.
         </p>
         <Link href="/login" className="mt-6 block text-center text-sm underline text-ink">
           {t("Back to log in")}

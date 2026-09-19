@@ -44,7 +44,7 @@ export const UI_STRINGS = [
   "Email",
   "Password",
   "Current password",
-  "Check your email to confirm your account, then log in here.",
+  "Your account is ready — log in below.",
   "Forgot password?",
   "Join PriceBook",
   "How will you be using it?",
