@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MoreVertical } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
+import { ClearableSearch } from "@/components/admin/ClearableSearch";
 
 type StoreRow = {
   id: string;
@@ -25,6 +26,7 @@ export default function PendingStoresPage() {
   const [forbidden, setForbidden] = useState(false);
   const [loading, setLoading] = useState(true);
   const [stores, setStores] = useState<StoreRow[]>([]);
+  const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -70,9 +72,13 @@ export default function PendingStoresPage() {
       <h1 className="mb-1 font-display text-xl font-semibold text-ink">Store requests</h1>
       <p className="mb-6 text-sm text-ash">New store signups waiting on approval.</p>
 
+      <div className="mb-4 flex gap-2">
+        <ClearableSearch value={search} onChange={setSearch} onClear={() => setSearch("")} placeholder="Search by store name or city…" />
+      </div>
+
       {stores.length === 0 && <p className="text-sm text-ash">No pending requests right now.</p>}
 
-      {stores.map((s) => (
+      {stores.filter((s) => !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.city.toLowerCase().includes(search.toLowerCase())).map((s) => (
         <div key={s.id} className="mb-3 rounded border border-line bg-field p-4">
           <div className="flex items-start justify-between">
             <div>
