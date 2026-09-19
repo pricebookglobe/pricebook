@@ -18,6 +18,7 @@ type StoreRow = {
   admin_email: string | null;
   cr_certificate_url: string | null;
   store_photo_url: string | null;
+  logo_url: string | null;
   verification_status: "pending" | "approved" | "rejected";
 };
 
@@ -116,15 +117,21 @@ export default function PendingStoresPage() {
               <p><span className="text-ash">CR #:</span> {s.commercial_registration}</p>
               <p><span className="text-ash">Contact:</span> {s.contact_person_name ?? "—"}</p>
               <p><span className="text-ash">Admin email:</span> {s.admin_email ?? "—"}</p>
-              <div className="mt-2 flex gap-3 font-mono text-[11px]">
+              <div className="mt-2 flex flex-wrap items-center gap-4">
+                {s.logo_url && (
+                  <div className="flex items-center gap-2">
+                    <img src={s.logo_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                    <span className="font-mono text-[11px] text-ash">Logo</span>
+                  </div>
+                )}
                 {s.cr_certificate_url && (
-                  <a href={s.cr_certificate_url} target="_blank" rel="noreferrer" className="text-ink underline">
+                  <a href={s.cr_certificate_url} target="_blank" rel="noreferrer" className="font-mono text-[11px] text-ink underline">
                     View CR certificate
                   </a>
                 )}
                 {s.store_photo_url && (
-                  <a href={s.store_photo_url} target="_blank" rel="noreferrer" className="text-ink underline">
-                    View store photo
+                  <a href={s.store_photo_url} target="_blank" rel="noreferrer" className="font-mono text-[11px] text-ink underline">
+                    View store front photo
                   </a>
                 )}
               </div>
