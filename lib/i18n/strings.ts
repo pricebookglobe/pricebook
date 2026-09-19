@@ -93,6 +93,10 @@ export const UI_STRINGS = [
   "Search",
   "Item",
   "Status",
+  "Products",
+  "Check price",
+  "Search items",
+  "Back to log in",
 
   // Dashboard / inventory
   "Your store",

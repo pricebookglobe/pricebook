@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
-type Profile = { full_name: string | null; email: string; role: "customer" | "merchant" | "admin" };
+type Profile = {
+  full_name: string | null;
+  email: string;
+  role: "customer" | "merchant" | "admin";
+  delete_history_on_logout: boolean;
+};
 
 export function AccountMenu() {
   const router = useRouter();
@@ -17,28 +22,24 @@ export function AccountMenu() {
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
-    // getUser() first: it forces Supabase to validate/refresh the token
-    // server-side if needed. Calling getSession() on its own could return
-    // a stale access token from before a refresh, which is exactly what
-    // caused this menu to disagree with the rest of the page.
     supabase.auth.getUser().then(async ({ data: userData, error: userError }) => {
       if (userError || !userData.user) {
         setLoading(false);
         return;
       }
       const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) {
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
         setLoading(false);
         return;
       }
-      setToken(token);
-      const res = await fetch("/api/me", { headers: { Authorization: `Bearer ${token}` } });
+      setToken(accessToken);
+      const res = await fetch("/api/me", { headers: { Authorization: `Bearer ${accessToken}` } });
       if (res.ok) {
         const p: Profile = await res.json();
         setProfile(p);
         if (p.role === "merchant") {
-          const storeRes = await fetch("/api/merchant/store", { headers: { Authorization: `Bearer ${token}` } });
+          const storeRes = await fetch("/api/merchant/store", { headers: { Authorization: `Bearer ${accessToken}` } });
           const store = await storeRes.json();
           if (store) setStoreName(store.name);
         }
@@ -49,9 +50,6 @@ export function AccountMenu() {
 
   async function handleLogout() {
     const supabase = createBrowserSupabase();
-
-    // If the person opted into clearing history on every logout, do it
-    // before the session token is gone.
     if (token) {
       try {
         const meRes = await fetch("/api/me", { headers: { Authorization: `Bearer ${token}` } });
@@ -65,13 +63,12 @@ export function AccountMenu() {
         // best-effort — never block logout on this
       }
     }
-
     await supabase.auth.signOut();
     router.push("/");
     router.refresh();
   }
 
-  if (loading) return <div className="h-12 w-32" />;
+  if (loading) return <div className="h-40 w-32" />; // avoid layout shift while checking session
 
   if (!profile) {
     return (
@@ -86,24 +83,33 @@ export function AccountMenu() {
   const displayName = storeName || profile.full_name || profile.email;
 
   return (
-    <div className="flex items-start gap-3">
+    <div>
       <a href="/">
-        <img src="/pricebook-icon-transparent.png" alt="PriceBook" className="h-auto w-12" />
+        <img src="/pricebook-icon-transparent.png" alt="PriceBook" className="h-auto w-24" />
       </a>
-      <div>
-        <p className="mt-1 font-display text-sm font-medium text-ink">{displayName}</p>
-        <div className="mt-1 flex items-center gap-2">
-          <a href="/settings" aria-label={t("Settings")} className="text-ash hover:text-ink" title={t("Settings")}>
-            ⚙︎
+      <p className="mt-2 font-display text-base font-semibold text-ink">{displayName}</p>
+
+      <nav className="mt-3 flex flex-col items-start gap-2 text-sm">
+        <a href="/settings" className="flex items-center gap-1.5 text-ash hover:text-ink">
+          <span aria-hidden>⚙︎</span> {t("Settings")}
+        </a>
+        {profile.role === "merchant" ? (
+          <a href="/inventory" className="flex items-center gap-1.5 text-ash hover:text-ink">
+            <span aria-hidden>📦</span> {t("Products")}
           </a>
-          <button
-            onClick={handleLogout}
-            className="rounded-sm bg-red-50 px-2 py-0.5 font-mono text-[11px] font-medium text-red-600 hover:bg-red-100"
-          >
-            {t("Log out")}
-          </button>
-        </div>
-      </div>
+        ) : (
+          <a href="/history" className="flex items-center gap-1.5 text-ash hover:text-ink">
+            <span aria-hidden>🕘</span> {t("Search history")}
+          </a>
+        )}
+      </nav>
+
+      <button
+        onClick={handleLogout}
+        className="mt-3 rounded-sm bg-red-600 px-3 py-1.5 font-mono text-[11px] font-medium text-white hover:bg-red-700"
+      >
+        {t("Log out")}
+      </button>
     </div>
   );
 }

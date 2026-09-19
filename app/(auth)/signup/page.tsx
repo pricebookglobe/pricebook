@@ -8,6 +8,9 @@ export default function SignupChooser() {
 
   return (
     <PageShell maxWidth="max-w-sm">
+      <a href="/login" className="mb-4 inline-block text-sm text-ash underline hover:text-ink">
+        ← {t("Back to log in")}
+      </a>
       <h1 className="text-center font-display text-xl font-semibold text-ink">{t("Join PriceBook")}</h1>
       <p className="mt-1 text-center text-sm text-ash">{t("How will you be using it?")}</p>
 

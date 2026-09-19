@@ -154,12 +154,20 @@ function CustomerHome() {
       <p className="mb-6 text-sm text-ash">{t("Track best prices, near you first.")}</p>
 
       {mode === "idle" && !busy && (
-        <button
-          onClick={() => setMode("choosing")}
-          className="w-full rounded bg-value px-4 py-3 font-display text-[15px] font-medium text-white hover:bg-value/90"
-        >
-          {t("Find price")}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setMode("choosing")}
+            className="flex-1 rounded bg-value px-4 py-3 font-display text-[15px] font-medium text-white hover:bg-value/90"
+          >
+            {t("Check price")}
+          </button>
+          <button
+            onClick={() => setMode("text")}
+            className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink hover:border-value"
+          >
+            {t("Search items")}
+          </button>
+        </div>
       )}
 
       {mode === "choosing" && (
@@ -169,9 +177,6 @@ function CustomerHome() {
           </button>
           <button onClick={() => fileInputRef.current?.click()} className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink hover:border-value">
             {t("Upload")}
-          </button>
-          <button onClick={() => setMode("text")} className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink hover:border-value">
-            {t("Search")}
           </button>
         </div>
       )}
