@@ -20,6 +20,7 @@ export default function StoreProfilePage() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [crFile, setCrFile] = useState<File | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [locating, setLocating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,11 +95,20 @@ export default function StoreProfilePage() {
     }
     const { store_id } = await storeRes.json();
 
-    const [crBase64, photoBase64] = await Promise.all([fileToBase64(crFile), fileToBase64(photoFile)]);
+    const [crBase64, photoBase64, logoBase64] = await Promise.all([
+      fileToBase64(crFile),
+      fileToBase64(photoFile),
+      logoFile ? fileToBase64(logoFile) : Promise.resolve(null)
+    ]);
     await fetch("/api/merchant/store/documents", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
-      body: JSON.stringify({ store_id, cr_certificate_base64: crBase64, store_photo_base64: photoBase64 })
+      body: JSON.stringify({
+        store_id,
+        cr_certificate_base64: crBase64,
+        store_photo_base64: photoBase64,
+        store_logo_base64: logoBase64 ?? undefined
+      })
     });
 
     setBusy(false);
@@ -164,6 +174,12 @@ export default function StoreProfilePage() {
         <label className="text-sm text-ash">
           Photo of the store (front / location)
           <input required type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+            className="mt-1 w-full text-sm text-ink" />
+        </label>
+
+        <label className="text-sm text-ash">
+          Store logo <span className="text-ash/70">(optional — shown in your dashboard sidebar)</span>
+          <input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
             className="mt-1 w-full text-sm text-ink" />
         </label>
 

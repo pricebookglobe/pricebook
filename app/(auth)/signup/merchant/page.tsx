@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
@@ -30,6 +31,7 @@ export default function MerchantSignup() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [crFile, setCrFile] = useState<File | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [locating, setLocating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -109,11 +111,20 @@ export default function MerchantSignup() {
 
     const { store_id } = await storeRes.json();
 
-    const [crBase64, photoBase64] = await Promise.all([fileToBase64(crFile), fileToBase64(photoFile)]);
+    const [crBase64, photoBase64, logoBase64] = await Promise.all([
+      fileToBase64(crFile),
+      fileToBase64(photoFile),
+      logoFile ? fileToBase64(logoFile) : Promise.resolve(null)
+    ]);
     await fetch("/api/merchant/store/documents", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
-      body: JSON.stringify({ store_id, cr_certificate_base64: crBase64, store_photo_base64: photoBase64 })
+      body: JSON.stringify({
+        store_id,
+        cr_certificate_base64: crBase64,
+        store_photo_base64: photoBase64,
+        store_logo_base64: logoBase64 ?? undefined
+      })
     });
 
     setBusy(false);
@@ -128,18 +139,18 @@ export default function MerchantSignup() {
           Your store details are in. Two things need to happen before your dashboard unlocks: confirm the email we
           just sent you, and our team will review your registration documents. We'll email you once you're approved.
         </p>
-        <a href="/login" className="mt-6 block text-center text-sm underline text-ink">
+        <Link href="/login" className="mt-6 block text-center text-sm underline text-ink">
           {t("Back to log in")}
-        </a>
+        </Link>
       </PageShell>
     );
   }
 
   return (
     <PageShell maxWidth="max-w-sm">
-      <a href="/login" className="mb-4 inline-block text-sm text-ash underline hover:text-ink">
+      <Link href="/login" className="mb-4 inline-block text-sm text-ash underline hover:text-ink">
         ← {t("Back to log in")}
-      </a>
+      </Link>
       <h1 className="text-center font-display text-xl font-semibold text-ink">{t("Register your store")}</h1>
       <p className="mt-1 text-center text-sm text-ash">{t("Manage your prices and see how you rank nearby.")}</p>
 
@@ -184,6 +195,12 @@ export default function MerchantSignup() {
         <label className="text-sm text-ash">
           Photo of the store (front / location)
           <input required type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+            className="mt-1 w-full text-sm text-ink" />
+        </label>
+
+        <label className="text-sm text-ash">
+          Store logo <span className="text-ash/70">(optional — shown in your dashboard sidebar)</span>
+          <input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
             className="mt-1 w-full text-sm text-ink" />
         </label>
 

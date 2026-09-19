@@ -10,7 +10,7 @@ import { useAccount } from "@/lib/AccountProvider";
 export function AccountMenu() {
   const router = useRouter();
   const { t } = useLanguage();
-  const { profile, storeName, token, loading } = useAccount();
+  const { profile, storeName, storeLogoUrl, token, loading } = useAccount();
 
   async function handleLogout() {
     const supabase = createBrowserSupabase();
@@ -57,9 +57,13 @@ export function AccountMenu() {
       </Link>
 
       <div className="mt-4 flex flex-col items-center">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-display text-sm font-medium text-field">
-          {initial}
-        </span>
+        {storeLogoUrl ? (
+          <img src={storeLogoUrl} alt="" className="h-9 w-9 rounded-full object-cover" />
+        ) : (
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-display text-sm font-medium text-field">
+            {initial}
+          </span>
+        )}
         <p className="mt-2 font-display text-[15px] font-semibold leading-tight text-ink">{displayName}</p>
         <p className="font-mono text-[10px] uppercase tracking-wide text-ash">{profile.role}</p>
       </div>

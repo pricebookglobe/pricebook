@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   const { data: userData, error: userError } = await supabase.auth.getUser(token);
   if (userError || !userData.user) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
 
-  const { store_id, cr_certificate_base64, store_photo_base64 } = await req.json();
+  const { store_id, cr_certificate_base64, store_photo_base64, store_logo_base64 } = await req.json();
   if (!store_id) return NextResponse.json({ error: "store_id is required" }, { status: 400 });
 
   const { data: store } = await supabase
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   if (!store) return NextResponse.json({ error: "Not your store" }, { status: 403 });
 
-  const updates: { cr_certificate_url?: string; store_photo_url?: string } = {};
+  const updates: { cr_certificate_url?: string; store_photo_url?: string; logo_url?: string } = {};
 
   if (cr_certificate_base64) {
     const bytes = Buffer.from(cr_certificate_base64, "base64");
@@ -52,6 +52,21 @@ export async function POST(req: NextRequest) {
     if (!error) {
       const { data } = supabase.storage.from("store-photos").getPublicUrl(path);
       updates.store_photo_url = data.publicUrl;
+    }
+  }
+
+  if (store_logo_base64) {
+    const bytes = Buffer.from(store_logo_base64, "base64");
+    const path = `${store_id}-logo-${Date.now()}.jpg`;
+    // Logos are shown publicly (sidebar avatar for the store's own admins,
+    // and later search results), so the public bucket is the right one —
+    // same as the store front photo, just a different image.
+    const { error } = await supabase.storage
+      .from("store-photos")
+      .upload(path, bytes, { contentType: "image/jpeg", upsert: true });
+    if (!error) {
+      const { data } = supabase.storage.from("store-photos").getPublicUrl(path);
+      updates.logo_url = data.publicUrl;
     }
   }
 
