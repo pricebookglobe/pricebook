@@ -36,7 +36,7 @@ export default function InventoryPage() {
       });
       const store = await storeRes.json();
       if (!store) {
-        router.push("/store-profile");
+        router.push("/dashboard");
         return;
       }
       setStoreId(store.id);

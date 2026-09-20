@@ -92,7 +92,12 @@ export default function MerchantSignup() {
     }
 
     if (!data.session) {
-      router.push("/login?next=/store-profile&justSignedUp=1");
+      // Should be unreachable once email confirmation is off in Supabase
+      // (see README) — signUp() always returns a session immediately in
+      // that case. This is a plain error instead of a redirect to any
+      // "finish later" page, since that resume flow no longer exists.
+      setError("Your account was created, but we couldn't sign you in automatically. Please try logging in.");
+      setBusy(false);
       return;
     }
 

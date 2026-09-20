@@ -16,6 +16,7 @@ export default function MerchantDashboard() {
   const [rows, setRows] = useState<RankingRow[]>([]);
   const [messageCount, setMessageCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [noStore, setNoStore] = useState(false);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -29,7 +30,12 @@ export default function MerchantDashboard() {
       });
       const s = await res.json();
       if (!s) {
-        router.push("/store-profile");
+        // No more "finish setup" resume page to send them to — this
+        // shouldn't happen now that store creation is immediate at
+        // signup, so treat it as a real problem to flag rather than a
+        // step to complete.
+        setNoStore(true);
+        setLoading(false);
         return;
       }
       setStore(s);
@@ -42,6 +48,17 @@ export default function MerchantDashboard() {
       setLoading(false);
     });
   }, [router]);
+
+  if (noStore) {
+    return (
+      <AppPage>
+        <p className="text-sm text-flag">
+          We couldn't find a store on your account. This shouldn't happen — please contact
+          pricebook@institute-of-ai.org for help.
+        </p>
+      </AppPage>
+    );
+  }
 
   return (
     <AppPage>

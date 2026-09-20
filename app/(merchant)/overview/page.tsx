@@ -28,7 +28,7 @@ export default function StoreOverviewPage() {
       return;
     }
     if (!storeId) {
-      router.push("/store-profile");
+      router.push("/dashboard");
       return;
     }
     fetch(`/api/stores/${storeId}/overview`, { headers: { Authorization: `Bearer ${token}` } })

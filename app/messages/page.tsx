@@ -24,7 +24,7 @@ export default function MessagesPage() {
       });
       const store = await storeRes.json();
       if (!store) {
-        router.push("/store-profile");
+        router.push("/dashboard");
         return;
       }
       const res = await fetch(`/api/stores/${store.id}/messages`, {
