@@ -30,7 +30,7 @@ export default function PendingStoresPage() {
   const [stores, setStores] = useState<StoreRow[]>([]);
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(0);
 
   useEffect(() => {
@@ -46,7 +46,12 @@ export default function PendingStoresPage() {
       if (res.status === 403) {
         setForbidden(true);
       } else if (res.ok) {
-        setStores((await res.json()).filter((s: StoreRow) => s.verification_status === "pending"));
+        const pending = (await res.json()).filter((s: StoreRow) => s.verification_status === "pending");
+        setStores(pending);
+        // This page exists specifically to decide approve/reject, so show
+        // every request's details by default rather than hiding them
+        // behind an extra click.
+        setExpandedIds(new Set(pending.map((s: StoreRow) => s.id)));
       }
       setLoading(false);
     });
@@ -105,34 +110,60 @@ export default function PendingStoresPage() {
             <RowActionsMenu
               disabled={busyId === s.id}
               actions={[
-                { label: "View details", onClick: () => setExpandedId(expandedId === s.id ? null : s.id) },
+                { label: expandedIds.has(s.id) ? "Hide details" : "View details", onClick: () => setExpandedIds((prev) => {
+                  const next = new Set(prev);
+                  next.has(s.id) ? next.delete(s.id) : next.add(s.id);
+                  return next;
+                }) },
                 { label: "Approve", onClick: () => decide(s.id, "approved") },
                 { label: "Reject", onClick: () => decide(s.id, "rejected"), danger: true }
               ]}
             />
           </div>
 
-          {expandedId === s.id && (
+          {expandedIds.has(s.id) && (
             <div className="mt-3 border-t border-line pt-3 text-sm">
+              <p><span className="text-ash">Address:</span> {s.address}, {s.city}</p>
               <p><span className="text-ash">CR #:</span> {s.commercial_registration}</p>
               <p><span className="text-ash">Contact:</span> {s.contact_person_name ?? "—"}</p>
               <p><span className="text-ash">Admin email:</span> {s.admin_email ?? "—"}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-4">
+
+              <div className="mt-3 flex flex-wrap gap-4">
                 {s.logo_url && (
-                  <div className="flex items-center gap-2">
-                    <img src={s.logo_url} alt="" className="h-10 w-10 rounded-full object-cover" />
-                    <span className="font-mono text-[11px] text-ash">Logo</span>
+                  <div>
+                    <p className="mb-1 font-mono text-[11px] uppercase tracking-wide text-ash">Logo</p>
+                    <img src={s.logo_url} alt="Store logo" className="h-20 w-20 rounded-full border border-line object-cover" />
                   </div>
                 )}
                 {s.cr_certificate_url && (
-                  <a href={s.cr_certificate_url} target="_blank" rel="noreferrer" className="font-mono text-[11px] text-ink underline">
-                    View CR certificate
-                  </a>
+                  <div>
+                    <p className="mb-1 font-mono text-[11px] uppercase tracking-wide text-ash">CR certificate</p>
+                    <a href={s.cr_certificate_url} target="_blank" rel="noreferrer">
+                      <img
+                        src={s.cr_certificate_url}
+                        alt="CR certificate"
+                        className="h-32 w-32 rounded border border-line object-cover hover:opacity-90"
+                      />
+                    </a>
+                    <a href={s.cr_certificate_url} target="_blank" rel="noreferrer" className="mt-1 block font-mono text-[11px] text-ink underline">
+                      Open full size
+                    </a>
+                  </div>
                 )}
                 {s.store_photo_url && (
-                  <a href={s.store_photo_url} target="_blank" rel="noreferrer" className="font-mono text-[11px] text-ink underline">
-                    View store front photo
-                  </a>
+                  <div>
+                    <p className="mb-1 font-mono text-[11px] uppercase tracking-wide text-ash">Store front photo</p>
+                    <a href={s.store_photo_url} target="_blank" rel="noreferrer">
+                      <img
+                        src={s.store_photo_url}
+                        alt="Store front"
+                        className="h-32 w-32 rounded border border-line object-cover hover:opacity-90"
+                      />
+                    </a>
+                    <a href={s.store_photo_url} target="_blank" rel="noreferrer" className="mt-1 block font-mono text-[11px] text-ink underline">
+                      Open full size
+                    </a>
+                  </div>
                 )}
               </div>
             </div>
