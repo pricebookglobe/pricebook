@@ -98,11 +98,15 @@ export default function AdminStoresPage() {
   if (loading) return <AppPage maxWidth="max-w-5xl"><p className="text-sm text-ash">…</p></AppPage>;
   if (forbidden) return <AppPage maxWidth="max-w-5xl"><p className="text-sm text-flag">Admins only.</p></AppPage>;
 
+  // Pending stores live under Store requests only — they don't show here
+  // until an admin approves them, per the explicit "don't move it until
+  // approved" requirement.
+  const notPending = stores.filter((s) => s.verification_status !== "pending");
   const filtered = search
-    ? stores.filter(
+    ? notPending.filter(
         (s) => s.name.toLowerCase().includes(search.toLowerCase()) || s.city.toLowerCase().includes(search.toLowerCase())
       )
-    : stores;
+    : notPending;
 
   return (
     <AppPage maxWidth="max-w-5xl">
