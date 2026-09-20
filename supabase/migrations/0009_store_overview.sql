@@ -19,7 +19,7 @@ returns table (
       p.canonical_name as product_name,
       si.price,
       si.currency,
-      round(100 * percent_rank() over (partition by si.product_id order by si.price), 1) as percentile
+      round((100 * percent_rank() over (partition by si.product_id order by si.price))::numeric, 1) as percentile
     from store_inventory si
     join products p on p.id = si.product_id
     join stores s on s.id = si.store_id
