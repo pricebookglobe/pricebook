@@ -28,8 +28,7 @@ export function AlreadySignedInNotice({ email, displayName }: { email: string; d
         You're currently signed in as <span className="font-medium">{displayName}</span> ({email}).
       </p>
       <p className="mt-1 text-ash">
-        Creating a new account here will replace your current session everywhere this site is open in this
-        browser, including other open tabs. Log out first to continue.
+        Creating a new account here will sign you out of that session in this tab. Log out first to continue.
       </p>
       <button
         type="button"
