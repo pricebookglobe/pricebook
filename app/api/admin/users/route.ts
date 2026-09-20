@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
   let query = auth.supabase
     .from("users")
     .select("id, email, full_name, first_name, last_name, role, is_frozen, created_at")
+    .eq("role", "customer")
     .order("created_at", { ascending: false })
     .limit(200);
 
