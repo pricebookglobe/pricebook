@@ -35,7 +35,7 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
                 href={store.logo_url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-sm border border-line px-3 py-1.5 text-sm text-ink hover:border-ink/40"
+                className="rounded-sm bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
               >
                 View logo
               </a>
@@ -45,7 +45,7 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
                 href={store.cr_certificate_url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-sm border border-line px-3 py-1.5 text-sm text-ink hover:border-ink/40"
+                className="rounded-sm bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
               >
                 View CR certificate
               </a>
@@ -55,7 +55,7 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
                 href={store.store_photo_url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-sm border border-line px-3 py-1.5 text-sm text-ink hover:border-ink/40"
+                className="rounded-sm bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
               >
                 View store photo
               </a>
@@ -67,7 +67,7 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
         </div>
 
         <div className="mt-5 flex justify-end">
-          <button onClick={onClose} className="rounded-sm bg-field px-4 py-2 font-display text-sm font-medium text-ink hover:bg-line">
+          <button onClick={onClose} className="rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-white hover:bg-ink/90">
             Close
           </button>
         </div>
