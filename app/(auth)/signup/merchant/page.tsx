@@ -5,7 +5,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { PageShell } from "@/components/shared/PageShell";
+import { AlreadySignedInNotice } from "@/components/shared/AlreadySignedInNotice";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { useAccount } from "@/lib/AccountProvider";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -19,6 +21,7 @@ function fileToBase64(file: File): Promise<string> {
 export default function MerchantSignup() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { profile, loading: accountLoading } = useAccount();
   const [form, setForm] = useState({
     commercialName: "",
     commercialRegistration: "",
@@ -171,6 +174,13 @@ export default function MerchantSignup() {
       <h1 className="text-center font-display text-xl font-semibold text-ink">{t("Register your store")}</h1>
       <p className="mt-1 text-center text-sm text-ash">{t("Manage your prices and see how you rank nearby.")}</p>
 
+      {!accountLoading && profile && (
+        <div className="mt-6">
+          <AlreadySignedInNotice email={profile.email} displayName={profile.full_name || profile.email} />
+        </div>
+      )}
+
+      {!accountLoading && !profile && (
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
         <label className="text-sm text-ash">
           {t("Commercial name")} <span className="text-red-600">*</span>
@@ -249,6 +259,7 @@ export default function MerchantSignup() {
           {busy ? t("Setting up…") : t("Register your store")}
         </button>
       </form>
+      )}
     </PageShell>
   );
 }

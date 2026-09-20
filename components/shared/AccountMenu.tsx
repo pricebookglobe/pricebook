@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Package, Clock, Settings as SettingsIcon, LogOut, LayoutDashboard, ClipboardList, Users, ShieldCheck } from "lucide-react";
+import { Package, Clock, Settings as SettingsIcon, LogOut, LayoutDashboard, ClipboardList, Users, ShieldCheck, X } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useAccount } from "@/lib/AccountProvider";
@@ -114,8 +114,16 @@ export function AccountMenu() {
 
       {confirmingLogout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-sm rounded-lg bg-white p-6 text-left shadow-2xl">
-            <h2 className="font-display text-lg font-semibold text-ink">Log out?</h2>
+          <div className="relative w-full max-w-sm rounded-lg bg-white p-6 text-left shadow-2xl">
+            <button
+              onClick={() => setConfirmingLogout(false)}
+              aria-label="Close"
+              className="absolute right-3 top-3 rounded-full p-1.5 text-ash hover:bg-field hover:text-ink"
+            >
+              <X size={18} strokeWidth={2} />
+            </button>
+
+            <h2 className="pr-8 font-display text-lg font-semibold text-ink">Log out?</h2>
             <p className="mt-2 text-sm text-ash">Are you sure you want to log out of your account?</p>
             <div className="mt-5 flex justify-end gap-2">
               <button

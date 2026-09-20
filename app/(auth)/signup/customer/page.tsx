@@ -5,12 +5,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { PageShell } from "@/components/shared/PageShell";
+import { AlreadySignedInNotice } from "@/components/shared/AlreadySignedInNotice";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { useAccount } from "@/lib/AccountProvider";
 import { COUNTRIES, statesFor } from "@/lib/geography";
 
 export default function CustomerSignup() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { profile, loading: accountLoading } = useAccount();
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -86,6 +89,13 @@ export default function CustomerSignup() {
       <h1 className="text-center font-display text-xl font-semibold text-ink">{t("Create your account")}</h1>
       <p className="mt-1 text-center text-sm text-ash">{t("Find the best local prices, saved to your name.")}</p>
 
+      {!accountLoading && profile && (
+        <div className="mt-6">
+          <AlreadySignedInNotice email={profile.email} displayName={profile.full_name || profile.email} />
+        </div>
+      )}
+
+      {!accountLoading && !profile && (
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">
           <label className="text-sm text-ash">
@@ -227,6 +237,7 @@ export default function CustomerSignup() {
           {busy ? t("Creating…") : t("Create your account")}
         </button>
       </form>
+      )}
 
       <p className="mt-6 text-center text-sm text-ash">
         {t("Own a store instead?")}{" "}

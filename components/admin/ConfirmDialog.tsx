@@ -1,5 +1,7 @@
 "use client";
 
+import { X } from "lucide-react";
+
 export function ConfirmDialog({
   open,
   title,
@@ -19,8 +21,16 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-sm rounded-lg bg-white p-6 text-left shadow-2xl">
-        <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
+      <div className="relative w-full max-w-sm rounded-lg bg-white p-6 text-left shadow-2xl">
+        <button
+          onClick={onCancel}
+          aria-label="Close"
+          className="absolute right-3 top-3 rounded-full p-1.5 text-ash hover:bg-field hover:text-ink"
+        >
+          <X size={18} strokeWidth={2} />
+        </button>
+
+        <h2 className="pr-8 font-display text-lg font-semibold text-ink">{title}</h2>
         <p className="mt-2 text-sm text-ash">{message}</p>
         <div className="mt-5 flex justify-end gap-2">
           <button

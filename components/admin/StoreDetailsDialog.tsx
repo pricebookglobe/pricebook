@@ -1,5 +1,7 @@
 "use client";
 
+import { X } from "lucide-react";
+
 type StoreDetails = {
   name: string;
   address: string;
@@ -17,8 +19,16 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 text-left shadow-2xl">
-        <h2 className="font-display text-lg font-semibold text-ink">{store.name}</h2>
+      <div className="relative w-full max-w-md rounded-lg bg-white p-6 text-left shadow-2xl">
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-3 top-3 rounded-full p-1.5 text-ash hover:bg-field hover:text-ink"
+        >
+          <X size={18} strokeWidth={2} />
+        </button>
+
+        <h2 className="pr-8 font-display text-lg font-semibold text-ink">{store.name}</h2>
 
         <div className="mt-3 space-y-1 text-sm">
           <p><span className="text-ash">Address:</span> {store.address}, {store.city}</p>
@@ -64,12 +74,6 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
               <p className="text-sm text-ash">No documents uploaded.</p>
             )}
           </div>
-        </div>
-
-        <div className="mt-5 flex justify-end">
-          <button onClick={onClose} className="rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-white hover:bg-ink/90">
-            Close
-          </button>
         </div>
       </div>
     </div>
