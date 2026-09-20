@@ -11,6 +11,7 @@ import { AppPage } from "@/components/shared/AppPage";
 import { PageShell } from "@/components/shared/PageShell";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { useAccount } from "@/lib/AccountProvider";
 
 const TIER_LABEL: Record<string, string> = {
   neighborhood: "neighborhood zone",
@@ -264,27 +265,20 @@ function CustomerHome() {
 }
 
 export default function Page() {
-  const [checking, setChecking] = useState(true);
-  const [signedIn, setSignedIn] = useState(false);
+  const router = useRouter();
+  const { profile, loading } = useAccount();
 
   useEffect(() => {
-    const supabase = createBrowserSupabase();
-    // getUser() actually asks Supabase's server to validate the token,
-    // unlike getSession() which can return a stale local session that
-    // looks logged-in here but fails everywhere else (the exact mismatch
-    // that made the header and the page disagree before this fix).
-    supabase.auth.getUser().then(({ data, error }) => {
-      setSignedIn(!error && !!data.user);
-      setChecking(false);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSignedIn(!!session);
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
+    // Admins and merchants land on their own dashboards instead of the
+    // generic customer search page — visiting "/" is effectively "take me
+    // home", and each role's home is somewhere else.
+    if (!loading && profile?.role === "admin") router.replace("/admin");
+    else if (!loading && profile?.role === "merchant") router.replace("/dashboard");
+  }, [loading, profile, router]);
 
-  if (checking) return null;
-  if (!signedIn) return <SignedOutHome />;
+  if (loading) return null;
+  if (!profile) return <SignedOutHome />;
+  if (profile.role === "admin" || profile.role === "merchant") return null; // redirecting
 
   return (
     <GeolocationProvider>
