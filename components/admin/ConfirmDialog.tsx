@@ -2,11 +2,18 @@
 
 import { X } from "lucide-react";
 
+const TONE_STYLES = {
+  danger: "bg-red-600 hover:bg-red-700",
+  warning: "bg-amber-500 hover:bg-amber-600",
+  positive: "bg-value hover:bg-value/90"
+} as const;
+
 export function ConfirmDialog({
   open,
   title,
   message,
   confirmLabel = "Delete",
+  tone = "danger",
   onConfirm,
   onCancel
 }: {
@@ -14,6 +21,7 @@ export function ConfirmDialog({
   title: string;
   message: string;
   confirmLabel?: string;
+  tone?: keyof typeof TONE_STYLES;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -41,7 +49,7 @@ export function ConfirmDialog({
           </button>
           <button
             onClick={onConfirm}
-            className="rounded-sm bg-red-600 px-4 py-2 font-display text-sm font-medium text-white hover:bg-red-700"
+            className={`rounded-sm px-4 py-2 font-display text-sm font-medium text-white ${TONE_STYLES[tone]}`}
           >
             {confirmLabel}
           </button>

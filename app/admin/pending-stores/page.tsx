@@ -185,6 +185,7 @@ export default function PendingStoresPage() {
         title="Approve this store?"
         message={pendingApprove ? `${pendingApprove.name} will go live under Stores and Shops, and its admin will be emailed that they're approved.` : ""}
         confirmLabel="Approve"
+        tone="positive"
         onCancel={() => setPendingApprove(null)}
         onConfirm={() => {
           if (pendingApprove) approve(pendingApprove);
@@ -197,6 +198,7 @@ export default function PendingStoresPage() {
         title="Reject this store?"
         message={pendingReject ? `${pendingReject.name}'s registration will be removed, and its admin will be emailed that it wasn't approved.` : ""}
         confirmLabel="Reject"
+        tone="warning"
         onCancel={() => setPendingReject(null)}
         onConfirm={() => {
           if (pendingReject) reject(pendingReject);

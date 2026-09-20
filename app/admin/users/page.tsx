@@ -169,6 +169,7 @@ export default function AdminUsersPage() {
         title="Freeze this account?"
         message={pendingFreeze ? `${pendingFreeze.full_name || pendingFreeze.email} won't be able to log in until you unfreeze the account.` : ""}
         confirmLabel="Freeze"
+        tone="warning"
         onCancel={() => setPendingFreeze(null)}
         onConfirm={() => {
           if (pendingFreeze) toggleFreeze(pendingFreeze);

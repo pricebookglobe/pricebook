@@ -181,6 +181,7 @@ export default function AdminStoresPage() {
         title="Freeze this store's account?"
         message={pendingFreeze ? `${pendingFreeze.name}'s admin won't be able to log in until you unfreeze the account.` : ""}
         confirmLabel="Freeze"
+        tone="warning"
         onCancel={() => setPendingFreeze(null)}
         onConfirm={() => {
           if (pendingFreeze) toggleFreeze(pendingFreeze, true);
