@@ -18,17 +18,17 @@ export default function SignupChooser() {
       <div className="mt-6 flex flex-col gap-3">
         <Link
           href="/signup/customer"
-          className="rounded border border-line bg-field-raised px-4 py-4 text-left hover:border-value"
+          className="group rounded border border-line bg-field-raised px-4 py-4 text-left transition-colors hover:border-value hover:bg-value"
         >
-          <p className="font-display text-[15px] font-medium text-ink">{t("I'm shopping")}</p>
-          <p className="mt-0.5 text-sm text-ash">{t("Find the best local prices near me.")}</p>
+          <p className="font-display text-[15px] font-medium text-ink group-hover:text-white">{t("I'm shopping")}</p>
+          <p className="mt-0.5 text-sm text-ash group-hover:text-white/90">{t("Find the best local prices near me.")}</p>
         </Link>
         <Link
           href="/signup/merchant"
-          className="rounded border border-line bg-field-raised px-4 py-4 text-left hover:border-value"
+          className="group rounded border border-line bg-field-raised px-4 py-4 text-left transition-colors hover:border-value hover:bg-value"
         >
-          <p className="font-display text-[15px] font-medium text-ink">{t("I own a store")}</p>
-          <p className="mt-0.5 text-sm text-ash">{t("List my prices and reach nearby shoppers.")}</p>
+          <p className="font-display text-[15px] font-medium text-ink group-hover:text-white">{t("I own a store")}</p>
+          <p className="mt-0.5 text-sm text-ash group-hover:text-white/90">{t("List my prices and reach nearby shoppers.")}</p>
         </Link>
       </div>
 
