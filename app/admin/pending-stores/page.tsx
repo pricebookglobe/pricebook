@@ -164,8 +164,8 @@ export default function PendingStoresPage() {
                     disabled={busyId === s.id}
                     actions={[
                       { label: "View details", onClick: () => setDetailsStore(s) },
-                      { label: "Approve", onClick: () => setPendingApprove(s) },
-                      { label: "Reject", onClick: () => setPendingReject(s) },
+                      { label: "Approve", onClick: () => setPendingApprove(s), tone: "positive" },
+                      { label: "Reject", onClick: () => setPendingReject(s), tone: "warning" },
                       { label: "Delete", onClick: () => setPendingDelete(s), danger: true }
                     ]}
                   />

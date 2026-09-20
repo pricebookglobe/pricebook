@@ -155,7 +155,7 @@ export default function MerchantSignup() {
         </p>
         <Link
           href="/login"
-          className="mt-6 block rounded-sm bg-ink px-4 py-2 text-center font-display text-sm font-medium text-field hover:bg-ink/90"
+          className="mt-6 block rounded-sm bg-value px-4 py-2 text-center font-display text-sm font-medium text-white hover:bg-value/90"
         >
           {t("Go to log in")}
         </Link>
@@ -245,7 +245,7 @@ export default function MerchantSignup() {
         {error && <p className="text-sm text-flag">{error}</p>}
 
         <button type="submit" disabled={busy}
-          className="mt-2 rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-field disabled:opacity-40">
+          className="mt-2 rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 disabled:opacity-40">
           {busy ? t("Setting up…") : t("Register your store")}
         </button>
       </form>

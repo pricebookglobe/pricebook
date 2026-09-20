@@ -159,7 +159,8 @@ export default function AdminStoresPage() {
                     { label: "View details", onClick: () => setDetailsStore(s) },
                     {
                       label: s.owner_is_frozen ? "Unfreeze" : "Freeze",
-                      onClick: () => (s.owner_is_frozen ? toggleFreeze(s, false) : setPendingFreeze(s))
+                      onClick: () => (s.owner_is_frozen ? toggleFreeze(s, false) : setPendingFreeze(s)),
+                      tone: s.owner_is_frozen ? "positive" : "warning"
                     },
                     { label: "Reset password", onClick: () => sendReset(s) },
                     { label: "Delete", onClick: () => setPendingDelete(s), danger: true }

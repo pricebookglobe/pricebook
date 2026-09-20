@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MoreVertical } from "lucide-react";
 
-export type MenuAction = { label: string; onClick: () => void; danger?: boolean };
+export type MenuAction = { label: string; onClick: () => void; danger?: boolean; tone?: "positive" | "warning" | "danger" | "default" };
 
 export function RowActionsMenu({ actions, disabled }: { actions: MenuAction[]; disabled?: boolean }) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -38,18 +38,27 @@ export function RowActionsMenu({ actions, disabled }: { actions: MenuAction[]; d
             style={{ top: pos.top, left: pos.left }}
             className="fixed z-50 w-40 rounded border border-line bg-field-raised py-1 text-left shadow-lg"
           >
-            {actions.map((a) => (
-              <button
-                key={a.label}
-                onClick={() => {
-                  setPos(null);
-                  a.onClick();
-                }}
-                className={`block w-full px-3 py-2 text-left text-sm hover:bg-field ${a.danger ? "text-flag" : "text-ink"}`}
-              >
-                {a.label}
-              </button>
-            ))}
+            {actions.map((a) => {
+              const tone = a.tone ?? (a.danger ? "danger" : "default");
+              const toneClass = {
+                positive: "text-value",
+                warning: "text-amber-600",
+                danger: "text-flag",
+                default: "text-ink"
+              }[tone];
+              return (
+                <button
+                  key={a.label}
+                  onClick={() => {
+                    setPos(null);
+                    a.onClick();
+                  }}
+                  className={`block w-full px-3 py-2 text-left text-sm hover:bg-field ${toneClass}`}
+                >
+                  {a.label}
+                </button>
+              );
+            })}
           </div>
         </>
       )}

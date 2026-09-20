@@ -156,7 +156,7 @@ export default function SettingsPage() {
         {saved && <p className="text-sm text-value">{saved}</p>}
 
         <button type="submit" disabled={busy}
-          className="mt-1 rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-field disabled:opacity-40">
+          className="mt-1 rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 disabled:opacity-40">
           {busy ? t("Saving…") : t("Save changes")}
         </button>
       </form>

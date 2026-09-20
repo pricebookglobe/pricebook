@@ -121,7 +121,7 @@ export default function AdminUsersPage() {
           }}
           placeholder="Search by name or email…"
         />
-        <button type="submit" className="rounded-sm bg-ink px-4 py-2 font-display text-sm text-field">
+        <button type="submit" className="rounded-sm bg-blue-600 px-4 py-2 font-display text-sm text-white hover:bg-blue-700">
           Search
         </button>
       </form>
@@ -151,7 +151,7 @@ export default function AdminUsersPage() {
                 <RowActionsMenu
                   disabled={busyId === u.id}
                   actions={[
-                    { label: u.is_frozen ? "Unfreeze" : "Freeze", onClick: () => (u.is_frozen ? toggleFreeze(u) : setPendingFreeze(u)) },
+                    { label: u.is_frozen ? "Unfreeze" : "Freeze", onClick: () => (u.is_frozen ? toggleFreeze(u) : setPendingFreeze(u)), tone: u.is_frozen ? "positive" : "warning" },
                     { label: "Reset password", onClick: () => sendReset(u) },
                     { label: "Delete", onClick: () => setPendingDelete(u), danger: true }
                   ]}
