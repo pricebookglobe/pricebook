@@ -19,11 +19,23 @@ type UserRow = {
   is_frozen: boolean;
 };
 
+type Stats = { user_count: number; store_count: number; item_count: number; avg_items_per_store: number };
+
+function StatBox({ value, label }: { value: string | number; label: string }) {
+  return (
+    <div className="rounded border border-line bg-field p-4 text-center">
+      <p className="font-display text-2xl font-semibold text-ink">{value}</p>
+      <p className="mt-1 font-mono text-[11px] uppercase tracking-wide text-ash">{label}</p>
+    </div>
+  );
+}
+
 export default function AdminUsersPage() {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   const [users, setUsers] = useState<UserRow[]>([]);
   const [search, setSearch] = useState("");
@@ -53,6 +65,9 @@ export default function AdminUsersPage() {
       const t = data.session.access_token;
       setToken(t);
       await load(t);
+      fetch("/api/admin/stats", { headers: { Authorization: `Bearer ${t}` } })
+        .then((r) => (r.ok ? r.json() : null))
+        .then(setStats);
       setLoading(false);
     });
   }, [router]);
@@ -109,6 +124,15 @@ export default function AdminUsersPage() {
     <AppPage maxWidth="max-w-5xl">
       <h1 className="mb-1 font-display text-xl font-semibold text-ink">Users</h1>
       <p className="mb-6 text-sm text-ash">Every registered customer and merchant account.</p>
+
+      {stats && (
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatBox value={stats.user_count} label="Registered users" />
+          <StatBox value={stats.store_count} label="Registered stores" />
+          <StatBox value={stats.item_count} label="Registered items" />
+          <StatBox value={stats.avg_items_per_store} label="Avg. items / store" />
+        </div>
+      )}
 
       <form onSubmit={handleSearch} className="mb-4 flex gap-2">
         <ClearableSearch
