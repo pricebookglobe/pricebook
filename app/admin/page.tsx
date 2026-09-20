@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 
-type Stats = { user_count: number; store_count: number; item_count: number; avg_items_per_store: number };
+type Stats = {
+  user_count: number;
+  store_count: number;
+  item_count: number;
+  avg_items_per_store: number;
+  pending_store_count: number;
+};
 
 function StatBox({ value, label }: { value: string | number; label: string }) {
   return (
@@ -44,11 +50,12 @@ export default function AdminDashboardPage() {
       <h1 className="mb-6 font-display text-xl font-semibold text-ink">Admin platform</h1>
 
       {stats && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
           <StatBox value={stats.user_count} label="Registered users" />
           <StatBox value={stats.store_count} label="Registered stores" />
           <StatBox value={stats.item_count} label="Registered items" />
           <StatBox value={stats.avg_items_per_store} label="Avg. items / store" />
+          <StatBox value={stats.pending_store_count} label="Stores pending admin approval" />
         </div>
       )}
     </AppPage>

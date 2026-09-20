@@ -73,11 +73,14 @@ export function AccountMenu() {
       <nav className="mt-6 flex w-full flex-col gap-0.5 text-sm">
         {profile.role === "admin" ? (
           <>
+            <Link href="/admin" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+              <LayoutDashboard size={16} strokeWidth={1.75} /> Admin dashboard
+            </Link>
             <Link href="/admin/users" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
               <Users size={16} strokeWidth={1.75} /> Users
             </Link>
             <Link href="/admin/stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
-              <ShieldCheck size={16} strokeWidth={1.75} /> Stores
+              <ShieldCheck size={16} strokeWidth={1.75} /> Stores and Shops
             </Link>
             <Link href="/admin/pending-stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
               <ClipboardList size={16} strokeWidth={1.75} /> Store requests

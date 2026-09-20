@@ -106,7 +106,7 @@ export default function AdminStoresPage() {
 
   return (
     <AppPage maxWidth="max-w-5xl">
-      <h1 className="mb-1 font-display text-xl font-semibold text-ink">Stores</h1>
+      <h1 className="mb-1 font-display text-xl font-semibold text-ink">Stores and Shops</h1>
       <p className="mb-6 text-sm text-ash">Every registered store — actions here manage the store's admin account.</p>
 
       <div className="mb-4 flex gap-2">
