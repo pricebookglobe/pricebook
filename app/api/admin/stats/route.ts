@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
 
   const [{ count: userCount }, { count: storeCount }, { count: itemCount }, { count: pendingCount }] = await Promise.all([
     auth.supabase.from("users").select("id", { count: "exact", head: true }).eq("role", "customer"),
-    auth.supabase.from("stores").select("id", { count: "exact", head: true }).eq("verification_status", "approved"),
+    auth.supabase.from("stores").select("id", { count: "exact", head: true }),
     auth.supabase.from("store_inventory").select("id", { count: "exact", head: true }),
     auth.supabase.from("stores").select("id", { count: "exact", head: true }).eq("verification_status", "pending")
   ]);

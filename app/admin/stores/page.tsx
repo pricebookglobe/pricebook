@@ -7,7 +7,6 @@ import { AppPage } from "@/components/shared/AppPage";
 import { ClearableSearch } from "@/components/admin/ClearableSearch";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { StoreDetailsDialog } from "@/components/admin/StoreDetailsDialog";
 import { Pagination, paginate } from "@/components/admin/Pagination";
 
 type StoreRow = {
@@ -37,7 +36,7 @@ export default function AdminStoresPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<StoreRow | null>(null);
   const [pendingFreeze, setPendingFreeze] = useState<StoreRow | null>(null);
-  const [detailsStore, setDetailsStore] = useState<StoreRow | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
   async function load(currentToken: string) {
@@ -143,37 +142,67 @@ export default function AdminStoresPage() {
         </thead>
         <tbody>
           {paginate(filtered, page).map((s) => (
-            <tr key={s.id}>
-              <td>{s.name}</td>
-              <td>{s.city}</td>
-              <td className="capitalize">{s.verification_status}</td>
-              <td>
-                <span className={s.owner_is_frozen ? "text-flag" : "text-value"}>
-                  {s.owner_is_frozen ? "Frozen" : "Active"}
-                </span>
-              </td>
-              <td className="num">
-                <RowActionsMenu
-                  disabled={busyId === s.id}
-                  actions={[
-                    { label: "View details", onClick: () => setDetailsStore(s) },
-                    {
-                      label: s.owner_is_frozen ? "Unfreeze" : "Freeze",
-                      onClick: () => (s.owner_is_frozen ? toggleFreeze(s, false) : setPendingFreeze(s))
-                    },
-                    { label: "Reset password", onClick: () => sendReset(s) },
-                    { label: "Delete", onClick: () => setPendingDelete(s), danger: true }
-                  ]}
-                />
-              </td>
-            </tr>
+            <>
+              <tr key={s.id}>
+                <td>{s.name}</td>
+                <td>{s.city}</td>
+                <td className="capitalize">{s.verification_status}</td>
+                <td>
+                  <span className={s.owner_is_frozen ? "text-flag" : "text-value"}>
+                    {s.owner_is_frozen ? "Frozen" : "Active"}
+                  </span>
+                </td>
+                <td className="num">
+                  <RowActionsMenu
+                    disabled={busyId === s.id}
+                    actions={[
+                      { label: "View details", onClick: () => setExpandedId(expandedId === s.id ? null : s.id) },
+                      {
+                        label: s.owner_is_frozen ? "Unfreeze" : "Freeze",
+                        onClick: () => (s.owner_is_frozen ? toggleFreeze(s, false) : setPendingFreeze(s))
+                      },
+                      { label: "Reset password", onClick: () => sendReset(s) },
+                      { label: "Delete", onClick: () => setPendingDelete(s), danger: true }
+                    ]}
+                  />
+                </td>
+              </tr>
+              {expandedId === s.id && (
+                <tr>
+                  <td colSpan={5} className="bg-field">
+                    <div className="py-2 text-sm">
+                      <p><span className="text-ash">Address:</span> {s.address}, {s.city}</p>
+                      <p><span className="text-ash">Commercial registration #:</span> {s.commercial_registration}</p>
+                      <p><span className="text-ash">Contact person:</span> {s.contact_person_name ?? "—"}</p>
+                      <p><span className="text-ash">Admin email:</span> {s.admin_email ?? "—"}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-4">
+                        {s.logo_url && (
+                          <div className="flex items-center gap-2">
+                            <img src={s.logo_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                            <span className="font-mono text-[11px] text-ash">Logo</span>
+                          </div>
+                        )}
+                        {s.cr_certificate_url && (
+                          <a href={s.cr_certificate_url} target="_blank" rel="noreferrer" className="font-mono text-[11px] text-ink underline">
+                            View CR certificate
+                          </a>
+                        )}
+                        {s.store_photo_url && (
+                          <a href={s.store_photo_url} target="_blank" rel="noreferrer" className="font-mono text-[11px] text-ink underline">
+                            View store front photo
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </>
           ))}
         </tbody>
       </table>
 
       <Pagination page={page} totalItems={filtered.length} onPageChange={setPage} />
-
-      <StoreDetailsDialog store={detailsStore} onClose={() => setDetailsStore(null)} />
 
       <ConfirmDialog
         open={!!pendingFreeze}
