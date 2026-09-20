@@ -45,27 +45,31 @@ function LoginForm() {
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
-        <input
-          required
-          type="email"
-          value={email}
-          placeholder={t("Email")}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded border border-line bg-field px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
-        />
-        <div className="flex items-center rounded border border-line bg-field">
+        <label className="text-sm text-ash">
+          {t("Email")} <span className="text-red-600">*</span>
           <input
             required
-            type={showPassword ? "text" : "password"}
-            value={password}
-            placeholder={t("Password")}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-transparent px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mt-1 w-full rounded border border-line bg-field px-3 py-2.5 text-[15px] text-ink outline-none focus:border-ink/40"
           />
-          <button type="button" onClick={() => setShowPassword((s) => !s)} className="px-3 text-ash hover:text-ink" aria-label="Toggle password visibility">
-            {showPassword ? "🙈" : "👁"}
-          </button>
-        </div>
+        </label>
+        <label className="text-sm text-ash">
+          {t("Password")} <span className="text-red-600">*</span>
+          <div className="mt-1 flex items-center rounded border border-line bg-field">
+            <input
+              required
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-transparent px-3 py-2.5 text-[15px] text-ink outline-none focus:border-ink/40"
+            />
+            <button type="button" onClick={() => setShowPassword((s) => !s)} className="px-3 text-ash hover:text-ink" aria-label="Toggle password visibility">
+              {showPassword ? "🙈" : "👁"}
+            </button>
+          </div>
+        </label>
 
         {error && <p className="text-center text-sm text-flag">{error}</p>}
 

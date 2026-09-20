@@ -43,14 +43,16 @@ export default function ForgotPasswordPage() {
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
-          <input
-            required
-            type="email"
-            value={email}
-            placeholder={t("Email")}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded border border-line bg-field px-3 py-2.5 text-[15px] text-ink placeholder:text-ash outline-none focus:border-ink/40"
-          />
+          <label className="text-sm text-ash">
+            {t("Email")} <span className="text-red-600">*</span>
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 w-full rounded border border-line bg-field px-3 py-2.5 text-[15px] text-ink outline-none focus:border-ink/40"
+            />
+          </label>
 
           {error && <p className="text-center text-sm text-flag">{error}</p>}
 

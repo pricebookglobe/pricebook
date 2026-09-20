@@ -89,7 +89,7 @@ export default function CustomerSignup() {
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">
           <label className="text-sm text-ash">
-            First name
+            First name <span className="text-red-600">*</span>
             <input
               required
               value={form.firstName}
@@ -98,7 +98,7 @@ export default function CustomerSignup() {
             />
           </label>
           <label className="text-sm text-ash">
-            Surname
+            Surname <span className="text-red-600">*</span>
             <input
               required
               value={form.lastName}
@@ -108,7 +108,7 @@ export default function CustomerSignup() {
           </label>
         </div>
         <label className="text-sm text-ash">
-          {t("Email")}
+          {t("Email")} <span className="text-red-600">*</span>
           <input
             required
             type="email"
@@ -118,7 +118,7 @@ export default function CustomerSignup() {
           />
         </label>
         <label className="text-sm text-ash">
-          {t("Address")}
+          {t("Address")} <span className="text-red-600">*</span>
           <input
             required
             value={form.address}
@@ -128,7 +128,7 @@ export default function CustomerSignup() {
         </label>
 
         <label className="text-sm text-ash">
-          Country
+          Country <span className="text-red-600">*</span>
           <select
             required
             value={form.country}
@@ -146,7 +146,7 @@ export default function CustomerSignup() {
 
         {availableStates && (
           <label className="text-sm text-ash">
-            State / Province
+            State / Province <span className="text-red-600">*</span>
             <select
               required
               value={form.state}
@@ -165,7 +165,7 @@ export default function CustomerSignup() {
 
         {form.country && (
           <label className="text-sm text-ash">
-            {t("City")}
+            {t("City")} <span className="text-red-600">*</span>
             <input
               required
               value={form.city}
@@ -176,7 +176,7 @@ export default function CustomerSignup() {
         )}
 
         <label className="text-sm text-ash">
-          {t("Password")}
+          {t("Password")} <span className="text-red-600">*</span>
           <div className="mt-1 flex items-center rounded border border-line bg-field">
             <input
               required
@@ -197,7 +197,7 @@ export default function CustomerSignup() {
           </div>
         </label>
         <label className="text-sm text-ash">
-          Confirm password
+          Confirm password <span className="text-red-600">*</span>
           <div className="mt-1 flex items-center rounded border border-line bg-field">
             <input
               required

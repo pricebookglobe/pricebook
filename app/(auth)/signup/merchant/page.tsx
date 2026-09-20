@@ -153,8 +153,11 @@ export default function MerchantSignup() {
           Your store details are in. Our team will review your registration documents before your dashboard unlocks
           — we'll email you once you're approved.
         </p>
-        <Link href="/login" className="mt-6 block text-center text-sm underline text-ink">
-          {t("Back to log in")}
+        <Link
+          href="/login"
+          className="mt-6 block rounded-sm bg-ink px-4 py-2 text-center font-display text-sm font-medium text-field hover:bg-ink/90"
+        >
+          {t("Go to log in")}
         </Link>
       </PageShell>
     );
@@ -170,34 +173,34 @@ export default function MerchantSignup() {
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
         <label className="text-sm text-ash">
-          {t("Commercial name")}
+          {t("Commercial name")} <span className="text-red-600">*</span>
           <input required value={form.commercialName} onChange={(e) => update("commercialName", e.target.value)}
             className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none" />
         </label>
         <label className="text-sm text-ash">
-          {t("Commercial registration number")}
+          {t("Commercial registration number")} <span className="text-red-600">*</span>
           <input required value={form.commercialRegistration} onChange={(e) => update("commercialRegistration", e.target.value)}
             className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none" />
         </label>
         <label className="text-sm text-ash">
-          Upload CR certificate
+          Upload CR certificate <span className="text-red-600">*</span>
           <input required type="file" accept="image/*,.pdf" onChange={(e) => setCrFile(e.target.files?.[0] ?? null)}
             className="mt-1 w-full text-sm text-ink" />
         </label>
         <label className="text-sm text-ash">
-          {t("Address")}
+          {t("Address")} <span className="text-red-600">*</span>
           <input required value={form.address} onChange={(e) => update("address", e.target.value)}
             className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none" />
         </label>
         <label className="text-sm text-ash">
-          {t("City")}
+          {t("City")} <span className="text-red-600">*</span>
           <input required value={form.city} onChange={(e) => update("city", e.target.value)}
             className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none" />
         </label>
 
         <div className="rounded border border-line bg-field px-3 py-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-ash">{t("Store location")}</span>
+            <span className="text-sm text-ash">{t("Store location")} <span className="text-red-600">*</span></span>
             <button type="button" onClick={captureLocation}
               className="rounded-sm bg-ink px-2 py-1 font-display text-xs font-medium text-field">
               {locating ? "…" : coords ? t("Update") : t("Use my location")}
@@ -207,7 +210,7 @@ export default function MerchantSignup() {
         </div>
 
         <label className="text-sm text-ash">
-          Photo of the store (front / location)
+          Photo of the store (front / location) <span className="text-red-600">*</span>
           <input required type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
             className="mt-1 w-full text-sm text-ink" />
         </label>
@@ -219,17 +222,17 @@ export default function MerchantSignup() {
         </label>
 
         <label className="text-sm text-ash">
-          Contact person's name
+          Contact person's name <span className="text-red-600">*</span>
           <input required value={form.contactPersonName} onChange={(e) => update("contactPersonName", e.target.value)}
             className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none" />
         </label>
         <label className="text-sm text-ash">
-          Store admin email
+          Store admin email <span className="text-red-600">*</span>
           <input required type="email" value={form.email} onChange={(e) => update("email", e.target.value)}
             className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none" />
         </label>
         <label className="text-sm text-ash">
-          {t("Password")}
+          {t("Password")} <span className="text-red-600">*</span>
           <div className="mt-1 flex items-center rounded border border-line bg-field">
             <input required minLength={8} type={showPassword ? "text" : "password"} value={form.password} onChange={(e) => update("password", e.target.value)}
               className="w-full bg-transparent px-3 py-2 text-ink outline-none" />

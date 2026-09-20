@@ -57,6 +57,7 @@ export const UI_STRINGS = [
   "Send reset link",
   "Sending…",
   "Back to log in",
+  "Go to log in",
   "If an account exists for that email, a reset link is on its way. Check your inbox.",
   "Logging in…",
   "Create your account",
