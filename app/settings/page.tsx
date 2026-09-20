@@ -165,7 +165,7 @@ export default function SettingsPage() {
         <p className="text-sm font-medium text-ink">Privacy</p>
         <label className="mt-2 flex items-center gap-2 text-sm text-ash">
           <input type="checkbox" checked={deleteOnLogout} onChange={(e) => setDeleteOnLogout(e.target.checked)} />
-          Delete my search history every time I log out
+          Delete search history on logout
         </label>
         <p className="mt-1 font-mono text-[11px] text-ash">
           {deleteOnLogout ? "Your history clears on every logout." : "Your history is kept for up to a year."}
