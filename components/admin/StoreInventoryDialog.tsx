@@ -12,7 +12,7 @@ type InventoryRow = {
   currency: string;
   in_stock: boolean;
   is_hidden: boolean;
-  products: { id: string; canonical_name: string; brand: string | null; image_url: string | null };
+  products: { id: string; canonical_name: string; brand: string | null; image_url: string | null; size?: number | null; unit?: string | null };
 };
 
 export function StoreInventoryDialog({
@@ -29,6 +29,8 @@ export function StoreInventoryDialog({
   const [page, setPage] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<InventoryRow | null>(null);
+  const [pendingHide, setPendingHide] = useState<InventoryRow | null>(null);
+  const [pendingUnavailable, setPendingUnavailable] = useState<InventoryRow | null>(null);
 
   useEffect(() => {
     if (!store) return;
@@ -95,6 +97,7 @@ export function StoreInventoryDialog({
             <thead>
               <tr>
                 <th>Item</th>
+                <th>Size / Qty</th>
                 <th>Status</th>
                 <th className="num">Price</th>
                 <th className="num">Actions</th>
@@ -116,6 +119,9 @@ export function StoreInventoryDialog({
                       </span>
                     </div>
                   </td>
+                  <td className="font-mono text-xs text-ash">
+                    {row.products.size ? `${row.products.size} ${row.products.unit ?? ""}` : "—"}
+                  </td>
                   <td className="font-mono text-xs">
                     <span className={row.in_stock ? "text-value" : "text-flag"}>
                       {row.in_stock ? "Available" : "Unavailable"}
@@ -132,12 +138,12 @@ export function StoreInventoryDialog({
                         {
                           label: row.is_hidden ? "Unhide" : "Hide",
                           tone: "warning",
-                          onClick: () => patchItem(row, { is_hidden: !row.is_hidden })
+                          onClick: () => (row.is_hidden ? patchItem(row, { is_hidden: false }) : setPendingHide(row))
                         },
                         {
                           label: row.in_stock ? "Mark unavailable" : "Mark available",
                           tone: row.in_stock ? "warning" : "positive",
-                          onClick: () => patchItem(row, { in_stock: !row.in_stock })
+                          onClick: () => (row.in_stock ? setPendingUnavailable(row) : patchItem(row, { in_stock: true }))
                         },
                         { label: "Delete", tone: "danger", onClick: () => setPendingDelete(row) }
                       ]}
@@ -165,6 +171,38 @@ export function StoreInventoryDialog({
         onConfirm={() => {
           if (pendingDelete) deleteItem(pendingDelete);
           setPendingDelete(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!pendingHide}
+        title="Hide this item?"
+        message={
+          pendingHide
+            ? `${pendingHide.products.canonical_name} will no longer be visible to customers, even if it's in stock.`
+            : ""
+        }
+        confirmLabel="Hide"
+        tone="warning"
+        onCancel={() => setPendingHide(null)}
+        onConfirm={() => {
+          if (pendingHide) patchItem(pendingHide, { is_hidden: true });
+          setPendingHide(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!pendingUnavailable}
+        title="Mark this item unavailable?"
+        message={
+          pendingUnavailable ? `${pendingUnavailable.products.canonical_name} will show as out of stock to customers.` : ""
+        }
+        confirmLabel="Mark unavailable"
+        tone="warning"
+        onCancel={() => setPendingUnavailable(null)}
+        onConfirm={() => {
+          if (pendingUnavailable) patchItem(pendingUnavailable, { in_stock: false });
+          setPendingUnavailable(null);
         }}
       />
     </div>

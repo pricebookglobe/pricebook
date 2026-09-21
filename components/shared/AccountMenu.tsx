@@ -100,6 +100,9 @@ export function AccountMenu() {
             <Link href="/inventory" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
               <Package size={16} strokeWidth={1.75} /> {t("Manage inventory")}
             </Link>
+            <Link href="/registered-items" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+              <Boxes size={16} strokeWidth={1.75} /> {t("Registered items")}
+            </Link>
             <Link href="/notifications" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
               <Bell size={16} strokeWidth={1.75} /> {t("Notifications")}
             </Link>

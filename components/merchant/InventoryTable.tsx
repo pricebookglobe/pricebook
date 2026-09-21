@@ -12,7 +12,7 @@ export type InventoryRow = {
   currency: string;
   in_stock: boolean;
   is_hidden: boolean;
-  products: { id: string; canonical_name: string; brand: string | null; image_url: string | null };
+  products: { id: string; canonical_name: string; brand: string | null; image_url: string | null; size?: number | null; unit?: string | null };
 };
 
 export function InventoryTable({
@@ -33,6 +33,8 @@ export function InventoryTable({
   const { t } = useLanguage();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<InventoryRow | null>(null);
+  const [pendingHide, setPendingHide] = useState<InventoryRow | null>(null);
+  const [pendingUnavailable, setPendingUnavailable] = useState<InventoryRow | null>(null);
   const [editing, setEditing] = useState<InventoryRow | null>(null);
   const [editPrice, setEditPrice] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
@@ -89,6 +91,7 @@ export function InventoryTable({
         <thead>
           <tr>
             <th>{t("Item")}</th>
+            <th>{t("Size / Qty")}</th>
             <th>{t("Status")}</th>
             <th className="num">{t("Price")}</th>
             <th className="num">{t("Actions")}</th>
@@ -110,6 +113,9 @@ export function InventoryTable({
                   </span>
                 </div>
               </td>
+              <td className="font-mono text-xs text-ash">
+                {row.products.size ? `${row.products.size} ${row.products.unit ?? ""}` : "—"}
+              </td>
               <td className="font-mono text-xs">
                 <span className={row.in_stock ? "text-value" : "text-flag"}>
                   {row.in_stock ? t("Available") : t("Unavailable")}
@@ -127,12 +133,12 @@ export function InventoryTable({
                     {
                       label: row.is_hidden ? t("Unhide") : t("Hide"),
                       tone: "warning",
-                      onClick: () => patchItem(row, { is_hidden: !row.is_hidden })
+                      onClick: () => (row.is_hidden ? patchItem(row, { is_hidden: false }) : setPendingHide(row))
                     },
                     {
                       label: row.in_stock ? t("Mark unavailable") : t("Mark available"),
                       tone: row.in_stock ? "warning" : "positive",
-                      onClick: () => patchItem(row, { in_stock: !row.in_stock })
+                      onClick: () => (row.in_stock ? setPendingUnavailable(row) : patchItem(row, { in_stock: true }))
                     },
                     { label: t("Delete"), tone: "danger", onClick: () => setPendingDelete(row) }
                   ]}
@@ -196,6 +202,40 @@ export function InventoryTable({
         onConfirm={() => {
           if (pendingDelete) deleteItem(pendingDelete);
           setPendingDelete(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!pendingHide}
+        title={t("Hide this item?")}
+        message={
+          pendingHide
+            ? `${pendingHide.products.canonical_name} will no longer be visible to customers, even if it's in stock. You can unhide it anytime.`
+            : ""
+        }
+        confirmLabel={t("Hide")}
+        tone="warning"
+        onCancel={() => setPendingHide(null)}
+        onConfirm={() => {
+          if (pendingHide) patchItem(pendingHide, { is_hidden: true });
+          setPendingHide(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!pendingUnavailable}
+        title={t("Mark this item unavailable?")}
+        message={
+          pendingUnavailable
+            ? `${pendingUnavailable.products.canonical_name} will show as out of stock to customers. You can mark it available again anytime.`
+            : ""
+        }
+        confirmLabel={t("Mark unavailable")}
+        tone="warning"
+        onCancel={() => setPendingUnavailable(null)}
+        onConfirm={() => {
+          if (pendingUnavailable) patchItem(pendingUnavailable, { in_stock: false });
+          setPendingUnavailable(null);
         }}
       />
     </>
