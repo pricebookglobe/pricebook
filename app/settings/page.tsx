@@ -234,7 +234,7 @@ export default function SettingsPage() {
         </label>
 
         <label className="text-sm text-ash">
-          {t("Current password")} <span className="text-ash/70">(only needed if changing email or password)</span>
+          {t("Current password")}
           <div className="mt-1 flex items-center rounded border border-line bg-field">
             <input
               type={showCurrentPassword ? "text" : "password"}
