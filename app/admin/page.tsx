@@ -11,12 +11,16 @@ type Stats = {
   item_count: number;
   avg_items_per_store: number;
   pending_store_count: number;
+  positive_review_count: number;
+  positive_review_pct: number;
+  negative_review_count: number;
+  negative_review_pct: number;
 };
 
-function StatBox({ value, label }: { value: string | number; label: string }) {
+function StatBox({ value, label, valueClassName }: { value: string | number; label: string; valueClassName?: string }) {
   return (
     <div className="rounded-lg border border-line bg-field p-6 text-center">
-      <p className="font-display text-4xl font-bold text-ink">{value}</p>
+      <p className={`font-display text-4xl font-bold ${valueClassName ?? "text-ink"}`}>{value}</p>
       <p className="mt-2 font-mono text-xs font-medium uppercase tracking-wide text-ash">{label}</p>
     </div>
   );
@@ -50,12 +54,22 @@ export default function AdminDashboardPage() {
       <h1 className="mb-6 font-display text-xl font-semibold text-ink">Admin platform</h1>
 
       {stats && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatBox value={stats.user_count} label="Registered customers" />
-          <StatBox value={stats.store_count} label="Approved stores" />
+          <StatBox value={stats.store_count} label="Registered stores" />
+          <StatBox value={stats.pending_store_count} label="Stores pending admin approval" />
           <StatBox value={stats.item_count} label="Registered items" />
           <StatBox value={stats.avg_items_per_store} label="Avg. items / store" />
-          <StatBox value={stats.pending_store_count} label="Stores pending admin approval" />
+          <StatBox
+            value={`${stats.positive_review_count} (${stats.positive_review_pct}%)`}
+            label="Positive reviews"
+            valueClassName="text-value"
+          />
+          <StatBox
+            value={`${stats.negative_review_count} (${stats.negative_review_pct}%)`}
+            label="Negative reviews"
+            valueClassName="text-red-600"
+          />
         </div>
       )}
     </AppPage>
