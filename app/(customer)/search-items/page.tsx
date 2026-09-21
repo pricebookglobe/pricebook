@@ -14,7 +14,7 @@ export default function SearchItemsPage() {
     if (loading) return;
     if (!profile) router.replace("/login?next=/search-items");
     else if (profile.role === "admin") router.replace("/admin");
-    else if (profile.role === "merchant") router.replace("/dashboard");
+    else if (profile.role === "merchant") router.replace("/overview");
   }, [loading, profile, router]);
 
   if (loading || !profile || profile.role !== "customer") return null;

@@ -4,5 +4,5 @@ import { redirect } from "next/navigation";
 // now creates the store immediately in one pass. Kept as a redirect only
 // in case anything old still links here.
 export default function LegacyStoreProfileRedirect() {
-  redirect("/dashboard");
+  redirect("/overview");
 }

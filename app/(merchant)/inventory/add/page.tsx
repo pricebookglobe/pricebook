@@ -38,7 +38,7 @@ export default function AddItemPage() {
       });
       const store = await res.json();
       if (!store) {
-        router.push("/dashboard");
+        router.push("/overview");
         return;
       }
       setStoreId(store.id);

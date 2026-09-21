@@ -14,7 +14,7 @@ export default function CheckPricePage() {
     if (loading) return;
     if (!profile) router.replace("/login?next=/check-price");
     else if (profile.role === "admin") router.replace("/admin");
-    else if (profile.role === "merchant") router.replace("/dashboard");
+    else if (profile.role === "merchant") router.replace("/overview");
   }, [loading, profile, router]);
 
   if (loading || !profile || profile.role !== "customer") return null;

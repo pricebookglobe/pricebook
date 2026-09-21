@@ -29,6 +29,7 @@ export default function StoreOverviewPage() {
   const { storeId, token, loading: accountLoading } = useAccount();
   const [data, setData] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [noStore, setNoStore] = useState(false);
 
   useEffect(() => {
     if (accountLoading) return;
@@ -37,7 +38,11 @@ export default function StoreOverviewPage() {
       return;
     }
     if (!storeId) {
-      router.push("/dashboard");
+      // A merchant account with no store at all shouldn't happen (store
+      // creation is immediate at signup) — show it as a real problem
+      // rather than redirecting, since there's nowhere else to send them.
+      setNoStore(true);
+      setLoading(false);
       return;
     }
     fetch(`/api/stores/${storeId}/overview`, { headers: { Authorization: `Bearer ${token}` } })
@@ -47,6 +52,17 @@ export default function StoreOverviewPage() {
         setLoading(false);
       });
   }, [accountLoading, token, storeId, router]);
+
+  if (noStore) {
+    return (
+      <AppPage>
+        <p className="text-sm text-flag">
+          We couldn't find a store on your account. This shouldn't happen — please contact
+          pricebook@institute-of-ai.org for help.
+        </p>
+      </AppPage>
+    );
+  }
 
   return (
     <AppPage maxWidth="max-w-3xl">
