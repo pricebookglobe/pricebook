@@ -226,10 +226,7 @@ export default function SettingsPage() {
           </div>
         </label>
         <p className="text-sm text-amber-600">
-          {t("Enter your current password to change your email or password.")}
-        </p>
-        <p className="text-sm text-red-600">
-          {t("Leave both password fields blank if you're not changing your email or password.")}
+          {t("Enter current password to save changes.")}
         </p>
 
         {error && <p className="text-sm text-flag">{error}</p>}
