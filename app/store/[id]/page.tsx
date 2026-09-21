@@ -89,7 +89,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
         <button
           onClick={submitReview}
           disabled={!myRating || submitting}
-          className="mt-2 rounded-sm bg-ink px-4 py-1.5 font-display text-sm text-field disabled:opacity-40"
+          className="mt-2 rounded-sm bg-ink px-4 py-1.5 font-display text-sm text-field transition-colors hover:bg-value hover:text-white disabled:opacity-40"
         >
           {submitting ? "Saving…" : "Submit review"}
         </button>

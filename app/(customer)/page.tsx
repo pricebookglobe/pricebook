@@ -165,7 +165,7 @@ function CustomerHome() {
           </button>
           <button
             onClick={() => setMode("text")}
-            className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink hover:border-value"
+            className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
           >
             {t("Search items")}
           </button>
@@ -174,10 +174,10 @@ function CustomerHome() {
 
       {mode === "choosing" && (
         <div className="flex gap-2">
-          <button onClick={() => cameraInputRef.current?.click()} className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink hover:border-value">
+          <button onClick={() => cameraInputRef.current?.click()} className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white">
             {t("Snap")}
           </button>
-          <button onClick={() => fileInputRef.current?.click()} className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink hover:border-value">
+          <button onClick={() => fileInputRef.current?.click()} className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white">
             {t("Upload")}
           </button>
         </div>

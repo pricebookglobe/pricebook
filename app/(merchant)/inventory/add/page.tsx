@@ -164,7 +164,7 @@ export default function AddItemPage() {
             <button
               type="submit"
               disabled={extracting || !textQuery.trim()}
-              className="rounded-sm bg-ink px-4 py-1.5 font-display text-sm font-medium text-field disabled:opacity-40"
+              className="rounded-sm bg-ink px-4 py-1.5 font-display text-sm font-medium text-field transition-colors hover:bg-value hover:text-white disabled:opacity-40"
             >
               {extracting ? t("Reading…") : t("Identify")}
             </button>
@@ -256,7 +256,7 @@ export default function AddItemPage() {
             <button
               onClick={handleSave}
               disabled={saving || !price}
-              className="rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-field disabled:opacity-40"
+              className="rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-field transition-colors hover:bg-value hover:text-white disabled:opacity-40"
             >
               {saving ? t("Saving…") : t("Save item")}
             </button>

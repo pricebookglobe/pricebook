@@ -104,11 +104,11 @@ export function GuidedTextEntry({
               unit: unit || null
             })
           }
-          className="rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white disabled:opacity-40"
+          className="rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white transition-colors hover:bg-value/90 disabled:opacity-40"
         >
           {t("Find price")}
         </button>
-        <button onClick={onCancel} className="rounded-sm px-4 py-2 font-display text-sm text-ash">
+        <button onClick={onCancel} className="rounded-sm px-4 py-2 font-display text-sm text-ash transition-colors hover:text-value">
           {t("Cancel")}
         </button>
       </div>

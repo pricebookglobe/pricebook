@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Package, Clock, Settings as SettingsIcon, LogOut, LayoutDashboard, ClipboardList, Users, ShieldCheck, X } from "lucide-react";
+import { Package, Clock, Settings as SettingsIcon, LogOut, LayoutDashboard, ClipboardList, Users, ShieldCheck, Search, X } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useAccount } from "@/lib/AccountProvider";
@@ -96,9 +96,14 @@ export function AccountMenu() {
             </Link>
           </>
         ) : (
-          <Link href="/history" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
-            <Clock size={16} strokeWidth={1.75} /> {t("Search history")}
-          </Link>
+          <>
+            <Link href="/" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+              <Search size={16} strokeWidth={1.75} /> {t("Check price")}
+            </Link>
+            <Link href="/history" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+              <Clock size={16} strokeWidth={1.75} /> {t("Search history")}
+            </Link>
+          </>
         )}
         <Link href="/settings" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
           <SettingsIcon size={16} strokeWidth={1.75} /> {t("Settings")}

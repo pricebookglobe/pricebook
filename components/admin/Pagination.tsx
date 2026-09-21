@@ -26,7 +26,7 @@ export function Pagination({
         <button
           onClick={() => onPageChange(Math.max(0, page - 1))}
           disabled={page === 0}
-          className="rounded-sm bg-ink px-3 py-1.5 font-medium text-field hover:bg-ink/90 disabled:opacity-40"
+          className="rounded-sm bg-ink px-3 py-1.5 font-medium text-field transition-colors hover:bg-value hover:text-white disabled:opacity-40"
         >
           ← Back
         </button>

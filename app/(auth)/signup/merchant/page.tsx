@@ -212,7 +212,7 @@ export default function MerchantSignup() {
           <div className="flex items-center justify-between">
             <span className="text-sm text-ash">{t("Store location")} <span className="text-red-600">*</span></span>
             <button type="button" onClick={captureLocation}
-              className="rounded-sm bg-ink px-2 py-1 font-display text-xs font-medium text-field">
+              className="rounded-sm bg-ink px-2 py-1 font-display text-xs font-medium text-field transition-colors hover:bg-value hover:text-white">
               {locating ? "…" : coords ? t("Update") : t("Use my location")}
             </button>
           </div>

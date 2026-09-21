@@ -34,7 +34,7 @@ export function AlreadySignedInNotice({ email, displayName }: { email: string; d
         type="button"
         onClick={handleLogout}
         disabled={signingOut}
-        className="mt-3 rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-white hover:bg-ink/90 disabled:opacity-40"
+        className="mt-3 rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-white transition-colors hover:bg-value disabled:opacity-40"
       >
         {signingOut ? "Logging out…" : "Log out and continue"}
       </button>
