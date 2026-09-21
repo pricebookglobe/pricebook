@@ -8,6 +8,7 @@ import { PageShell } from "@/components/shared/PageShell";
 import { AlreadySignedInNotice } from "@/components/shared/AlreadySignedInNotice";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useAccount } from "@/lib/AccountProvider";
+import { COUNTRIES, citiesFor } from "@/lib/geography";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -25,7 +26,7 @@ export default function MerchantSignup() {
   const [form, setForm] = useState({
     commercialName: "",
     commercialRegistration: "",
-    address: "",
+    country: "",
     city: "",
     contactPersonName: "",
     email: "",
@@ -45,6 +46,8 @@ export default function MerchantSignup() {
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
   }
+
+  const availableCities = citiesFor(form.country);
 
   function captureLocation() {
     setLocating(true);
@@ -115,7 +118,7 @@ export default function MerchantSignup() {
       body: JSON.stringify({
         name: form.commercialName,
         commercial_registration: form.commercialRegistration,
-        address: form.address,
+        address: form.city,
         city: form.city,
         contact_person_name: form.contactPersonName,
         admin_email: form.email,
@@ -203,15 +206,42 @@ export default function MerchantSignup() {
             className="mt-1 w-full text-sm text-ink" />
         </label>
         <label className="text-sm text-ash">
-          {t("Address")} <span className="text-red-600">*</span>
-          <input required value={form.address} onChange={(e) => update("address", e.target.value)}
-            className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none" />
+          Country <span className="text-red-600">*</span>
+          <select
+            required
+            value={form.country}
+            onChange={(e) => {
+              update("country", e.target.value);
+              update("city", "");
+            }}
+            className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+          >
+            <option value="">—</option>
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </label>
-        <label className="text-sm text-ash">
-          {t("City")} <span className="text-red-600">*</span>
-          <input required value={form.city} onChange={(e) => update("city", e.target.value)}
-            className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none" />
-        </label>
+        {form.country && (
+          <label className="text-sm text-ash">
+            {t("City")} <span className="text-red-600">*</span>
+            <select
+              required
+              value={form.city}
+              onChange={(e) => update("city", e.target.value)}
+              className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+            >
+              <option value="">—</option>
+              {availableCities.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <div className="rounded border border-line bg-field px-3 py-2">
           <div className="flex items-center justify-between">

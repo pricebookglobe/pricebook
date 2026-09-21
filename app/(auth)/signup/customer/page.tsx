@@ -8,7 +8,7 @@ import { PageShell } from "@/components/shared/PageShell";
 import { AlreadySignedInNotice } from "@/components/shared/AlreadySignedInNotice";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useAccount } from "@/lib/AccountProvider";
-import { COUNTRIES, statesFor } from "@/lib/geography";
+import { COUNTRIES, citiesFor } from "@/lib/geography";
 
 export default function CustomerSignup() {
   const router = useRouter();
@@ -18,9 +18,7 @@ export default function CustomerSignup() {
     firstName: "",
     lastName: "",
     email: "",
-    address: "",
     country: "",
-    state: "",
     city: "",
     password: "",
     confirmPassword: ""
@@ -35,7 +33,7 @@ export default function CustomerSignup() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  const availableStates = statesFor(form.country);
+  const availableCities = citiesFor(form.country);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,8 +59,7 @@ export default function CustomerSignup() {
           first_name: form.firstName,
           last_name: form.lastName,
           full_name: `${form.firstName} ${form.lastName}`.trim(),
-          address: form.address,
-          city: form.state ? `${form.city}, ${form.state}` : form.city,
+          city: form.city,
           country: countryName
         }
       }
@@ -133,21 +130,14 @@ export default function CustomerSignup() {
           />
         </label>
         <label className="text-sm text-ash">
-          {t("Address")} <span className="text-red-600">*</span>
-          <input
-            required
-            value={form.address}
-            onChange={(e) => update("address", e.target.value)}
-            className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
-          />
-        </label>
-
-        <label className="text-sm text-ash">
           Country <span className="text-red-600">*</span>
           <select
             required
             value={form.country}
-            onChange={(e) => update("country", e.target.value)}
+            onChange={(e) => {
+              update("country", e.target.value);
+              update("city", "");
+            }}
             className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
           >
             <option value="">—</option>
@@ -159,34 +149,22 @@ export default function CustomerSignup() {
           </select>
         </label>
 
-        {availableStates && (
-          <label className="text-sm text-ash">
-            State / Province <span className="text-red-600">*</span>
-            <select
-              required
-              value={form.state}
-              onChange={(e) => update("state", e.target.value)}
-              className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
-            >
-              <option value="">—</option>
-              {availableStates.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-
         {form.country && (
           <label className="text-sm text-ash">
             {t("City")} <span className="text-red-600">*</span>
-            <input
+            <select
               required
               value={form.city}
               onChange={(e) => update("city", e.target.value)}
               className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
-            />
+            >
+              <option value="">—</option>
+              {availableCities.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </label>
         )}
 

@@ -1,37 +1,47 @@
-// A practical, extensible list — not every country has states/provinces
-// modeled here (only where the concept is commonly used in addresses).
-// City is always a free-text box rather than a dropdown, since an
-// exhaustive city list per country/state isn't realistic to hand-author.
-export type Country = { code: string; name: string; states?: string[] };
+// A practical list of countries with their major cities — not
+// exhaustive (no hand-authored list of every town in every country is
+// realistic), but enough to cover where the large majority of signups
+// will actually be from. Jordan gets the deepest list since it's this
+// product's primary market; other countries get their handful of
+// largest cities.
+export type Country = { code: string; name: string; cities: string[] };
 
 export const COUNTRIES: Country[] = [
-  { code: "JO", name: "Jordan", states: ["Amman", "Irbid", "Zarqa", "Balqa", "Madaba", "Karak", "Mafraq", "Jerash", "Ajloun", "Ma'an", "Tafilah", "Aqaba"] },
-  { code: "SA", name: "Saudi Arabia" },
-  { code: "AE", name: "United Arab Emirates", states: ["Abu Dhabi", "Dubai", "Sharjah", "Ajman", "Umm Al Quwain", "Ras Al Khaimah", "Fujairah"] },
-  { code: "EG", name: "Egypt" },
-  { code: "LB", name: "Lebanon" },
-  { code: "IQ", name: "Iraq" },
-  { code: "KW", name: "Kuwait" },
-  { code: "QA", name: "Qatar" },
-  { code: "BH", name: "Bahrain" },
-  { code: "OM", name: "Oman" },
-  { code: "PS", name: "Palestine" },
-  { code: "SY", name: "Syria" },
-  { code: "TR", name: "Turkey" },
-  { code: "US", name: "United States", states: ["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"] },
-  { code: "CA", name: "Canada", states: ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan"] },
-  { code: "GB", name: "United Kingdom", states: ["England", "Scotland", "Wales", "Northern Ireland"] },
-  { code: "DE", name: "Germany" },
-  { code: "FR", name: "France" },
-  { code: "ES", name: "Spain" },
-  { code: "IT", name: "Italy" },
-  { code: "IN", name: "India", states: ["Andhra Pradesh", "Bihar", "Delhi", "Gujarat", "Karnataka", "Kerala", "Maharashtra", "Punjab", "Rajasthan", "Tamil Nadu", "Uttar Pradesh", "West Bengal"] },
-  { code: "PK", name: "Pakistan" },
-  { code: "AU", name: "Australia", states: ["New South Wales", "Victoria", "Queensland", "Western Australia", "South Australia", "Tasmania", "Northern Territory", "Australian Capital Territory"] },
-  { code: "CN", name: "China" },
-  { code: "JP", name: "Japan" }
+  {
+    code: "JO",
+    name: "Jordan",
+    cities: [
+      "Amman", "Zarqa", "Irbid", "Russeifa", "Wadi as-Seer", "Aqaba", "Salt",
+      "Madaba", "Mafraq", "Karak", "Jerash", "Ajloun", "Ma'an", "Tafilah",
+      "Sahab", "Ramtha"
+    ]
+  },
+  { code: "SA", name: "Saudi Arabia", cities: ["Riyadh", "Jeddah", "Mecca", "Medina", "Dammam", "Khobar", "Taif", "Tabuk", "Abha", "Jubail"] },
+  { code: "AE", name: "United Arab Emirates", cities: ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Al Ain", "Ras Al Khaimah", "Fujairah", "Umm Al Quwain"] },
+  { code: "EG", name: "Egypt", cities: ["Cairo", "Alexandria", "Giza", "Shubra El Kheima", "Port Said", "Suez", "Luxor", "Mansoura", "Tanta"] },
+  { code: "LB", name: "Lebanon", cities: ["Beirut", "Tripoli", "Sidon", "Tyre", "Jounieh", "Zahle", "Baalbek"] },
+  { code: "IQ", name: "Iraq", cities: ["Baghdad", "Basra", "Mosul", "Erbil", "Najaf", "Karbala", "Sulaymaniyah", "Kirkuk"] },
+  { code: "KW", name: "Kuwait", cities: ["Kuwait City", "Hawalli", "Salmiya", "Farwaniya", "Jahra", "Ahmadi"] },
+  { code: "QA", name: "Qatar", cities: ["Doha", "Al Rayyan", "Al Wakrah", "Al Khor", "Umm Salal"] },
+  { code: "BH", name: "Bahrain", cities: ["Manama", "Riffa", "Muharraq", "Hamad Town", "A'ali"] },
+  { code: "OM", name: "Oman", cities: ["Muscat", "Salalah", "Sohar", "Nizwa", "Sur"] },
+  { code: "PS", name: "Palestine", cities: ["Gaza", "Hebron", "Nablus", "Ramallah", "Bethlehem", "Jenin", "Khan Yunis"] },
+  { code: "SY", name: "Syria", cities: ["Damascus", "Aleppo", "Homs", "Latakia", "Hama", "Daraa"] },
+  { code: "TR", name: "Turkey", cities: ["Istanbul", "Ankara", "Izmir", "Bursa", "Antalya", "Gaziantep", "Konya"] },
+  { code: "US", name: "United States", cities: ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "Austin"] },
+  { code: "CA", name: "Canada", cities: ["Toronto", "Montreal", "Vancouver", "Calgary", "Edmonton", "Ottawa", "Winnipeg"] },
+  { code: "GB", name: "United Kingdom", cities: ["London", "Manchester", "Birmingham", "Leeds", "Glasgow", "Liverpool", "Edinburgh", "Bristol"] },
+  { code: "DE", name: "Germany", cities: ["Berlin", "Munich", "Hamburg", "Cologne", "Frankfurt", "Stuttgart"] },
+  { code: "FR", name: "France", cities: ["Paris", "Marseille", "Lyon", "Toulouse", "Nice", "Nantes"] },
+  { code: "ES", name: "Spain", cities: ["Madrid", "Barcelona", "Valencia", "Seville", "Zaragoza", "Malaga"] },
+  { code: "IT", name: "Italy", cities: ["Rome", "Milan", "Naples", "Turin", "Palermo", "Bologna"] },
+  { code: "IN", name: "India", cities: ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", "Kolkata", "Pune"] },
+  { code: "PK", name: "Pakistan", cities: ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan"] },
+  { code: "AU", name: "Australia", cities: ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra"] },
+  { code: "CN", name: "China", cities: ["Shanghai", "Beijing", "Guangzhou", "Shenzhen", "Chengdu", "Hangzhou"] },
+  { code: "JP", name: "Japan", cities: ["Tokyo", "Osaka", "Yokohama", "Nagoya", "Sapporo", "Fukuoka"] }
 ];
 
-export function statesFor(countryCode: string): string[] | undefined {
-  return COUNTRIES.find((c) => c.code === countryCode)?.states;
+export function citiesFor(countryCode: string): string[] {
+  return COUNTRIES.find((c) => c.code === countryCode)?.cities ?? [];
 }
