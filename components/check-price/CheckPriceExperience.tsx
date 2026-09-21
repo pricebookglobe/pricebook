@@ -198,9 +198,9 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       <button
         onClick={handleFindMyLocation}
         disabled={locating}
-        className="mb-3 w-full rounded bg-value px-4 py-3 font-display text-[15px] font-medium text-white hover:bg-value/90 disabled:opacity-40"
+        className="mb-3 w-full rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40"
       >
-        {locating ? t("Finding your location…") : t("What store am I at?!")}
+        {locating ? t("Finding your location…") : t("What store am I at?")}
       </button>
 
       {mode === "menu" && !checkPriceRevealed && (
