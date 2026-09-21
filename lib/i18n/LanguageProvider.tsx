@@ -10,13 +10,15 @@ type LanguageState = {
   setLanguage: (lang: string) => void;
   t: (s: string) => string;
   loading: boolean;
+  error: string | null;
 };
 
 const LanguageContext = createContext<LanguageState>({
   language: "English",
   setLanguage: () => {},
   t: (s) => s,
-  loading: false
+  loading: false,
+  error: null
 });
 
 export function useLanguage() {
@@ -31,6 +33,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState("English");
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Restore the person's last choice, including any cached translation.
   useEffect(() => {
@@ -51,6 +54,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   async function setLanguage(lang: string) {
     setLanguageState(lang);
     localStorage.setItem("pb_language", lang);
+    setError(null);
 
     if (lang === "English") {
       setTranslations({});
@@ -74,7 +78,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         const { translations: fresh } = await res.json();
         setTranslations(fresh);
         localStorage.setItem(cacheKey(lang), JSON.stringify(fresh));
+      } else {
+        setError(`Couldn't translate to ${lang} — try again in a moment.`);
       }
+    } catch {
+      setError(`Couldn't translate to ${lang} — check your connection and try again.`);
     } finally {
       setLoading(false);
     }
@@ -85,7 +93,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, loading }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, loading, error }}>
       {children}
     </LanguageContext.Provider>
   );
