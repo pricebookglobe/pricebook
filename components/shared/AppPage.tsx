@@ -1,5 +1,6 @@
 import { AccountMenu } from "./AccountMenu";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { Footer } from "./Footer";
 
 export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.ReactNode; maxWidth?: string }) {
   return (
@@ -15,11 +16,13 @@ export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.
           <LanguageSwitcher />
         </header>
 
-        <div className={`mx-auto w-full px-5 pb-12 ${maxWidth}`}>
+        <div className={`mx-auto w-full flex-1 px-5 pb-12 ${maxWidth}`}>
           <div className="rounded-lg border border-line bg-field-raised p-6 shadow-lg sm:p-8">
             {children}
           </div>
         </div>
+
+        <Footer />
       </div>
     </div>
   );

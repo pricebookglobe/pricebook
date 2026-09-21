@@ -1,4 +1,5 @@
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { Footer } from "./Footer";
 
 export function PageShell({
   children,
@@ -8,8 +9,8 @@ export function PageShell({
   maxWidth?: string;
 }) {
   return (
-    <main className="velvet-field min-h-screen px-5 py-10">
-      <div className={`mx-auto ${maxWidth}`}>
+    <main className="velvet-field flex min-h-screen flex-col px-5 py-10">
+      <div className={`mx-auto w-full flex-1 ${maxWidth}`}>
         <div className="mb-6 flex justify-center">
           <img src="/pricebook-full-transparent.png" alt="PriceBook" className="h-auto w-56" />
         </div>
@@ -21,6 +22,8 @@ export function PageShell({
           {children}
         </div>
       </div>
+
+      <Footer />
     </main>
   );
 }
