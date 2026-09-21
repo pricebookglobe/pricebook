@@ -208,10 +208,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               {t("You're at")} <strong>{locationCheck.store.store_name}</strong>.
             </>
           ) : coords ? (
-            <>
-              {t("You're at your current location")} ({coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}) —{" "}
-              {t("no registered store here.")}
-            </>
+            t("No store is registered at this location.")
           ) : (
             t("Couldn't determine your location.")
           )}
