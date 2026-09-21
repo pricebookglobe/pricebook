@@ -21,7 +21,13 @@ export async function GET(req: NextRequest) {
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(store); // null if the merchant hasn't finished setup yet
+  if (!store) return NextResponse.json(null);
+
+  // `location` is a PostGIS geography point, not a plain column Postgrest
+  // can select coordinates out of directly — pull them via a dedicated
+  // RPC instead.
+  const { data: coords } = await auth.supabase.rpc("store_coordinates", { p_store_id: store.id });
+  return NextResponse.json({ ...store, lat: coords?.[0]?.lat ?? null, lng: coords?.[0]?.lng ?? null });
 }
 
 export async function POST(req: NextRequest) {
@@ -66,11 +72,12 @@ export async function PATCH(req: NextRequest) {
   const auth = await authedUser(req);
   if (!auth) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { contact_person_name, name } = await req.json();
+  const { contact_person_name, name, lat, lng } = await req.json();
 
   const patch: Record<string, unknown> = {};
   if (typeof contact_person_name === "string") patch.contact_person_name = contact_person_name;
   if (typeof name === "string" && name.trim()) patch.name = name.trim();
+  if (typeof lat === "number" && typeof lng === "number") patch.location = `SRID=4326;POINT(${lng} ${lat})`;
   if (Object.keys(patch).length === 0) return NextResponse.json({ ok: true });
 
   const { error } = await auth.supabase

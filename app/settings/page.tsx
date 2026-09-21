@@ -14,6 +14,8 @@ type StoreDetails = {
   logo_url: string | null;
   store_photo_url: string | null;
   cr_certificate_url: string | null;
+  lat: number | null;
+  lng: number | null;
 };
 
 function fileToBase64(file: File): Promise<string> {
@@ -24,7 +26,6 @@ function fileToBase64(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
-
 export default function SettingsPage() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -33,6 +34,8 @@ export default function SettingsPage() {
   const [storeId, setStoreId] = useState<string | null>(null);
   const [store, setStore] = useState<StoreDetails | null>(null);
   const [storeName, setStoreName] = useState("");
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [crFile, setCrFile] = useState<File | null>(null);
@@ -68,9 +71,26 @@ export default function SettingsPage() {
         setStoreId(storeData.id);
         setStore(storeData);
         setStoreName(storeData.name ?? "");
+        if (typeof storeData.lat === "number" && typeof storeData.lng === "number") {
+          setCoords({ lat: storeData.lat, lng: storeData.lng });
+        }
       }
     });
   }, [router]);
+
+  function captureLocation() {
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocating(false);
+      },
+      () => {
+        setError(t("Couldn't read your location — allow location access and try again."));
+        setLocating(false);
+      }
+    );
+  }
 
   async function handleSave() {
     if (!profile) return;
@@ -140,6 +160,14 @@ export default function SettingsPage() {
           method: "PATCH",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
           body: JSON.stringify({ name: storeName.trim() })
+        });
+      }
+
+      if (coords && (coords.lat !== store?.lat || coords.lng !== store?.lng)) {
+        await fetch("/api/merchant/store", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ lat: coords.lat, lng: coords.lng })
         });
       }
 
@@ -267,6 +295,23 @@ export default function SettingsPage() {
               className="mt-1 w-full rounded border border-line bg-field-raised px-3 py-2 text-ink outline-none"
             />
           </label>
+
+          <div className="text-sm text-ash">
+            {t("Store location")}
+            <div className="mt-1 flex items-center justify-between rounded border border-line bg-field-raised px-3 py-2">
+              <span className="font-mono text-xs text-ink">
+                {coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : t("Not set")}
+              </span>
+              <button
+                type="button"
+                onClick={captureLocation}
+                disabled={locating}
+                className="rounded-sm bg-ink px-2 py-1 font-display text-xs font-medium text-field transition-colors hover:bg-value hover:text-white disabled:opacity-40"
+              >
+                {locating ? "…" : coords ? t("Update") : t("Use my location")}
+              </button>
+            </div>
+          </div>
 
           <label className="text-sm text-ash">
             {t("Store logo")}
