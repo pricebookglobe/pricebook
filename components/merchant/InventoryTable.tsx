@@ -37,6 +37,7 @@ export function InventoryTable({
   const [pendingHide, setPendingHide] = useState<InventoryRow | null>(null);
   const [pendingUnavailable, setPendingUnavailable] = useState<InventoryRow | null>(null);
   const [editing, setEditing] = useState<InventoryRow | null>(null);
+  const [editName, setEditName] = useState("");
   const [editPrice, setEditPrice] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -44,7 +45,7 @@ export function InventoryTable({
 
   const visible = paginate(rows, page);
 
-  async function patchItem(row: InventoryRow, patch: { price?: number; in_stock?: boolean; is_hidden?: boolean }) {
+  async function patchItem(row: InventoryRow, patch: { price?: number; in_stock?: boolean; is_hidden?: boolean; product_name?: string }) {
     setBusyId(row.id);
     try {
       await fetch(`/api/stores/${storeId}/inventory`, {
@@ -52,7 +53,14 @@ export function InventoryTable({
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ product_id: row.products.id, ...patch })
       });
-      setRows((r) => r.map((x) => (x.id === row.id ? { ...x, ...patch } : x)));
+      const { product_name, ...rest } = patch;
+      setRows((r) =>
+        r.map((x) =>
+          x.id === row.id
+            ? { ...x, ...rest, products: product_name ? { ...x.products, canonical_name: product_name } : x.products }
+            : x
+        )
+      );
     } finally {
       setBusyId(null);
     }
@@ -70,6 +78,7 @@ export function InventoryTable({
 
   function openEdit(row: InventoryRow) {
     setEditing(row);
+    setEditName(row.products.canonical_name);
     setEditPrice(String(row.price));
   }
 
@@ -77,8 +86,11 @@ export function InventoryTable({
     if (!editing) return;
     const price = parseFloat(editPrice);
     if (Number.isNaN(price) || price < 0) return;
+    if (!editName.trim()) return;
     setSavingEdit(true);
-    await patchItem(editing, { price });
+    const patch: { price: number; product_name?: string } = { price };
+    if (editName.trim() !== editing.products.canonical_name) patch.product_name = editName.trim();
+    await patchItem(editing, patch);
     setSavingEdit(false);
     setEditing(null);
   }
@@ -164,10 +176,17 @@ export function InventoryTable({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-sm rounded-lg bg-white p-6 text-left shadow-2xl">
             <h2 className="font-display text-lg font-semibold text-ink">{t("Edit item")}</h2>
-            <p className="mt-1 text-sm text-ash">
-              {editing.products.brand ? `${editing.products.brand} ` : ""}
-              {editing.products.canonical_name}
-            </p>
+            {editing.products.brand && (
+              <p className="mt-1 text-sm text-ash">{editing.products.brand}</p>
+            )}
+            <label className="mt-3 block text-sm text-ash">
+              {t("Item name")}
+              <input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+              />
+            </label>
             <label className="mt-4 block text-sm text-ash">
               {t("Price")} ({editing.currency})
               <input
@@ -188,7 +207,7 @@ export function InventoryTable({
               </button>
               <button
                 onClick={saveEdit}
-                disabled={savingEdit}
+                disabled={savingEdit || !editName.trim()}
                 className="rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 disabled:opacity-40"
               >
                 {savingEdit ? t("Saving…") : t("Save")}

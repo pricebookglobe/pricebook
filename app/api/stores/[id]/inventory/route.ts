@@ -41,7 +41,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const { product_id, price, in_stock, is_hidden } = await req.json();
+  const { product_id, price, in_stock, is_hidden, product_name } = await req.json();
   if (!product_id) return NextResponse.json({ error: "product_id is required" }, { status: 400 });
 
   const verified = await verifyOwnership(req, params.id);
@@ -63,6 +63,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   if (typeof price === "number") {
     await supabase.from("price_history").insert({ store_id: params.id, product_id, price });
+  }
+
+  // The product name lives on the shared `products` table, not this
+  // store's own inventory row — products are matched and shown across
+  // every store that lists the same item, so renaming it here corrects
+  // (or changes) the name everywhere it appears, not just for this store.
+  if (typeof product_name === "string" && product_name.trim()) {
+    const { error: productError } = await supabase
+      .from("products")
+      .update({ canonical_name: product_name.trim() })
+      .eq("id", product_id);
+    if (productError) return NextResponse.json({ error: productError.message }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });
