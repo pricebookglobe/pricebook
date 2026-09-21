@@ -51,6 +51,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const positiveReviews = reviews?.filter((r) => r.rating >= 4).length ?? 0;
   const negativeReviews = reviews?.filter((r) => r.rating <= 2).length ?? 0;
 
+  // Price-accuracy reports (the "Is this price accurate? Yes / No" prompt
+  // shown on search results) — a separate system from star reviews above,
+  // but the one that's actually seeing real activity in practice.
+  const { data: priceReports, error: priceReportsError } = await supabase
+    .from("price_reports")
+    .select("report_type")
+    .eq("store_id", params.id);
+  if (priceReportsError) {
+    return NextResponse.json({ error: `Couldn't load price reports: ${priceReportsError.message}` }, { status: 500 });
+  }
+  const priceReportCount = priceReports?.length ?? 0;
+  const correctPriceReports = priceReports?.filter((r) => r.report_type === "correct_price").length ?? 0;
+  const wrongPriceReports = priceReports?.filter((r) => r.report_type === "wrong_price").length ?? 0;
+
   return NextResponse.json({
     product_count: productCount ?? 0,
     view_count: store.view_count ?? 0,
@@ -59,6 +73,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     products: positions ?? [],
     review_count: reviewCount,
     positive_reviews: positiveReviews,
-    negative_reviews: negativeReviews
+    negative_reviews: negativeReviews,
+    price_report_count: priceReportCount,
+    correct_price_reports: correctPriceReports,
+    wrong_price_reports: wrongPriceReports
   });
 }

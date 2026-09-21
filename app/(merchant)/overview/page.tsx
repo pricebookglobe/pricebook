@@ -15,6 +15,9 @@ type Overview = {
   review_count: number;
   positive_reviews: number;
   negative_reviews: number;
+  price_report_count: number;
+  correct_price_reports: number;
+  wrong_price_reports: number;
 };
 
 function positionLabel(percentile: number): string {
@@ -104,7 +107,7 @@ export default function StoreOverviewPage() {
             </div>
           </div>
 
-          <div className="mb-6 flex flex-wrap items-center gap-4 rounded border border-line bg-field px-4 py-3 text-sm">
+          <div className="mb-3 flex flex-wrap items-center gap-4 rounded border border-line bg-field px-4 py-3 text-sm">
             <span className="text-ink">
               <strong>{data.review_count}</strong> reviews
             </span>
@@ -115,6 +118,18 @@ export default function StoreOverviewPage() {
               <strong>{data.negative_reviews}</strong> negative
             </span>
             <span className="ml-auto font-mono text-[10px] text-ash/60">store id: {storeId}</span>
+          </div>
+
+          <div className="mb-6 flex flex-wrap items-center gap-4 rounded border border-line bg-field px-4 py-3 text-sm">
+            <span className="text-ink">
+              <strong>{data.price_report_count}</strong> price reports
+            </span>
+            <span className="text-value">
+              <strong>{data.correct_price_reports}</strong> said correct
+            </span>
+            <span className="text-red-600">
+              <strong>{data.wrong_price_reports}</strong> said wrong
+            </span>
           </div>
 
           {data.products.length === 0 && (
