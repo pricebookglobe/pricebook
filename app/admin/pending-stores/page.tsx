@@ -150,6 +150,7 @@ export default function PendingStoresPage() {
               <th>Store</th>
               <th>City</th>
               <th>CR #</th>
+              <th>Status</th>
               <th className="num">Actions</th>
             </tr>
           </thead>
@@ -159,6 +160,11 @@ export default function PendingStoresPage() {
                 <td>{s.name}</td>
                 <td>{s.city}</td>
                 <td className="font-mono text-xs">{s.commercial_registration}</td>
+                <td>
+                  <span className="rounded-sm bg-amber-100 px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wide text-amber-700">
+                    Pending
+                  </span>
+                </td>
                 <td className="num">
                   <RowActionsMenu
                     disabled={busyId === s.id}
