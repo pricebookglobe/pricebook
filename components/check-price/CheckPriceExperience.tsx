@@ -202,17 +202,30 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       </button>
 
       {locationCheck && (
-        <p className="-mt-3 mb-6 text-sm text-ink">
+        <div className="-mt-3 mb-6">
           {locationCheck.store ? (
-            <>
-              {t("You're at")} <strong>{locationCheck.store.store_name}</strong>.
-            </>
+            <p className="text-sm text-ink">
+              {t("You're at")} <strong>{locationCheck.store.store_name}</strong>{" "}
+              <span className="text-ash">({t("matched within 10 meters")})</span>.
+            </p>
           ) : coords ? (
-            t("No store is registered at this location.")
+            <div className="overflow-hidden rounded border border-line">
+              <iframe
+                title={t("Your location")}
+                width="100%"
+                height="220"
+                style={{ border: 0 }}
+                loading="lazy"
+                src={`https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&output=embed`}
+              />
+              <p className="bg-field-raised px-3 py-2 text-sm text-ink">
+                {t("No store is registered on PriceBook at this location.")}
+              </p>
+            </div>
           ) : (
-            t("Couldn't determine your location.")
+            <p className="text-sm text-ink">{t("Couldn't determine your location.")}</p>
           )}
-        </p>
+        </div>
       )}
 
       {mode === "menu" && !busy && (

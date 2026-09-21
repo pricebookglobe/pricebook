@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase.rpc("find_nearest_store", {
     user_lat: lat,
     user_lng: lng,
-    max_meters: 150
+    max_meters: 10
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
