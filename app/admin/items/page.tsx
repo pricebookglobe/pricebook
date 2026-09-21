@@ -8,6 +8,7 @@ import { ClearableSearch } from "@/components/admin/ClearableSearch";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Pagination, paginate } from "@/components/admin/Pagination";
+import { ImageLightbox } from "@/components/shared/ImageLightbox";
 
 type ItemRow = {
   id: string;
@@ -34,6 +35,7 @@ export default function AdminItemsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ItemRow | null>(null);
   const [page, setPage] = useState(0);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   async function load(currentToken: string) {
     const res = await fetch("/api/admin/items", { headers: { Authorization: `Bearer ${currentToken}` } });
@@ -122,7 +124,14 @@ export default function AdminItemsPage() {
                 <td>
                   <div className="flex items-center gap-3">
                     {i.image_url ? (
-                      <img src={i.image_url} alt="" className="h-9 w-9 rounded object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setLightboxUrl(i.image_url)}
+                        className="shrink-0"
+                        aria-label="View image"
+                      >
+                        <img src={i.image_url} alt="" className="h-9 w-9 rounded object-cover hover:opacity-80" />
+                      </button>
                     ) : (
                       <div className="h-9 w-9 rounded bg-field" />
                     )}
@@ -171,6 +180,8 @@ export default function AdminItemsPage() {
           setPendingDelete(null);
         }}
       />
+
+      <ImageLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
     </AppPage>
   );
 }

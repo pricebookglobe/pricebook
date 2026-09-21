@@ -5,6 +5,7 @@ import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Pagination, paginate } from "@/components/admin/Pagination";
+import { ImageLightbox } from "@/components/shared/ImageLightbox";
 
 export type InventoryRow = {
   id: string;
@@ -39,6 +40,7 @@ export function InventoryTable({
   const [editPrice, setEditPrice] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const visible = paginate(rows, page);
 
@@ -103,7 +105,14 @@ export function InventoryTable({
               <td>
                 <div className="flex items-center gap-3">
                   {row.products.image_url ? (
-                    <img src={row.products.image_url} alt="" className="h-9 w-9 rounded object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setLightboxUrl(row.products.image_url)}
+                      className="shrink-0"
+                      aria-label="View image"
+                    >
+                      <img src={row.products.image_url} alt="" className="h-9 w-9 rounded object-cover hover:opacity-80" />
+                    </button>
                   ) : (
                     <div className="h-9 w-9 rounded bg-field" />
                   )}
@@ -238,6 +247,8 @@ export function InventoryTable({
           setPendingUnavailable(null);
         }}
       />
+
+      <ImageLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
     </>
   );
 }

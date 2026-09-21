@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { Pagination, paginate } from "@/components/admin/Pagination";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
+import { ImageLightbox } from "@/components/shared/ImageLightbox";
 
 type InventoryRow = {
   id: string;
@@ -31,6 +32,7 @@ export function StoreInventoryDialog({
   const [pendingDelete, setPendingDelete] = useState<InventoryRow | null>(null);
   const [pendingHide, setPendingHide] = useState<InventoryRow | null>(null);
   const [pendingUnavailable, setPendingUnavailable] = useState<InventoryRow | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!store) return;
@@ -109,7 +111,14 @@ export function StoreInventoryDialog({
                   <td>
                     <div className="flex items-center gap-3">
                       {row.products.image_url ? (
-                        <img src={row.products.image_url} alt="" className="h-9 w-9 rounded object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setLightboxUrl(row.products.image_url)}
+                          className="shrink-0"
+                          aria-label="View image"
+                        >
+                          <img src={row.products.image_url} alt="" className="h-9 w-9 rounded object-cover hover:opacity-80" />
+                        </button>
                       ) : (
                         <div className="h-9 w-9 rounded bg-field" />
                       )}
@@ -205,6 +214,8 @@ export function StoreInventoryDialog({
           setPendingUnavailable(null);
         }}
       />
+
+      <ImageLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
     </div>
   );
 }
