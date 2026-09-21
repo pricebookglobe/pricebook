@@ -107,7 +107,7 @@ export default function AdminUsersPage() {
 
   return (
     <AppPage maxWidth="max-w-5xl">
-      <h1 className="mb-1 font-display text-xl font-semibold text-ink">Users</h1>
+      <h1 className="mb-1 font-display text-xl font-semibold text-ink">Customers</h1>
       <p className="mb-6 text-sm text-ash">Every registered customer account. Store admins are listed under Stores.</p>
 
       <form onSubmit={handleSearch} className="mb-4 flex gap-2">

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Package, Clock, Settings as SettingsIcon, LogOut, LayoutDashboard, ClipboardList, Users, ShieldCheck, Search, X } from "lucide-react";
+import { Package, Clock, Settings as SettingsIcon, LogOut, LayoutDashboard, ClipboardList, Users, ShieldCheck, Search, Camera, X } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useAccount } from "@/lib/AccountProvider";
@@ -77,7 +77,7 @@ export function AccountMenu() {
               <LayoutDashboard size={16} strokeWidth={1.75} /> Admin dashboard
             </Link>
             <Link href="/admin/users" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
-              <Users size={16} strokeWidth={1.75} /> Users
+              <Users size={16} strokeWidth={1.75} /> Customers
             </Link>
             <Link href="/admin/stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
               <ShieldCheck size={16} strokeWidth={1.75} /> Stores and Shops
@@ -97,8 +97,11 @@ export function AccountMenu() {
           </>
         ) : (
           <>
-            <Link href="/" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
-              <Search size={16} strokeWidth={1.75} /> {t("Check price")}
+            <Link href="/check-price" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+              <Camera size={16} strokeWidth={1.75} /> {t("Check price")}
+            </Link>
+            <Link href="/search-items" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+              <Search size={16} strokeWidth={1.75} /> {t("Search items")}
             </Link>
             <Link href="/history" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
               <Clock size={16} strokeWidth={1.75} /> {t("Search history")}

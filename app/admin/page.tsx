@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
 
       {stats && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-          <StatBox value={stats.user_count} label="Registered users" />
+          <StatBox value={stats.user_count} label="Registered customers" />
           <StatBox value={stats.store_count} label="Approved stores" />
           <StatBox value={stats.item_count} label="Registered items" />
           <StatBox value={stats.avg_items_per_store} label="Avg. items / store" />
