@@ -41,7 +41,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   // Same positive/negative split used on the customer-facing store page:
   // 4-5 stars positive, 1-2 negative, 3 neutral.
-  const { data: reviews } = await supabase.from("reviews").select("rating").eq("store_id", params.id);
+  const { data: reviews, error: reviewsError } = await supabase.from("reviews").select("rating").eq("store_id", params.id);
+  if (reviewsError) {
+    // Surfaced instead of silently defaulting to 0 — a real backend
+    // problem here was previously indistinguishable from "no reviews yet."
+    return NextResponse.json({ error: `Couldn't load reviews: ${reviewsError.message}` }, { status: 500 });
+  }
   const reviewCount = reviews?.length ?? 0;
   const positiveReviews = reviews?.filter((r) => r.rating >= 4).length ?? 0;
   const negativeReviews = reviews?.filter((r) => r.rating <= 2).length ?? 0;
