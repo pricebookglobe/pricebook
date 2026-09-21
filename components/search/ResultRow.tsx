@@ -108,7 +108,7 @@ export function ResultRow({ result, isCheapest }: { result: SearchResult; isChea
                     onClick={handleMessage}
                     className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field"
                   >
-                    Message store
+                    {t("Message store")}
                   </button>
                   <button
                     disabled={busy}

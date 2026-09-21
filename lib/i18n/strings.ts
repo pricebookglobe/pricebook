@@ -199,6 +199,12 @@ export const UI_STRINGS = [
   "This reset link is invalid or has expired.",
   "Request a new link",
   "Save new password",
+  "Overview",
+  "This only removes it from your notifications — the review itself stays visible to customers on your store page.",
+  "Log out?",
+  "Are you sure you want to log out of your account?",
+  "Discard",
+  "Message store",
 
   // Store page / Messages / merchant Overview
   "Loading…",

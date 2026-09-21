@@ -109,7 +109,7 @@ export default function NotificationsPage() {
       <ConfirmDialog
         open={!!pendingDelete}
         title={t("Delete this notification?")}
-        message="This only removes it from your notifications — the review itself stays visible to customers on your store page."
+        message={t("This only removes it from your notifications — the review itself stays visible to customers on your store page.")}
         confirmLabel={t("Delete")}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => {

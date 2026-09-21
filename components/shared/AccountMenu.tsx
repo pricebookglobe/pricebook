@@ -95,7 +95,7 @@ export function AccountMenu() {
         ) : profile.role === "merchant" ? (
           <>
             <Link href="/overview" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
-              <LayoutDashboard size={16} strokeWidth={1.75} /> Overview
+              <LayoutDashboard size={16} strokeWidth={1.75} /> {t("Overview")}
             </Link>
             <Link href="/inventory" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
               <Package size={16} strokeWidth={1.75} /> {t("Manage inventory")}
@@ -143,20 +143,20 @@ export function AccountMenu() {
               <X size={18} strokeWidth={2} />
             </button>
 
-            <h2 className="pr-8 font-display text-lg font-semibold text-ink">Log out?</h2>
-            <p className="mt-2 text-sm text-ash">Are you sure you want to log out of your account?</p>
+            <h2 className="pr-8 font-display text-lg font-semibold text-ink">{t("Log out?")}</h2>
+            <p className="mt-2 text-sm text-ash">{t("Are you sure you want to log out of your account?")}</p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setConfirmingLogout(false)}
                 className="rounded-sm bg-blue-600 px-4 py-2 font-display text-sm font-medium text-white hover:bg-blue-700"
               >
-                Discard
+                {t("Discard")}
               </button>
               <button
                 onClick={confirmLogout}
                 className="rounded-sm bg-red-600 px-4 py-2 font-display text-sm font-medium text-white hover:bg-red-700"
               >
-                Log out
+                {t("Log out")}
               </button>
             </div>
           </div>
