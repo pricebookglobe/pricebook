@@ -111,7 +111,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     { store: { store_id: string; store_name: string; distance_m: number } | null } | null
   >(null);
   const [showLocationMap, setShowLocationMap] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFindMyLocation() {
@@ -198,10 +198,19 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       <button
         onClick={handleFindMyLocation}
         disabled={locating}
-        className="mb-6 w-full rounded bg-value px-4 py-3 font-display text-[15px] font-medium text-white hover:bg-value/90 disabled:opacity-40"
+        className="mb-3 w-full rounded bg-value px-4 py-3 font-display text-[15px] font-medium text-white hover:bg-value/90 disabled:opacity-40"
       >
-        {locating ? t("Finding your location…") : t("Find My Location")}
+        {locating ? t("Finding your location…") : t("What store am I at?!")}
       </button>
+
+      {mode === "menu" && !checkPriceRevealed && (
+        <button
+          onClick={() => setCheckPriceRevealed(true)}
+          className="mb-6 w-full rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+        >
+          {t("Check Price")}
+        </button>
+      )}
 
       {locationCheck && (
         <div className="-mt-3 mb-6">
@@ -251,21 +260,17 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         </div>
       )}
 
-      {mode === "menu" && !busy && (
-        <div className="flex flex-col gap-2 sm:flex-row">
+      {mode === "menu" && checkPriceRevealed && !busy && (
+        <div className="mb-6 flex flex-col gap-2 sm:flex-row">
           <button onClick={() => cameraInputRef.current?.click()} className={outlineButton}>
-            {t("Camera")}
-          </button>
-          <button onClick={() => fileInputRef.current?.click()} className={outlineButton}>
-            {t("Upload image")}
+            {t("Snap")}
           </button>
           <button onClick={() => setMode("text")} className={outlineButton}>
-            {t("Enter item details")}
+            {t("Enter details")}
           </button>
         </div>
       )}
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
 
       {mode === "text" && (
         <GuidedTextEntry
