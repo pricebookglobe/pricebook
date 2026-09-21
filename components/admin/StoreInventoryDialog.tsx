@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Pagination, paginate } from "@/components/admin/Pagination";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 
 type InventoryRow = {
   id: string;
@@ -51,6 +52,21 @@ export function StoreInventoryDialog({
       body: JSON.stringify({ id: row.id })
     });
     setBusyId(null);
+  }
+
+  async function patchItem(row: InventoryRow, patch: { in_stock?: boolean; is_hidden?: boolean }) {
+    if (!token) return;
+    setBusyId(row.id);
+    try {
+      await fetch("/api/admin/items", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: row.id, ...patch })
+      });
+      setRows((r) => r.map((x) => (x.id === row.id ? { ...x, ...patch } : x)));
+    } finally {
+      setBusyId(null);
+    }
   }
 
   if (!store) return null;
@@ -110,13 +126,22 @@ export function StoreInventoryDialog({
                     {row.price.toFixed(2)} <span className="text-xs text-ash">{row.currency}</span>
                   </td>
                   <td className="num">
-                    <button
+                    <RowActionsMenu
                       disabled={busyId === row.id}
-                      onClick={() => setPendingDelete(row)}
-                      className="text-sm text-ash underline hover:text-flag disabled:opacity-40"
-                    >
-                      Delete
-                    </button>
+                      actions={[
+                        {
+                          label: row.is_hidden ? "Unhide" : "Hide",
+                          tone: "warning",
+                          onClick: () => patchItem(row, { is_hidden: !row.is_hidden })
+                        },
+                        {
+                          label: row.in_stock ? "Mark unavailable" : "Mark available",
+                          tone: row.in_stock ? "warning" : "positive",
+                          onClick: () => patchItem(row, { in_stock: !row.in_stock })
+                        },
+                        { label: "Delete", tone: "danger", onClick: () => setPendingDelete(row) }
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}

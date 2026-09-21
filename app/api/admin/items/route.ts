@@ -75,3 +75,19 @@ export async function DELETE(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
+
+export async function PATCH(req: NextRequest) {
+  const auth = await requireAdmin(req);
+  if (auth.error) return auth.error;
+
+  const { id, in_stock, is_hidden } = await req.json();
+  if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
+
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (typeof in_stock === "boolean") patch.in_stock = in_stock;
+  if (typeof is_hidden === "boolean") patch.is_hidden = is_hidden;
+
+  const { error } = await auth.supabase.from("store_inventory").update(patch).eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
