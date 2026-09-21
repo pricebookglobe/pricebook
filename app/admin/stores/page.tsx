@@ -8,6 +8,7 @@ import { ClearableSearch } from "@/components/admin/ClearableSearch";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { StoreDetailsDialog } from "@/components/admin/StoreDetailsDialog";
+import { StoreInventoryDialog } from "@/components/admin/StoreInventoryDialog";
 import { Pagination, paginate } from "@/components/admin/Pagination";
 
 type StoreRow = {
@@ -40,6 +41,7 @@ export default function AdminStoresPage() {
   const [pendingDelete, setPendingDelete] = useState<StoreRow | null>(null);
   const [pendingFreeze, setPendingFreeze] = useState<StoreRow | null>(null);
   const [detailsStore, setDetailsStore] = useState<StoreRow | null>(null);
+  const [itemsStore, setItemsStore] = useState<StoreRow | null>(null);
   const [page, setPage] = useState(0);
 
   async function load(currentToken: string) {
@@ -159,6 +161,7 @@ export default function AdminStoresPage() {
                   disabled={busyId === s.id}
                   actions={[
                     { label: "View details", onClick: () => setDetailsStore(s) },
+                    { label: "View items", onClick: () => setItemsStore(s) },
                     ...(s.lat != null && s.lng != null
                       ? [{ label: "View on map", onClick: () => window.open(`https://www.google.com/maps?q=${s.lat},${s.lng}&z=16&t=k`, "_blank") }]
                       : []),
@@ -180,6 +183,7 @@ export default function AdminStoresPage() {
       <Pagination page={page} totalItems={filtered.length} onPageChange={setPage} />
 
       <StoreDetailsDialog store={detailsStore} onClose={() => setDetailsStore(null)} />
+      <StoreInventoryDialog store={itemsStore} onClose={() => setItemsStore(null)} />
 
       <ConfirmDialog
         open={!!pendingFreeze}
