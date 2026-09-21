@@ -216,7 +216,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 height="220"
                 style={{ border: 0 }}
                 loading="lazy"
-                src={`https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&output=embed`}
+                src={`https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&t=k&output=embed`}
               />
               <p className="bg-field-raised px-3 py-2 text-sm text-ink">
                 {t("No store is registered on PriceBook at this location.")}
