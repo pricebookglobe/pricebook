@@ -31,10 +31,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     ? Math.round((positions.reduce((sum: number, p: any) => sum + Number(p.percentile), 0) / positions.length) * 10) / 10
     : null;
 
+  // Same positive/negative split used on the customer-facing store page:
+  // 4-5 stars positive, 1-2 negative, 3 neutral.
+  const { data: reviews } = await supabase.from("reviews").select("rating").eq("store_id", params.id);
+  const reviewCount = reviews?.length ?? 0;
+  const positiveReviews = reviews?.filter((r) => r.rating >= 4).length ?? 0;
+  const negativeReviews = reviews?.filter((r) => r.rating <= 2).length ?? 0;
+
   return NextResponse.json({
     product_count: productCount ?? 0,
     view_count: store.view_count ?? 0,
     overall_percentile: overallPercentile, // lower = cheaper on average vs. town competitors
-    products: positions ?? []
+    products: positions ?? [],
+    review_count: reviewCount,
+    positive_reviews: positiveReviews,
+    negative_reviews: negativeReviews
   });
 }

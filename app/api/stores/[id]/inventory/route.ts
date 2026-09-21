@@ -32,12 +32,40 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const supabase = createServiceSupabase();
   const { data, error } = await supabase
     .from("store_inventory")
-    .select("id, price, currency, in_stock, updated_at, products ( id, canonical_name, brand, size, unit, category, image_url )")
+    .select("id, price, currency, in_stock, is_hidden, updated_at, products ( id, canonical_name, brand, size, unit, category, image_url )")
     .eq("store_id", params.id)
     .order("updated_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const { product_id, price, in_stock, is_hidden } = await req.json();
+  if (!product_id) return NextResponse.json({ error: "product_id is required" }, { status: 400 });
+
+  const verified = await verifyOwnership(req, params.id);
+  if (verified.error) return verified.error;
+  const { supabase } = verified;
+
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (typeof price === "number") patch.price = price;
+  if (typeof in_stock === "boolean") patch.in_stock = in_stock;
+  if (typeof is_hidden === "boolean") patch.is_hidden = is_hidden;
+
+  const { error } = await supabase
+    .from("store_inventory")
+    .update(patch)
+    .eq("store_id", params.id)
+    .eq("product_id", product_id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (typeof price === "number") {
+    await supabase.from("price_history").insert({ store_id: params.id, product_id, price });
+  }
+
+  return NextResponse.json({ ok: true });
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {

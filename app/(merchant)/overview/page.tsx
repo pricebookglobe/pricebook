@@ -6,7 +6,15 @@ import { AppPage } from "@/components/shared/AppPage";
 import { useAccount } from "@/lib/AccountProvider";
 
 type ProductPosition = { product_id: string; product_name: string; price: number; currency: string; percentile: number };
-type Overview = { product_count: number; view_count: number; overall_percentile: number | null; products: ProductPosition[] };
+type Overview = {
+  product_count: number;
+  view_count: number;
+  overall_percentile: number | null;
+  products: ProductPosition[];
+  review_count: number;
+  positive_reviews: number;
+  negative_reviews: number;
+};
 
 function positionLabel(percentile: number): string {
   // percent_rank: 0 = cheapest in town, 100 = most expensive. Flip it to a
@@ -62,6 +70,18 @@ export default function StoreOverviewPage() {
               </p>
               <p className="mt-1 font-mono text-[11px] uppercase tracking-wide text-ash">Avg. cheaper than town</p>
             </div>
+          </div>
+
+          <div className="mb-6 flex flex-wrap gap-4 rounded border border-line bg-field px-4 py-3 text-sm">
+            <span className="text-ink">
+              <strong>{data.review_count}</strong> reviews
+            </span>
+            <span className="text-value">
+              <strong>{data.positive_reviews}</strong> positive
+            </span>
+            <span className="text-red-600">
+              <strong>{data.negative_reviews}</strong> negative
+            </span>
           </div>
 
           {data.products.length === 0 && (
