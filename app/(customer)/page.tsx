@@ -84,7 +84,7 @@ export default function Page() {
     // "take me home", not a page in its own right for a logged-in person.
     if (loading) return;
     if (profile?.role === "admin") router.replace("/admin");
-    else if (profile?.role === "merchant") router.replace("/dashboard");
+    else if (profile?.role === "merchant") router.replace("/overview");
     else if (profile?.role === "customer") router.replace("/check-price");
   }, [loading, profile, router]);
 

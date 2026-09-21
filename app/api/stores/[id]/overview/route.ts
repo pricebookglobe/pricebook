@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   const { data: store } = await supabase
     .from("stores")
-    .select("id, view_count")
+    .select("id, view_count, verification_status")
     .eq("id", params.id)
     .eq("owner_id", userData.user.id)
     .maybeSingle();
@@ -41,6 +41,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json({
     product_count: productCount ?? 0,
     view_count: store.view_count ?? 0,
+    verification_status: store.verification_status ?? null,
     overall_percentile: overallPercentile, // lower = cheaper on average vs. town competitors
     products: positions ?? [],
     review_count: reviewCount,

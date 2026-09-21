@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import type { StructuredProduct } from "@/lib/aiVision";
 import { AppPage } from "@/components/shared/AppPage";
@@ -122,6 +123,9 @@ export default function AddItemPage() {
 
   return (
     <AppPage>
+      <Link href="/inventory" className="mb-4 inline-block text-sm text-ash underline hover:text-ink">
+        ← {t("Back to Manage Inventory")}
+      </Link>
       <header className="mb-6">
         <h1 className="font-display text-xl font-semibold text-ink">{t("Add an item")}</h1>
         <p className="mt-1 text-sm text-ash">{t("Describe it, snap it, or upload a photo — then set your price.")}</p>

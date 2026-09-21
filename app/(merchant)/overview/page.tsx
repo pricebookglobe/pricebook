@@ -9,6 +9,7 @@ type ProductPosition = { product_id: string; product_name: string; price: number
 type Overview = {
   product_count: number;
   view_count: number;
+  verification_status: string | null;
   overall_percentile: number | null;
   products: ProductPosition[];
   review_count: number;
@@ -55,6 +56,13 @@ export default function StoreOverviewPage() {
 
       {data && (
         <>
+          {data.verification_status === "pending" && (
+            <div className="mb-6 rounded border border-flag bg-flag/10 px-4 py-3 text-sm text-ink">
+              Your store is pending admin verification. You can preview your dashboard, but customers won't see
+              your listings until you're approved.
+            </div>
+          )}
+
           <div className="mb-6 grid grid-cols-3 gap-3">
             <div className="rounded border border-line bg-field p-4 text-center">
               <p className="font-display text-2xl font-semibold text-ink">{data.product_count}</p>

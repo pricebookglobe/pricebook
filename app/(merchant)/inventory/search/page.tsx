@@ -1,27 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { ClearableSearch } from "@/components/admin/ClearableSearch";
 import { InventoryTable, type InventoryRow } from "@/components/merchant/InventoryTable";
 
-export default function InventoryPage() {
+export default function InventorySearchPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const [storeId, setStoreId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [rows, setRows] = useState<InventoryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
     supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) {
-        router.push("/login?next=/inventory");
+        router.push("/login?next=/inventory/search");
         return;
       }
       setToken(data.session.access_token);
@@ -40,26 +42,41 @@ export default function InventoryPage() {
     });
   }, [router]);
 
-  const buttonClass =
-    "flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white";
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((row) => {
+      const name = `${row.products.brand ?? ""} ${row.products.canonical_name}`.toLowerCase();
+      return name.includes(q);
+    });
+  }, [rows, search]);
 
   return (
     <AppPage>
-      <h1 className="mb-4 font-display text-xl font-semibold text-ink">{t("Manage inventory")}</h1>
+      <Link href="/inventory" className="mb-4 inline-block text-sm text-ash underline hover:text-ink">
+        ← {t("Back to Manage Inventory")}
+      </Link>
+      <h1 className="mb-4 font-display text-xl font-semibold text-ink">{t("Search Items")}</h1>
 
-      <div className="mb-6 flex flex-col gap-2 sm:flex-row">
-        <Link href="/inventory/add" className={buttonClass}>
-          {t("Add Item")}
-        </Link>
-        <Link href="/inventory/search" className={buttonClass}>
-          {t("Search Items")}
-        </Link>
+      <div className="mb-4 flex gap-2">
+        <ClearableSearch
+          value={search}
+          onChange={(v) => {
+            setSearch(v);
+            setPage(0);
+          }}
+          onClear={() => {
+            setSearch("");
+            setPage(0);
+          }}
+          placeholder={t("Search your items…")}
+        />
       </div>
 
       {loading && <p className="text-sm text-ash">…</p>}
 
       {!loading && storeId && token && (
-        <InventoryTable storeId={storeId} token={token} rows={rows} setRows={setRows} page={page} onPageChange={setPage} />
+        <InventoryTable storeId={storeId} token={token} rows={filtered} setRows={setRows} page={page} onPageChange={setPage} />
       )}
     </AppPage>
   );
