@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 // Design tokens, grounded in the PriceBook brand (navy shield + green value marks):
 // - ink:    the deep navy from the logo, used for chrome, headings, primary actions
@@ -39,7 +40,17 @@ const config: Config = {
       }
     }
   },
-  plugins: []
+  plugins: [
+    // Redefines `hover:` everywhere in the app to only fire for a real mouse
+    // (hover: hover, pointer: fine). Without this, tapping a button on a
+    // touchscreen triggers :hover with no mouse-leave to clear it afterward,
+    // so the button is stuck showing its hover color until something else
+    // is tapped — this is what made "Search items" look permanently green
+    // instead of only on hover.
+    plugin(({ addVariant }) => {
+      addVariant("hover", "@media (hover: hover) and (pointer: fine) { &:hover }");
+    })
+  ]
 };
 
 export default config;
