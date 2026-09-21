@@ -104,7 +104,7 @@ export default function StoreOverviewPage() {
             </div>
           </div>
 
-          <div className="mb-6 flex flex-wrap gap-4 rounded border border-line bg-field px-4 py-3 text-sm">
+          <div className="mb-6 flex flex-wrap items-center gap-4 rounded border border-line bg-field px-4 py-3 text-sm">
             <span className="text-ink">
               <strong>{data.review_count}</strong> reviews
             </span>
@@ -114,6 +114,7 @@ export default function StoreOverviewPage() {
             <span className="text-red-600">
               <strong>{data.negative_reviews}</strong> negative
             </span>
+            <span className="ml-auto font-mono text-[10px] text-ash/60">store id: {storeId}</span>
           </div>
 
           {data.products.length === 0 && (

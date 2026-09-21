@@ -79,6 +79,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
         )}
       </h1>
       <p className="mt-1 text-sm text-ash">{store.address}, {store.city}</p>
+      <p className="mt-0.5 font-mono text-[10px] text-ash/60">store id: {store.id}</p>
       {stats?.average_rating != null && (
         <p className="mt-1 font-mono text-sm text-value">★ {stats.average_rating.toFixed(1)} ({reviews.length} reviews)</p>
       )}
