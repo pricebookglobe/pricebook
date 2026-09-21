@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceSupabase } from "@/lib/supabaseClient";
 
+// Forces this route to run fresh on every request — without it, a GET
+// with no cache directive can end up served stale (by the browser or an
+// intermediate cache) instead of hitting the database every time, which
+// is exactly the kind of gap that would make a just-added review not
+// show up here yet while the public store page (fetched separately)
+// already reflects it.
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

@@ -53,7 +53,7 @@ export default function StoreOverviewPage() {
       setLoading(false);
       return;
     }
-    fetch(`/api/stores/${storeId}/overview`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`/api/stores/${storeId}/overview`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         setData(d);
