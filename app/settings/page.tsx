@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { useAccount } from "@/lib/AccountProvider";
 
 type Profile = { full_name: string | null; email: string; role: "customer" | "merchant" | "admin"; delete_history_on_logout: boolean };
 type StoreDetails = {
@@ -27,6 +28,7 @@ function fileToBase64(file: File): Promise<string> {
 export default function SettingsPage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { refresh: refreshAccount } = useAccount();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [store, setStore] = useState<StoreDetails | null>(null);
@@ -86,7 +88,6 @@ export default function SettingsPage() {
     const changingCredentials = email !== profile.email || !!newPassword;
     if (changingCredentials) {
       if (!currentPassword) {
-        setError(t("Enter your current password to change your email or password."));
         setBusy(false);
         return;
       }
@@ -167,6 +168,27 @@ export default function SettingsPage() {
 
     await supabase.from("users").update({ delete_history_on_logout: deleteOnLogout }).eq("id", (await supabase.auth.getUser()).data.user?.id);
 
+    // Everything above updates the database directly — this page fetches
+    // its own copy of the profile/store on mount, entirely separate from
+    // the AccountProvider context that drives the sidebar (name, logo,
+    // storeId). Without this, the sidebar keeps showing the old name/logo
+    // until the next full page load, and re-fetch this tab out of it.
+    refreshAccount();
+
+    // Re-fetch this page's own copy too, so the store name/logo/CR status
+    // shown here update immediately rather than waiting for a reload.
+    if (storeId) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const freshStoreRes = await fetch("/api/merchant/store", {
+        headers: { Authorization: `Bearer ${sessionData.session?.access_token}` }
+      });
+      const freshStore = await freshStoreRes.json().catch(() => null);
+      if (freshStore) {
+        setStore(freshStore);
+        setStoreName(freshStore.name ?? "");
+      }
+    }
+
     setCurrentPassword("");
     setNewPassword("");
     setBusy(false);
@@ -225,9 +247,9 @@ export default function SettingsPage() {
             </button>
           </div>
         </label>
-        <p className="text-sm text-amber-600">
-          {t("Enter current password to save changes.")}
-        </p>
+        {!currentPassword && (
+          <p className="text-sm text-amber-600">{t("Enter current password to save changes.")}</p>
+        )}
 
         {error && <p className="text-sm text-flag">{error}</p>}
         {saved && <p className="text-sm text-value">{saved}</p>}
