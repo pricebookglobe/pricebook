@@ -107,28 +107,17 @@ export default function StoreOverviewPage() {
             </div>
           </div>
 
-          <div className="mb-3 flex flex-wrap items-center gap-4 rounded border border-line bg-field px-4 py-3 text-sm">
-            <span className="text-ink">
-              <strong>{data.review_count}</strong> reviews
-            </span>
-            <span className="text-value">
-              <strong>{data.positive_reviews}</strong> positive
-            </span>
-            <span className="text-red-600">
-              <strong>{data.negative_reviews}</strong> negative
-            </span>
-            <span className="ml-auto font-mono text-[10px] text-ash/60">store id: {storeId}</span>
-          </div>
-
           <div className="mb-6 flex flex-wrap items-center gap-4 rounded border border-line bg-field px-4 py-3 text-sm">
             <span className="text-ink">
               <strong>{data.price_report_count}</strong> price reports
             </span>
             <span className="text-value">
-              <strong>{data.correct_price_reports}</strong> said correct
+              <strong>{data.correct_price_reports}</strong> positive — correct price
+              {data.price_report_count > 0 &&
+                ` (${Math.round((data.correct_price_reports / data.price_report_count) * 1000) / 10}%)`}
             </span>
             <span className="text-red-600">
-              <strong>{data.wrong_price_reports}</strong> said wrong
+              <strong>{data.wrong_price_reports}</strong> negative — wrong price
             </span>
           </div>
 

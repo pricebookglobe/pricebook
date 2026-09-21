@@ -62,12 +62,12 @@ export default function AdminDashboardPage() {
           <StatBox value={stats.avg_items_per_store} label="Avg. items / store" />
           <StatBox
             value={`${stats.positive_review_count} (${stats.positive_review_pct}%)`}
-            label="Positive reviews"
+            label="Positive price reports"
             valueClassName="text-value"
           />
           <StatBox
             value={`${stats.negative_review_count} (${stats.negative_review_pct}%)`}
-            label="Negative reviews"
+            label="Negative price reports"
             valueClassName="text-red-600"
           />
         </div>
