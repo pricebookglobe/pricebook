@@ -27,6 +27,7 @@ export default function CustomerSignup() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +41,10 @@ export default function CustomerSignup() {
     e.preventDefault();
     if (form.password !== form.confirmPassword) {
       setError("Passwords don't match.");
+      return;
+    }
+    if (!agreedToTerms) {
+      setError("Please agree to the Terms & Conditions to continue.");
       return;
     }
     setBusy(true);
@@ -229,9 +234,26 @@ export default function CustomerSignup() {
 
         {error && <p className="text-sm text-flag">{error}</p>}
 
+        <label className="flex items-start gap-2 text-sm text-ash">
+          <input
+            required
+            type="checkbox"
+            checked={agreedToTerms}
+            onChange={(e) => setAgreedToTerms(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            I agree to PriceBook's{" "}
+            <Link href="/terms/customer" target="_blank" className="text-blue-600 underline hover:text-blue-700">
+              Terms &amp; Conditions
+            </Link>
+            .
+          </span>
+        </label>
+
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || !agreedToTerms}
           className="mt-2 rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 disabled:opacity-40"
         >
           {busy ? t("Creating…") : t("Create your account")}
