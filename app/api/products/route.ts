@@ -21,7 +21,28 @@ export async function POST(req: NextRequest) {
   if (body.unit) query = query.eq("unit", body.unit);
 
   const { data: existing } = await query.maybeSingle();
-  if (existing) return NextResponse.json({ product_id: existing.id, created: false });
+  if (existing) {
+    // A product can exist with no embedding if an earlier add attempt
+    // created the row but then failed before the embedding was saved (an
+    // OpenAI hiccup, a timeout) — without this check, every future "add"
+    // of the same product just returns that same broken, unsearchable ID
+    // forever, since the dedup match above never looks past the name.
+    const { data: hasEmbedding } = await supabase
+      .from("product_embeddings")
+      .select("product_id")
+      .eq("product_id", existing.id)
+      .maybeSingle();
+
+    if (!hasEmbedding) {
+      const embedding = await embedProductDescription(body);
+      const { error: embedError } = await supabase
+        .from("product_embeddings")
+        .insert({ product_id: existing.id, embedding });
+      if (embedError) return NextResponse.json({ error: embedError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ product_id: existing.id, created: false });
+  }
 
   const { data: created, error: insertError } = await supabase
     .from("products")
