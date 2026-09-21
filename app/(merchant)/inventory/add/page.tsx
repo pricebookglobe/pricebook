@@ -151,7 +151,7 @@ export default function AddItemPage() {
               type="button"
               onClick={() => cameraInputRef.current?.click()}
               disabled={extracting}
-              className="rounded-sm px-2 py-1 text-sm text-ash transition-colors hover:text-value"
+              className="rounded-sm border border-line px-3 py-1.5 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40"
             >
               {t("Snap")}
             </button>
@@ -160,7 +160,7 @@ export default function AddItemPage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={extracting}
-              className="rounded-sm px-2 py-1 text-sm text-ash transition-colors hover:text-value"
+              className="rounded-sm border border-line px-3 py-1.5 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40"
             >
               {t("Upload")}
             </button>
