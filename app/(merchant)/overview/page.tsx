@@ -26,21 +26,31 @@ function positionLabel(percentile: number): string {
 
 export default function StoreOverviewPage() {
   const router = useRouter();
-  const { storeId, token, loading: accountLoading } = useAccount();
+  const { profile, storeId, token, loading: accountLoading } = useAccount();
   const [data, setData] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [noStore, setNoStore] = useState(false);
 
   useEffect(() => {
     if (accountLoading) return;
-    if (!token) {
+    if (!token || !profile) {
       router.push("/login?next=/overview");
       return;
     }
+    // This page (and every merchant-only page that redirects here when it
+    // can't find a store) previously only checked storeId, not role — so a
+    // customer or admin who ever landed here saw a scary "couldn't find a
+    // store" message instead of being sent to their own home. Only an
+    // actual merchant account with no store at all is the real anomaly.
+    if (profile.role === "admin") {
+      router.replace("/admin");
+      return;
+    }
+    if (profile.role === "customer") {
+      router.replace("/check-price");
+      return;
+    }
     if (!storeId) {
-      // A merchant account with no store at all shouldn't happen (store
-      // creation is immediate at signup) — show it as a real problem
-      // rather than redirecting, since there's nowhere else to send them.
       setNoStore(true);
       setLoading(false);
       return;
@@ -51,7 +61,7 @@ export default function StoreOverviewPage() {
         setData(d);
         setLoading(false);
       });
-  }, [accountLoading, token, storeId, router]);
+  }, [accountLoading, profile, token, storeId, router]);
 
   if (noStore) {
     return (
