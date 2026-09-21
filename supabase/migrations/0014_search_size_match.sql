@@ -1,0 +1,78 @@
+-- Semantic embeddings are good at matching brand/name but weak at
+-- distinguishing pack SIZE — "Pepsi 330ml" and "Pepsi 1.5L" can embed as
+-- nearly identical since only the number differs, which was causing the
+-- wrong pack size to be compared as if it were the same product. When the
+-- customer's query has a known size + unit, this now requires the
+-- product's stored size/unit to actually match (unit exact, size within
+-- 8% tolerance) as a hard filter, on top of the existing semantic +
+-- distance + in-stock + not-hidden filtering. When the query's size or
+-- unit is unknown (freeform text without a clear quantity), no extra
+-- filtering is applied — falls back to the previous semantic-only
+-- behavior, since an incomplete query shouldn't be blocked from any
+-- results.
+create or replace function search_nearby_products(
+  query_embedding vector(1536),
+  user_lat double precision,
+  user_lng double precision,
+  radius_meters integer,
+  match_limit integer default 30,
+  query_size double precision default null,
+  query_unit text default null
+)
+returns table (
+  store_id uuid,
+  store_name text,
+  store_lat double precision,
+  store_lng double precision,
+  product_id uuid,
+  product_name text,
+  price numeric,
+  currency text,
+  distance_m double precision,
+  similarity double precision,
+  trust_badge text,
+  wrong_pct numeric
+) language sql stable as $$
+  select
+    s.id as store_id,
+    s.name as store_name,
+    ST_Y(s.location::geometry) as store_lat,
+    ST_X(s.location::geometry) as store_lng,
+    p.id as product_id,
+    p.canonical_name as product_name,
+    si.price,
+    si.currency,
+    ST_Distance(s.location, ST_MakePoint(user_lng, user_lat)::geography) as distance_m,
+    1 - (pe.embedding <=> query_embedding) as similarity,
+    trust.badge as trust_badge,
+    trust.wrong_pct
+  from store_inventory si
+  join stores s on s.id = si.store_id
+  join products p on p.id = si.product_id
+  join product_embeddings pe on pe.product_id = p.id
+  left join lateral (
+    select
+      case
+        when count(*) = 0 then 'unrated'
+        when (count(*) filter (where report_type = 'wrong_price'))::numeric / count(*) > 0.10 then 'red'
+        when (count(*) filter (where report_type = 'wrong_price'))::numeric / count(*) >= 0.05 then 'orange'
+        else 'green'
+      end as badge,
+      round(
+        coalesce((count(*) filter (where report_type = 'wrong_price'))::numeric / nullif(count(*), 0) * 100, 0),
+        1
+      ) as wrong_pct
+    from price_reports pr
+    where pr.store_id = s.id
+  ) trust on true
+  where s.is_active
+    and si.in_stock
+    and not si.is_hidden
+    and ST_DWithin(s.location, ST_MakePoint(user_lng, user_lat)::geography, radius_meters)
+    and (
+      query_size is null or query_unit is null or p.size is null or p.unit is null
+      or (lower(p.unit) = lower(query_unit) and abs(p.size - query_size) <= greatest(p.size * 0.08, 0.01))
+    )
+  order by pe.embedding <=> query_embedding, distance_m asc
+  limit match_limit;
+$$;
