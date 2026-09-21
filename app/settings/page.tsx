@@ -70,8 +70,7 @@ export default function SettingsPage() {
     });
   }, [router]);
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSave() {
     if (!profile) return;
     setBusy(true);
     setError(null);
@@ -169,7 +168,7 @@ export default function SettingsPage() {
         {profile.role === "merchant" ? t("Merchants can update their email.") : t("Update your name or email.")}
       </p>
 
-      <form onSubmit={handleSave} className="mt-6 flex flex-col gap-3">
+      <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="mt-6 flex flex-col gap-3">
         <label className="text-sm text-ash">
           {profile.role === "merchant" ? "Contact person name" : t("Full name")}
           <input value={fullName} onChange={(e) => setFullName(e.target.value)}
@@ -216,11 +215,6 @@ export default function SettingsPage() {
 
         {error && <p className="text-sm text-flag">{error}</p>}
         {saved && <p className="text-sm text-value">{saved}</p>}
-
-        <button type="submit" disabled={busy}
-          className="mt-1 rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 disabled:opacity-40">
-          {busy ? t("Saving…") : t("Save changes")}
-        </button>
       </form>
 
       {profile.role === "merchant" && store && (
@@ -277,8 +271,6 @@ export default function SettingsPage() {
               {t("Replacing this sends it for admin review again before it's approved.")}
             </p>
           </label>
-
-          <p className="text-xs text-ash">{t("Changes here save with the Save changes button above.")}</p>
         </div>
       )}
 
@@ -292,6 +284,14 @@ export default function SettingsPage() {
           {deleteOnLogout ? "Your history clears on every logout." : "Your history is kept for up to a year."}
         </p>
       </div>
+
+      <button
+        onClick={handleSave}
+        disabled={busy}
+        className="mt-6 w-full rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 disabled:opacity-40"
+      >
+        {busy ? t("Saving…") : t("Save changes")}
+      </button>
     </AppPage>
   );
 }
