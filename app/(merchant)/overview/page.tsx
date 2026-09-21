@@ -29,7 +29,6 @@ export default function StoreOverviewPage() {
   const { profile, storeId, token, loading: accountLoading } = useAccount();
   const [data, setData] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
-  const [noStore, setNoStore] = useState(false);
 
   useEffect(() => {
     if (accountLoading) return;
@@ -51,7 +50,6 @@ export default function StoreOverviewPage() {
       return;
     }
     if (!storeId) {
-      setNoStore(true);
       setLoading(false);
       return;
     }
@@ -63,7 +61,7 @@ export default function StoreOverviewPage() {
       });
   }, [accountLoading, profile, token, storeId, router]);
 
-  if (noStore) {
+  if (!accountLoading && profile?.role === "merchant" && !storeId) {
     return (
       <AppPage>
         <p className="text-sm text-flag">

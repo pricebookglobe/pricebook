@@ -80,8 +80,19 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         const p: Profile = await res.json();
         setProfile(p);
         if (p.role === "merchant") {
-          const storeRes = await fetch("/api/merchant/store", { headers: { Authorization: `Bearer ${accessToken}` } });
-          const store = await storeRes.json().catch(() => null);
+          // A single failed request here (a cold start, a transient
+          // network blip) would otherwise leave storeId null for the rest
+          // of the session, with nothing to ever retry it — one retry
+          // after a short pause covers the common transient case.
+          async function fetchStore() {
+            const storeRes = await fetch("/api/merchant/store", { headers: { Authorization: `Bearer ${accessToken}` } });
+            return storeRes.json().catch(() => null);
+          }
+          let store = await fetchStore();
+          if (!store) {
+            await new Promise((resolve) => setTimeout(resolve, 800));
+            store = await fetchStore();
+          }
           if (!cancelled && store) {
             setStoreName(store.name);
             setStoreId(store.id);
