@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { TrustDot } from "@/components/shared/TrustDot";
 
 type StoreDetails = {
   name: string;
@@ -14,6 +15,7 @@ type StoreDetails = {
   store_photo_url: string | null;
   lat?: number | null;
   lng?: number | null;
+  positive_pct?: number | null;
 };
 
 export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | null; onClose: () => void }) {
@@ -30,7 +32,10 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
           <X size={18} strokeWidth={2} />
         </button>
 
-        <h2 className="pr-8 font-display text-lg font-semibold text-ink">{store.name}</h2>
+        <h2 className="flex items-center gap-2 pr-8 font-display text-lg font-semibold text-ink">
+          {store.name}
+          <TrustDot positivePct={store.positive_pct} />
+        </h2>
 
         <div className="mt-3 space-y-1 text-sm">
           <p><span className="text-ash">Address:</span> {store.address}, {store.city}</p>

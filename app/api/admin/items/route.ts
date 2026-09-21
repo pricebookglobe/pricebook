@@ -41,6 +41,17 @@ export async function GET(req: NextRequest) {
   const productsById = new Map((products ?? []).map((p) => [p.id, p]));
   const storesById = new Map((stores ?? []).map((s) => [s.id, s]));
 
+  // Price-report accuracy for the trust dot next to each store's name.
+  const { data: allReports } = await auth.supabase.from("price_reports").select("store_id, report_type").in("store_id", storeIds);
+  const positivePctByStore = new Map<string, number | null>();
+  for (const id of storeIds) {
+    const rows = (allReports ?? []).filter((r) => r.store_id === id);
+    positivePctByStore.set(
+      id,
+      rows.length ? Math.round((rows.filter((r) => r.report_type === "correct_price").length / rows.length) * 1000) / 10 : null
+    );
+  }
+
   const rows = inventory.map((i) => {
     const product = productsById.get(i.product_id);
     const store = storesById.get(i.store_id);
@@ -57,7 +68,8 @@ export async function GET(req: NextRequest) {
       store_id: i.store_id,
       store_name: store?.name ?? "—",
       lat: coords?.lat ?? null,
-      lng: coords?.lng ?? null
+      lng: coords?.lng ?? null,
+      store_positive_pct: positivePctByStore.get(i.store_id) ?? null
     };
   });
 

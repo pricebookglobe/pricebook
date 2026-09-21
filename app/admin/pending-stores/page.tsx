@@ -8,6 +8,7 @@ import { ClearableSearch } from "@/components/admin/ClearableSearch";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { StoreDetailsDialog } from "@/components/admin/StoreDetailsDialog";
+import { TrustDot } from "@/components/shared/TrustDot";
 import { Pagination, paginate } from "@/components/admin/Pagination";
 
 type StoreRow = {
@@ -24,6 +25,7 @@ type StoreRow = {
   verification_status: "pending" | "approved" | "rejected";
   lat: number | null;
   lng: number | null;
+  positive_pct: number | null;
 };
 
 export default function PendingStoresPage() {
@@ -159,7 +161,12 @@ export default function PendingStoresPage() {
           <tbody>
             {paginate(filtered, page).map((s) => (
               <tr key={s.id}>
-                <td>{s.name}</td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <TrustDot positivePct={s.positive_pct} />
+                    {s.name}
+                  </div>
+                </td>
                 <td>{s.city}</td>
                 <td className="font-mono text-xs">{s.commercial_registration}</td>
                 <td>

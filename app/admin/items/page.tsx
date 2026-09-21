@@ -9,6 +9,7 @@ import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Pagination, paginate } from "@/components/admin/Pagination";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
+import { TrustDot } from "@/components/shared/TrustDot";
 
 type ItemRow = {
   id: string;
@@ -23,6 +24,7 @@ type ItemRow = {
   store_name: string;
   lat: number | null;
   lng: number | null;
+  store_positive_pct: number | null;
 };
 
 export default function AdminItemsPage() {
@@ -142,7 +144,12 @@ export default function AdminItemsPage() {
                   </div>
                 </td>
                 <td className="font-mono text-xs text-ash">{i.size ? `${i.size} ${i.unit ?? ""}` : "—"}</td>
-                <td>{i.store_name}</td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <TrustDot positivePct={i.store_positive_pct} />
+                    {i.store_name}
+                  </div>
+                </td>
                 <td className="num">
                   {i.price.toFixed(2)} <span className="text-xs text-ash">{i.currency}</span>
                 </td>

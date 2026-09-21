@@ -42,11 +42,26 @@ export async function GET(req: NextRequest) {
     })
   );
 
+  // Price-report accuracy for the trust dot next to each store's name —
+  // one query for every store's reports, grouped in JS rather than N
+  // separate requests.
+  const storeIds = stores.map((s) => s.id);
+  const { data: allReports } = await auth.supabase.from("price_reports").select("store_id, report_type").in("store_id", storeIds);
+  const positivePctByStore = new Map<string, number | null>();
+  for (const id of storeIds) {
+    const rows = (allReports ?? []).filter((r) => r.store_id === id);
+    positivePctByStore.set(
+      id,
+      rows.length ? Math.round((rows.filter((r) => r.report_type === "correct_price").length / rows.length) * 1000) / 10 : null
+    );
+  }
+
   const normalized = stores.map((s) => ({
     ...s,
     owner_is_frozen: frozenById.get(s.owner_id) ?? false,
     lat: coordsByStore.get(s.id)?.lat ?? null,
-    lng: coordsByStore.get(s.id)?.lng ?? null
+    lng: coordsByStore.get(s.id)?.lng ?? null,
+    positive_pct: positivePctByStore.get(s.id) ?? null
   }));
 
   return NextResponse.json(normalized);
