@@ -151,7 +151,7 @@ export default function AddItemPage() {
               type="button"
               onClick={() => cameraInputRef.current?.click()}
               disabled={extracting}
-              className="rounded-sm px-2 py-1 text-sm text-ash hover:text-ink"
+              className="rounded-sm px-2 py-1 text-sm text-ash transition-colors hover:text-value"
             >
               {t("Snap")}
             </button>
@@ -160,7 +160,7 @@ export default function AddItemPage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={extracting}
-              className="rounded-sm px-2 py-1 text-sm text-ash hover:text-ink"
+              className="rounded-sm px-2 py-1 text-sm text-ash transition-colors hover:text-value"
             >
               {t("Upload")}
             </button>
@@ -168,7 +168,11 @@ export default function AddItemPage() {
             <button
               type="submit"
               disabled={extracting || !textQuery.trim()}
-              className="rounded-sm bg-ink px-4 py-1.5 font-display text-sm font-medium text-field transition-colors hover:bg-value hover:text-white disabled:opacity-40"
+              className={`rounded-sm px-4 py-1.5 font-display text-sm font-medium transition-colors disabled:opacity-40 ${
+                textQuery.trim()
+                  ? "bg-value text-white hover:bg-value/90"
+                  : "bg-ink text-field hover:bg-value hover:text-white"
+              }`}
             >
               {extracting ? t("Reading…") : t("Identify")}
             </button>
@@ -179,6 +183,13 @@ export default function AddItemPage() {
 
       {product && (
         <div className="mt-2 flex flex-col gap-3 rounded border border-line bg-field-raised p-4">
+          <button
+            type="button"
+            onClick={() => setProduct(null)}
+            className="self-start text-sm text-ash underline hover:text-ink"
+          >
+            ← {t("Back to add item")}
+          </button>
           <p className="font-mono text-xs uppercase tracking-wide text-ash">{t("Confirm the details")}</p>
 
           <label className="text-sm text-ash">

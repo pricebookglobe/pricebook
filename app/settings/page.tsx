@@ -7,12 +7,33 @@ import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type Profile = { full_name: string | null; email: string; role: "customer" | "merchant" | "admin"; delete_history_on_logout: boolean };
+type StoreDetails = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  store_photo_url: string | null;
+  cr_certificate_url: string | null;
+};
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = () => reject(new Error("Could not read file"));
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function SettingsPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [storeId, setStoreId] = useState<string | null>(null);
+  const [store, setStore] = useState<StoreDetails | null>(null);
+  const [storeName, setStoreName] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [crFile, setCrFile] = useState<File | null>(null);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -40,8 +61,12 @@ export default function SettingsPage() {
         setDeleteOnLogout(p.delete_history_on_logout);
       }
       const storeRes = await fetch("/api/merchant/store", { headers: { Authorization: `Bearer ${data.session.access_token}` } });
-      const store = await storeRes.json().catch(() => null);
-      if (store) setStoreId(store.id);
+      const storeData = await storeRes.json().catch(() => null);
+      if (storeData) {
+        setStoreId(storeData.id);
+        setStore(storeData);
+        setStoreName(storeData.name ?? "");
+      }
     });
   }, [router]);
 
@@ -88,6 +113,43 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionData.session?.access_token}` },
         body: JSON.stringify({ contact_person_name: fullName })
       });
+    }
+
+    // Store name, logo, front photo, and CR certificate — all optional,
+    // only sent if the merchant actually changed or picked something.
+    if (profile.role === "merchant" && storeId) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (storeName.trim() && storeName.trim() !== store?.name) {
+        await fetch("/api/merchant/store", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ name: storeName.trim() })
+        });
+      }
+
+      if (logoFile || photoFile || crFile) {
+        const [logoBase64, photoBase64, crBase64] = await Promise.all([
+          logoFile ? fileToBase64(logoFile) : Promise.resolve(undefined),
+          photoFile ? fileToBase64(photoFile) : Promise.resolve(undefined),
+          crFile ? fileToBase64(crFile) : Promise.resolve(undefined)
+        ]);
+        await fetch("/api/merchant/store/documents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({
+            store_id: storeId,
+            store_logo_base64: logoBase64,
+            store_photo_base64: photoBase64,
+            cr_certificate_base64: crBase64,
+            notify_admin: false
+          })
+        });
+        setLogoFile(null);
+        setPhotoFile(null);
+        setCrFile(null);
+      }
     }
 
     await supabase.from("users").update({ delete_history_on_logout: deleteOnLogout }).eq("id", (await supabase.auth.getUser()).data.user?.id);
@@ -160,6 +222,65 @@ export default function SettingsPage() {
           {busy ? t("Saving…") : t("Save changes")}
         </button>
       </form>
+
+      {profile.role === "merchant" && store && (
+        <div className="mt-6 flex flex-col gap-3 rounded border border-line bg-field p-4">
+          <p className="text-sm font-medium text-ink">{t("Store details")}</p>
+
+          <label className="text-sm text-ash">
+            {t("Store name")}
+            <input
+              value={storeName}
+              onChange={(e) => setStoreName(e.target.value)}
+              className="mt-1 w-full rounded border border-line bg-field-raised px-3 py-2 text-ink outline-none"
+            />
+          </label>
+
+          <label className="text-sm text-ash">
+            {t("Store logo")}
+            {store.logo_url && (
+              <img src={store.logo_url} alt="" className="mt-1 h-12 w-12 rounded-full border border-line object-cover" />
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
+              className="mt-1 w-full text-sm text-ink"
+            />
+          </label>
+
+          <label className="text-sm text-ash">
+            {t("Store front photo")}
+            {store.store_photo_url && (
+              <img src={store.store_photo_url} alt="" className="mt-1 h-20 w-full rounded border border-line object-cover" />
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+              className="mt-1 w-full text-sm text-ink"
+            />
+          </label>
+
+          <label className="text-sm text-ash">
+            {t("CR certificate")}
+            <p className="mt-1 font-mono text-[11px] text-ash">
+              {store.cr_certificate_url ? t("A certificate is currently on file.") : t("No certificate on file.")}
+            </p>
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              onChange={(e) => setCrFile(e.target.files?.[0] ?? null)}
+              className="mt-1 w-full text-sm text-ink"
+            />
+            <p className="mt-1 font-mono text-[11px] text-ash/70">
+              {t("Replacing this sends it for admin review again before it's approved.")}
+            </p>
+          </label>
+
+          <p className="text-xs text-ash">{t("Changes here save with the Save changes button above.")}</p>
+        </div>
+      )}
 
       <div className="mt-6 rounded border border-line bg-field p-4">
         <p className="text-sm font-medium text-ink">Privacy</p>

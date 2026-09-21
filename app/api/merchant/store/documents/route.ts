@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   const { data: userData, error: userError } = await supabase.auth.getUser(token);
   if (userError || !userData.user) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
 
-  const { store_id, cr_certificate_base64, store_photo_base64, store_logo_base64 } = await req.json();
+  const { store_id, cr_certificate_base64, store_photo_base64, store_logo_base64, notify_admin = true } = await req.json();
   if (!store_id) return NextResponse.json({ error: "store_id is required" }, { status: 400 });
 
   const { data: store } = await supabase
@@ -75,31 +75,34 @@ export async function POST(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Notify the admin as soon as both documents are in — this is the last
-  // step of merchant signup, so the store record is complete at this point
-  // (name, registration number, contact, and now both attachments).
-  const { data: fullStore } = await supabase
-    .from("stores")
-    .select("name, address, city, commercial_registration, contact_person_name, admin_email, cr_certificate_url, store_photo_url")
-    .eq("id", store_id)
-    .single();
+  // Only the signup flow's final step should trigger the "new store
+  // pending verification" email — a merchant re-uploading their logo or
+  // photo later from Settings is a routine update, not a new
+  // registration, and shouldn't page the admin again.
+  if (notify_admin) {
+    const { data: fullStore } = await supabase
+      .from("stores")
+      .select("name, address, city, commercial_registration, contact_person_name, admin_email, cr_certificate_url, store_photo_url")
+      .eq("id", store_id)
+      .single();
 
-  if (fullStore) {
-    await sendEmail({
-      to: ADMIN_NOTIFICATION_EMAIL,
-      subject: `New store pending verification: ${fullStore.name}`,
-      html: `
-        <h2>New store registration</h2>
-        <p><strong>Store name:</strong> ${fullStore.name}</p>
-        <p><strong>Address:</strong> ${fullStore.address}, ${fullStore.city}</p>
-        <p><strong>Commercial registration #:</strong> ${fullStore.commercial_registration}</p>
-        <p><strong>Contact person:</strong> ${fullStore.contact_person_name ?? "—"}</p>
-        <p><strong>Store admin email:</strong> ${fullStore.admin_email ?? "—"}</p>
-        <p><strong>CR certificate:</strong> ${fullStore.cr_certificate_url ? `<a href="${fullStore.cr_certificate_url}">View document</a>` : "not uploaded"}</p>
-        <p><strong>Store photo:</strong> ${fullStore.store_photo_url ? `<a href="${fullStore.store_photo_url}">View photo</a>` : "not uploaded"}</p>
-        <p>Review and approve at <a href="https://pricebook.institute-of-ai.org/admin">/admin</a>.</p>
-      `
-    });
+    if (fullStore) {
+      await sendEmail({
+        to: ADMIN_NOTIFICATION_EMAIL,
+        subject: `New store pending verification: ${fullStore.name}`,
+        html: `
+          <h2>New store registration</h2>
+          <p><strong>Store name:</strong> ${fullStore.name}</p>
+          <p><strong>Address:</strong> ${fullStore.address}, ${fullStore.city}</p>
+          <p><strong>Commercial registration #:</strong> ${fullStore.commercial_registration}</p>
+          <p><strong>Contact person:</strong> ${fullStore.contact_person_name ?? "—"}</p>
+          <p><strong>Store admin email:</strong> ${fullStore.admin_email ?? "—"}</p>
+          <p><strong>CR certificate:</strong> ${fullStore.cr_certificate_url ? `<a href="${fullStore.cr_certificate_url}">View document</a>` : "not uploaded"}</p>
+          <p><strong>Store photo:</strong> ${fullStore.store_photo_url ? `<a href="${fullStore.store_photo_url}">View photo</a>` : "not uploaded"}</p>
+          <p>Review and approve at <a href="https://pricebook.institute-of-ai.org/admin">/admin</a>.</p>
+        `
+      });
+    }
   }
 
   return NextResponse.json({ ok: true, ...updates });

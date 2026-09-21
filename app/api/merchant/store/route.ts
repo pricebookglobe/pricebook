@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   const { data: store, error } = await auth.supabase
     .from("stores")
-    .select("id, name, city, address, commercial_registration, view_count, verification_status, logo_url")
+    .select("id, name, city, address, commercial_registration, view_count, verification_status, logo_url, store_photo_url, cr_certificate_url")
     .eq("owner_id", auth.user.id)
     .maybeSingle();
 
@@ -66,11 +66,16 @@ export async function PATCH(req: NextRequest) {
   const auth = await authedUser(req);
   if (!auth) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { contact_person_name } = await req.json();
+  const { contact_person_name, name } = await req.json();
+
+  const patch: Record<string, unknown> = {};
+  if (typeof contact_person_name === "string") patch.contact_person_name = contact_person_name;
+  if (typeof name === "string" && name.trim()) patch.name = name.trim();
+  if (Object.keys(patch).length === 0) return NextResponse.json({ ok: true });
 
   const { error } = await auth.supabase
     .from("stores")
-    .update({ contact_person_name })
+    .update(patch)
     .eq("owner_id", auth.user.id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
