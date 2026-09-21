@@ -12,7 +12,7 @@ export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <header className="flex justify-end px-5 py-4 sm:px-8">
+        <header className="flex justify-start px-5 py-4 sm:px-8">
           <LanguageSwitcher />
         </header>
 
