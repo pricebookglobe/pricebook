@@ -346,7 +346,7 @@ export default function SettingsPage() {
             </p>
             <input
               type="file"
-              accept="image/*,.pdf"
+              accept="image/*,application/pdf"
               onChange={(e) => setCrFile(e.target.files?.[0] ?? null)}
               className="mt-1 w-full text-sm text-ink"
             />

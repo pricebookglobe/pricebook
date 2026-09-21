@@ -199,7 +199,7 @@ export default function MerchantSignup() {
         </label>
         <label className="text-sm text-ash">
           Upload CR certificate <span className="text-red-600">*</span>
-          <input required type="file" accept="image/*,.pdf" onChange={(e) => setCrFile(e.target.files?.[0] ?? null)}
+          <input required type="file" accept="image/*,application/pdf" onChange={(e) => setCrFile(e.target.files?.[0] ?? null)}
             className="mt-1 w-full text-sm text-ink" />
         </label>
         <label className="text-sm text-ash">
