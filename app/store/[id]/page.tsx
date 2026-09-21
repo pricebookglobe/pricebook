@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type StoreInfo = { id: string; name: string; address: string; city: string; lat: number; lng: number };
 type Review = { id: string; rating: number; comment: string | null; created_at: string };
@@ -27,6 +28,7 @@ function trustStar(positivePct: number | null): { color: string; label: string }
 }
 
 export default function StoreDetailPage({ params }: { params: { id: string } }) {
+  const { t } = useLanguage();
   const [store, setStore] = useState<StoreInfo | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [priceStats, setPriceStats] = useState<PriceReportStats | null>(null);
@@ -64,7 +66,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
     setSubmitting(false);
   }
 
-  if (!store) return <AppPage><p className="text-sm text-ash">Loading…</p></AppPage>;
+  if (!store) return <AppPage><p className="text-sm text-ash">{t("Loading…")}</p></AppPage>;
 
   const star = trustStar(priceStats?.positive_pct ?? null);
 
@@ -84,13 +86,13 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
       {priceStats && priceStats.count > 0 && (
         <div className="mt-3 flex flex-wrap gap-4 rounded border border-line bg-field px-4 py-3 text-sm">
           <span className="text-ink">
-            <strong>{priceStats.count}</strong> price reports
+            <strong>{priceStats.count}</strong> {t("price reports")}
           </span>
           <span className="text-value">
-            <strong>{priceStats.positive_count}</strong> correct ({priceStats.positive_pct}%)
+            <strong>{priceStats.positive_count}</strong> {t("correct")} ({priceStats.positive_pct}%)
           </span>
           <span className="text-red-600">
-            <strong>{priceStats.negative_count}</strong> wrong
+            <strong>{priceStats.negative_count}</strong> {t("wrong")}
           </span>
         </div>
       )}
@@ -101,11 +103,11 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
         rel="noreferrer"
         className="mt-4 inline-block rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90"
       >
-        Get directions
+        {t("Get directions")}
       </a>
 
       <section className="mt-8">
-        <h2 className="font-display text-[15px] font-medium text-ink">Leave a review</h2>
+        <h2 className="font-display text-[15px] font-medium text-ink">{t("Leave a review")}</h2>
         <div className="mt-2 flex gap-1">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
@@ -121,7 +123,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder="Optional comment"
+          placeholder={t("Optional comment")}
           className="mt-2 w-full rounded border border-line bg-field px-3 py-2 text-sm text-ink outline-none"
           rows={2}
         />
@@ -130,20 +132,20 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
           disabled={!myRating || submitting}
           className="mt-2 rounded-sm bg-ink px-4 py-1.5 font-display text-sm text-field transition-colors hover:bg-value hover:text-white disabled:opacity-40"
         >
-          {submitting ? "Saving…" : "Submit review"}
+          {submitting ? t("Saving…") : t("Submit review")}
         </button>
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-2 font-display text-[15px] font-medium text-ink">Reviews</h2>
-        {reviews.length === 0 && <p className="text-sm text-ash">No reviews yet.</p>}
+        <h2 className="mb-2 font-display text-[15px] font-medium text-ink">{t("Reviews")}</h2>
+        {reviews.length === 0 && <p className="text-sm text-ash">{t("No reviews yet.")}</p>}
         {reviews.map((r) => (
           <div key={r.id} className="border-b border-line py-3">
             <p className="font-mono text-sm text-value">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</p>
             {r.comment && <p className="mt-1 text-sm text-ink">{r.comment}</p>}
             <p className="mt-1 font-mono text-[11px] text-ash">
               {/* Reviewer identity is never shown — only ever a generic label. */}
-              Shopper · {new Date(r.created_at).toLocaleDateString()}
+              {t("Shopper")} · {new Date(r.created_at).toLocaleDateString()}
             </p>
           </div>
         ))}

@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type Message = { id: string; subject: string; message: string; is_read: boolean; created_at: string };
 
 export default function MessagesPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [rows, setRows] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,9 +39,9 @@ export default function MessagesPage() {
 
   return (
     <AppPage>
-      <h1 className="mb-6 font-display text-xl font-semibold text-ink">Messages</h1>
+      <h1 className="mb-6 font-display text-xl font-semibold text-ink">{t("Messages")}</h1>
       {loading && <p className="text-sm text-ash">…</p>}
-      {!loading && rows.length === 0 && <p className="text-sm text-ash">No messages yet.</p>}
+      {!loading && rows.length === 0 && <p className="text-sm text-ash">{t("No messages yet.")}</p>}
       {rows.map((m) => (
         <div key={m.id} className="border-b border-line py-3">
           <p className="font-display text-[15px] font-medium text-ink">{m.subject}</p>

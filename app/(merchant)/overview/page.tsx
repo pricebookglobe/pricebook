@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppPage } from "@/components/shared/AppPage";
 import { useAccount } from "@/lib/AccountProvider";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type ProductPosition = { product_id: string; product_name: string; price: number; currency: string; percentile: number };
 type Overview = {
@@ -20,18 +21,19 @@ type Overview = {
   wrong_price_reports: number;
 };
 
-function positionLabel(percentile: number): string {
-  // percent_rank: 0 = cheapest in town, 100 = most expensive. Flip it to a
-  // "cheaper than X%" framing, which is the number merchants actually want.
-  const cheaperThan = Math.round(100 - percentile);
-  return `Cheaper than ${cheaperThan}% of town`;
-}
-
 export default function StoreOverviewPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const { profile, storeId, token, loading: accountLoading } = useAccount();
   const [data, setData] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
+
+  function positionLabel(percentile: number): string {
+    // percent_rank: 0 = cheapest in town, 100 = most expensive. Flip it to a
+    // "cheaper than X%" framing, which is the number merchants actually want.
+    const cheaperThan = Math.round(100 - percentile);
+    return t("Cheaper than {n}% of town").replace("{n}", String(cheaperThan));
+  }
 
   useEffect(() => {
     if (accountLoading) return;
@@ -68,8 +70,7 @@ export default function StoreOverviewPage() {
     return (
       <AppPage>
         <p className="text-sm text-flag">
-          We couldn't find a store on your account. This shouldn't happen — please contact
-          pricebook@institute-of-ai.org for help.
+          {t("We couldn't find a store on your account. This shouldn't happen — please contact pricebook@institute-of-ai.org for help.")}
         </p>
       </AppPage>
     );
@@ -77,7 +78,7 @@ export default function StoreOverviewPage() {
 
   return (
     <AppPage maxWidth="max-w-3xl">
-      <h1 className="mb-6 font-display text-xl font-semibold text-ink">Store overview</h1>
+      <h1 className="mb-6 font-display text-xl font-semibold text-ink">{t("Store overview")}</h1>
 
       {(loading || accountLoading) && <p className="text-sm text-ash">…</p>}
 
@@ -85,53 +86,52 @@ export default function StoreOverviewPage() {
         <>
           {data.verification_status === "pending" && (
             <div className="mb-6 rounded border border-flag bg-flag/10 px-4 py-3 text-sm text-ink">
-              Your store is pending admin verification. You can preview your dashboard, but customers won't see
-              your listings until you're approved.
+              {t("Your store is pending admin verification. You can preview your dashboard, but customers won't see your listings until you're approved.")}
             </div>
           )}
 
           <div className="mb-6 grid grid-cols-3 gap-3">
             <div className="rounded border border-line bg-field p-4 text-center">
               <p className="font-display text-2xl font-semibold text-ink">{data.product_count}</p>
-              <p className="mt-1 font-mono text-[11px] uppercase tracking-wide text-ash">Products listed</p>
+              <p className="mt-1 font-mono text-[11px] uppercase tracking-wide text-ash">{t("Products listed")}</p>
             </div>
             <div className="rounded border border-line bg-field p-4 text-center">
               <p className="font-display text-2xl font-semibold text-ink">{data.view_count}</p>
-              <p className="mt-1 font-mono text-[11px] uppercase tracking-wide text-ash">Store page views</p>
+              <p className="mt-1 font-mono text-[11px] uppercase tracking-wide text-ash">{t("Store page views")}</p>
             </div>
             <div className="rounded border border-line bg-field p-4 text-center">
               <p className="font-display text-2xl font-semibold text-value">
                 {data.overall_percentile !== null ? `${Math.round(100 - data.overall_percentile)}%` : "—"}
               </p>
-              <p className="mt-1 font-mono text-[11px] uppercase tracking-wide text-ash">Avg. cheaper than town</p>
+              <p className="mt-1 font-mono text-[11px] uppercase tracking-wide text-ash">{t("Avg. cheaper than town")}</p>
             </div>
           </div>
 
           <div className="mb-6 flex flex-wrap items-center gap-4 rounded border border-line bg-field px-4 py-3 text-sm">
             <span className="text-ink">
-              <strong>{data.price_report_count}</strong> price reports
+              <strong>{data.price_report_count}</strong> {t("price reports")}
             </span>
             <span className="text-value">
-              <strong>{data.correct_price_reports}</strong> positive — correct price
+              <strong>{data.correct_price_reports}</strong> {t("positive — correct price")}
               {data.price_report_count > 0 &&
                 ` (${Math.round((data.correct_price_reports / data.price_report_count) * 1000) / 10}%)`}
             </span>
             <span className="text-red-600">
-              <strong>{data.wrong_price_reports}</strong> negative — wrong price
+              <strong>{data.wrong_price_reports}</strong> {t("negative — wrong price")}
             </span>
           </div>
 
           {data.products.length === 0 && (
-            <p className="text-sm text-ash">Add items to your inventory to see how your prices compare in town.</p>
+            <p className="text-sm text-ash">{t("Add items to your inventory to see how your prices compare in town.")}</p>
           )}
 
           {data.products.length > 0 && (
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Product</th>
-                  <th className="num">Your price</th>
-                  <th className="num">Position</th>
+                  <th>{t("Product")}</th>
+                  <th className="num">{t("Your price")}</th>
+                  <th className="num">{t("Position")}</th>
                 </tr>
               </thead>
               <tbody>
