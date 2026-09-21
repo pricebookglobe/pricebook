@@ -99,7 +99,15 @@ export async function embedProductDescription(
   const text = [structured.brand, structured.manufacturer, structured.product_name, structured.size, structured.unit, structured.category]
     .filter(Boolean)
     .join(" ")
-    .trim();
+    .trim()
+    // Lowercased before embedding — this same function embeds both a
+    // product when a merchant lists it AND a customer's search query, so
+    // without this, "Coca Cola" and "COCA COLA" could produce slightly
+    // different vectors and land on opposite sides of the similarity
+    // threshold, making the search look "case sensitive" even though
+    // nothing here is a literal string comparison. Normalizing case for
+    // every embedding removes that variable entirely.
+    .toLowerCase();
 
   return withRetry(async () => {
     const res = await openai().embeddings.create({
