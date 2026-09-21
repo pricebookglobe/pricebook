@@ -183,7 +183,7 @@ export default function AdminStoresPage() {
       <Pagination page={page} totalItems={filtered.length} onPageChange={setPage} />
 
       <StoreDetailsDialog store={detailsStore} onClose={() => setDetailsStore(null)} />
-      <StoreInventoryDialog store={itemsStore} onClose={() => setItemsStore(null)} />
+      <StoreInventoryDialog store={itemsStore} token={token} onClose={() => setItemsStore(null)} />
 
       <ConfirmDialog
         open={!!pendingFreeze}

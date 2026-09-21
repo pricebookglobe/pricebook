@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Pagination, paginate } from "@/components/admin/Pagination";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 
 type InventoryRow = {
   id: string;
@@ -15,14 +16,18 @@ type InventoryRow = {
 
 export function StoreInventoryDialog({
   store,
+  token,
   onClose
 }: {
   store: { id: string; name: string } | null;
+  token: string | null;
   onClose: () => void;
 }) {
   const [rows, setRows] = useState<InventoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<InventoryRow | null>(null);
 
   useEffect(() => {
     if (!store) return;
@@ -35,6 +40,18 @@ export function StoreInventoryDialog({
         setLoading(false);
       });
   }, [store]);
+
+  async function deleteItem(row: InventoryRow) {
+    if (!token) return;
+    setBusyId(row.id);
+    setRows((r) => r.filter((x) => x.id !== row.id));
+    await fetch("/api/admin/items", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ id: row.id })
+    });
+    setBusyId(null);
+  }
 
   if (!store) return null;
 
@@ -64,6 +81,7 @@ export function StoreInventoryDialog({
                 <th>Item</th>
                 <th>Status</th>
                 <th className="num">Price</th>
+                <th className="num">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -91,6 +109,15 @@ export function StoreInventoryDialog({
                   <td className="num">
                     {row.price.toFixed(2)} <span className="text-xs text-ash">{row.currency}</span>
                   </td>
+                  <td className="num">
+                    <button
+                      disabled={busyId === row.id}
+                      onClick={() => setPendingDelete(row)}
+                      className="text-sm text-ash underline hover:text-flag disabled:opacity-40"
+                    >
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -99,6 +126,22 @@ export function StoreInventoryDialog({
 
         <Pagination page={page} totalItems={rows.length} onPageChange={setPage} />
       </div>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title="Delete this item?"
+        message={
+          pendingDelete
+            ? `Permanently remove ${pendingDelete.products.canonical_name} from ${store.name}'s listings. This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) deleteItem(pendingDelete);
+          setPendingDelete(null);
+        }}
+      />
     </div>
   );
 }
