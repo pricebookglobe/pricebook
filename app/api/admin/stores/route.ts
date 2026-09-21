@@ -29,7 +29,25 @@ export async function GET(req: NextRequest) {
   if (ownersError) return NextResponse.json({ error: ownersError.message }, { status: 500 });
 
   const frozenById = new Map((owners ?? []).map((u) => [u.id, u.is_frozen]));
-  const normalized = stores.map((s) => ({ ...s, owner_is_frozen: frozenById.get(s.owner_id) ?? false }));
+
+  // Coordinates for the "View on map" action — location is a PostGIS
+  // geography column Postgrest can't select coordinates out of directly,
+  // so pull each one via the same RPC Settings already uses.
+  const coordsByStore = new Map<string, { lat: number; lng: number } | null>();
+  await Promise.all(
+    stores.map(async (s) => {
+      const { data: coords } = await auth.supabase.rpc("store_coordinates", { p_store_id: s.id });
+      const row = coords?.[0];
+      coordsByStore.set(s.id, row && row.lat != null ? { lat: row.lat, lng: row.lng } : null);
+    })
+  );
+
+  const normalized = stores.map((s) => ({
+    ...s,
+    owner_is_frozen: frozenById.get(s.owner_id) ?? false,
+    lat: coordsByStore.get(s.id)?.lat ?? null,
+    lng: coordsByStore.get(s.id)?.lng ?? null
+  }));
 
   return NextResponse.json(normalized);
 }

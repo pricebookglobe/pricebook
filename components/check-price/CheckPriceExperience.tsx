@@ -110,12 +110,14 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [locationCheck, setLocationCheck] = useState<
     { store: { store_id: string; store_name: string; distance_m: number } | null } | null
   >(null);
+  const [showLocationMap, setShowLocationMap] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFindMyLocation() {
     setLocating(true);
     setLocationCheck(null);
+    setShowLocationMap(false);
     try {
       if (!coords) {
         setError(t("Turn on location so we can tell where you are."));
@@ -204,10 +206,31 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       {locationCheck && (
         <div className="-mt-3 mb-6">
           {locationCheck.store ? (
-            <p className="text-sm text-ink">
-              {t("You're at")} <strong>{locationCheck.store.store_name}</strong>{" "}
-              <span className="text-ash">({t("matched within 10 meters")})</span>.
-            </p>
+            <div>
+              <p className="text-sm text-ink">
+                {t("You're at")} <strong>{locationCheck.store.store_name}</strong>{" "}
+                <span className="text-ash">({t("matched within 10 meters")})</span>.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowLocationMap((s) => !s)}
+                className="mt-1 text-sm text-value underline hover:text-value/80"
+              >
+                {showLocationMap ? t("Hide map") : t("View on map")}
+              </button>
+              {showLocationMap && coords && (
+                <div className="mt-2 overflow-hidden rounded border border-line">
+                  <iframe
+                    title={t("Your location")}
+                    width="100%"
+                    height="220"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    src={`https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&t=k&output=embed`}
+                  />
+                </div>
+              )}
+            </div>
           ) : coords ? (
             <div className="overflow-hidden rounded border border-line">
               <iframe

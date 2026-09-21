@@ -12,6 +12,8 @@ type StoreDetails = {
   logo_url: string | null;
   cr_certificate_url: string | null;
   store_photo_url: string | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | null; onClose: () => void }) {
@@ -36,6 +38,27 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
           <p><span className="text-ash">Contact person:</span> {store.contact_person_name ?? "—"}</p>
           <p><span className="text-ash">Admin email:</span> {store.admin_email ?? "—"}</p>
         </div>
+
+        {store.lat != null && store.lng != null && (
+          <div className="mt-4 overflow-hidden rounded border border-line">
+            <iframe
+              title="Store location"
+              width="100%"
+              height="180"
+              style={{ border: 0 }}
+              loading="lazy"
+              src={`https://www.google.com/maps?q=${store.lat},${store.lng}&z=16&t=k&output=embed`}
+            />
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lng}`}
+              target="_blank"
+              rel="noreferrer"
+              className="block bg-field-raised px-3 py-2 text-sm text-value underline hover:text-value/80"
+            >
+              Open in Maps
+            </a>
+          </div>
+        )}
 
         <div className="mt-4">
           <p className="mb-2 font-mono text-[11px] uppercase tracking-wide text-ash">Uploaded documents</p>

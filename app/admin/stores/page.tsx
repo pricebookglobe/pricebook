@@ -24,6 +24,8 @@ type StoreRow = {
   logo_url: string | null;
   verification_status: "pending" | "approved" | "rejected";
   owner_is_frozen: boolean;
+  lat: number | null;
+  lng: number | null;
 };
 
 export default function AdminStoresPage() {
@@ -157,6 +159,9 @@ export default function AdminStoresPage() {
                   disabled={busyId === s.id}
                   actions={[
                     { label: "View details", onClick: () => setDetailsStore(s) },
+                    ...(s.lat != null && s.lng != null
+                      ? [{ label: "View on map", onClick: () => window.open(`https://www.google.com/maps?q=${s.lat},${s.lng}&z=16&t=k`, "_blank") }]
+                      : []),
                     {
                       label: s.owner_is_frozen ? "Unfreeze" : "Freeze",
                       onClick: () => (s.owner_is_frozen ? toggleFreeze(s, false) : setPendingFreeze(s)),

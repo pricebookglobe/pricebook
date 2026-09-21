@@ -22,6 +22,8 @@ type StoreRow = {
   store_photo_url: string | null;
   logo_url: string | null;
   verification_status: "pending" | "approved" | "rejected";
+  lat: number | null;
+  lng: number | null;
 };
 
 export default function PendingStoresPage() {
@@ -170,6 +172,9 @@ export default function PendingStoresPage() {
                     disabled={busyId === s.id}
                     actions={[
                       { label: "View details", onClick: () => setDetailsStore(s) },
+                      ...(s.lat != null && s.lng != null
+                        ? [{ label: "View on map", onClick: () => window.open(`https://www.google.com/maps?q=${s.lat},${s.lng}&z=16&t=k`, "_blank") }]
+                        : []),
                       { label: "Approve", onClick: () => setPendingApprove(s), tone: "positive" },
                       { label: "Reject", onClick: () => setPendingReject(s), tone: "warning" },
                       { label: "Delete", onClick: () => setPendingDelete(s), danger: true }
