@@ -77,11 +77,25 @@ export default function SettingsPage() {
     setSaved(null);
 
     const supabase = createBrowserSupabase();
-    const { error: reauthError } = await supabase.auth.signInWithPassword({ email: profile.email, password: currentPassword });
-    if (reauthError) {
-      setError(t("Current password is incorrect."));
-      setBusy(false);
-      return;
+
+    // Re-authentication is only needed when actually changing the email or
+    // password — requiring it for every save (store name, logo, privacy
+    // toggle, etc.) meant leaving it blank silently failed the whole save
+    // with "Current password is incorrect," even when nothing about the
+    // login itself was being touched.
+    const changingCredentials = email !== profile.email || !!newPassword;
+    if (changingCredentials) {
+      if (!currentPassword) {
+        setError(t("Enter your current password to change your email or password."));
+        setBusy(false);
+        return;
+      }
+      const { error: reauthError } = await supabase.auth.signInWithPassword({ email: profile.email, password: currentPassword });
+      if (reauthError) {
+        setError(t("Current password is incorrect."));
+        setBusy(false);
+        return;
+      }
     }
 
     const updates: { email?: string; password?: string; data?: { full_name: string } } = {};
@@ -198,10 +212,9 @@ export default function SettingsPage() {
         </label>
 
         <label className="text-sm text-ash">
-          {t("Current password")} <span className="text-ash/70">(required to save changes)</span>
+          {t("Current password")} <span className="text-ash/70">(only needed if changing email or password)</span>
           <div className="mt-1 flex items-center rounded border border-line bg-field">
             <input
-              required
               type={showCurrentPassword ? "text" : "password"}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -212,6 +225,9 @@ export default function SettingsPage() {
             </button>
           </div>
         </label>
+        <p className="text-sm text-red-600">
+          {t("Leave both password fields blank if you're not changing your email or password.")}
+        </p>
 
         {error && <p className="text-sm text-flag">{error}</p>}
         {saved && <p className="text-sm text-value">{saved}</p>}
