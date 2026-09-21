@@ -18,6 +18,12 @@ export type SearchResponse = {
   tier: "neighborhood" | "town" | "city" | null;
   local_results: SearchResult[];
   web_estimate: { price_estimate: number | null; currency: string; source_url: string | null; note: string } | null;
+  // The single cheapest match within 5km, and the single cheapest match
+  // anywhere in the city-wide search — independent of what's in
+  // local_results, so "the best price in the whole city" can point to a
+  // store further away than the neighborhood tier ever looks.
+  near_best: SearchResult | null;
+  city_best: SearchResult | null;
 };
 
 export async function searchProducts(params: {
@@ -65,4 +71,15 @@ export async function getStoreRanking(storeId: string): Promise<RankingRow[]> {
   const res = await fetch(`/api/stores/${storeId}/ranking`);
   if (!res.ok) throw new Error((await res.json()).error ?? "Failed to load ranking");
   return res.json();
+}
+
+export async function findNearestStore(lat: number, lng: number): Promise<{ store_id: string; store_name: string; distance_m: number } | null> {
+  const res = await fetch("/api/stores/nearby-check", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ lat, lng })
+  });
+  if (!res.ok) throw new Error((await res.json()).error ?? "Couldn't check your location");
+  const { store } = await res.json();
+  return store;
 }

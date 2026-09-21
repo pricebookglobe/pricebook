@@ -60,6 +60,29 @@ export async function POST(req: NextRequest) {
     const strongMatches = results.filter((r) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
     const webEstimate = strongMatches.length ? null : await webFallbackSearch(structured);
 
+    // Separate from the tiered `results` above (which is what fills the
+    // results table and stops widening as soon as some tier has a hit).
+    // This one dedicated city-wide query lets us call out "the best price
+    // near you" versus "the best price in the whole city" side by side,
+    // even when they're different stores — the neighborhood tier alone
+    // can't tell us that, since it never looks past 5km once it has a hit.
+    let nearBest: any = null;
+    let cityBest: any = null;
+    const { data: cityWide } = await supabase.rpc("search_nearby_products", {
+      query_embedding: embedding,
+      user_lat: lat,
+      user_lng: lng,
+      radius_meters: RADII_M.city,
+      match_limit: 50
+    });
+    if (cityWide && cityWide.length) {
+      const strongCityWide = cityWide.filter((r: any) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
+      const pool = strongCityWide.length ? strongCityWide : cityWide;
+      const nearbyPool = pool.filter((r: any) => r.distance_m <= RADII_M.neighborhood);
+      nearBest = nearbyPool.length ? [...nearbyPool].sort((a: any, b: any) => a.price - b.price)[0] : null;
+      cityBest = [...pool].sort((a: any, b: any) => a.price - b.price)[0] ?? null;
+    }
+
     // Log to search history if the caller is logged in — best-effort, never
     // fails the search itself if this insert has a problem.
     if (authToken) {
@@ -77,7 +100,9 @@ export async function POST(req: NextRequest) {
       query: structured,
       tier: tierUsed,
       local_results: results,
-      web_estimate: webEstimate
+      web_estimate: webEstimate,
+      near_best: nearBest,
+      city_best: cityBest
     });
   } catch (err) {
     console.error("search error", err);

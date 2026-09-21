@@ -6,11 +6,29 @@ import { createBrowserSupabase } from "@/lib/supabaseClient";
 
 type StoreInfo = { id: string; name: string; address: string; city: string; lat: number; lng: number };
 type Review = { id: string; rating: number; comment: string | null; created_at: string };
+type ReviewStats = {
+  average_rating: number | null;
+  count: number;
+  positive_count: number;
+  negative_count: number;
+  neutral_count: number;
+  positive_pct: number | null;
+};
+
+// Green above 90% positive, amber from 75% up to 90%, red below 75%. No
+// star at all when there aren't any reviews yet — there's nothing to
+// judge accuracy from.
+function trustStar(positivePct: number | null): { color: string; label: string } | null {
+  if (positivePct === null) return null;
+  if (positivePct > 90) return { color: "text-value", label: "Highly trusted — over 90% positive reviews" };
+  if (positivePct >= 75) return { color: "text-flag", label: "Mostly trusted — 75% or more positive reviews" };
+  return { color: "text-red-600", label: "Below 75% positive reviews — check prices carefully" };
+}
 
 export default function StoreDetailPage({ params }: { params: { id: string } }) {
   const [store, setStore] = useState<StoreInfo | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [avgRating, setAvgRating] = useState<number | null>(null);
+  const [stats, setStats] = useState<ReviewStats | null>(null);
   const [myRating, setMyRating] = useState(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -21,7 +39,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
       .then((r) => r.json())
       .then((d) => {
         setReviews(d.reviews ?? []);
-        setAvgRating(d.average_rating ?? null);
+        setStats(d);
       });
     fetch(`/api/stores/${params.id}/view`, { method: "POST" }).catch(() => {});
   }, [params.id]);
@@ -42,18 +60,43 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
     });
     const refreshed = await fetch(`/api/stores/${params.id}/reviews`).then((r) => r.json());
     setReviews(refreshed.reviews ?? []);
-    setAvgRating(refreshed.average_rating ?? null);
+    setStats(refreshed);
     setSubmitting(false);
   }
 
   if (!store) return <AppPage><p className="text-sm text-ash">Loading…</p></AppPage>;
 
+  const star = trustStar(stats?.positive_pct ?? null);
+
   return (
     <AppPage>
-      <h1 className="font-display text-xl font-semibold text-ink">{store.name}</h1>
+      <h1 className="flex items-center gap-2 font-display text-xl font-semibold text-ink">
+        {store.name}
+        {star && (
+          <span className={star.color} title={star.label} aria-label={star.label}>
+            ★
+          </span>
+        )}
+      </h1>
       <p className="mt-1 text-sm text-ash">{store.address}, {store.city}</p>
-      {avgRating !== null && (
-        <p className="mt-1 font-mono text-sm text-value">★ {avgRating.toFixed(1)} ({reviews.length} reviews)</p>
+      {stats?.average_rating != null && (
+        <p className="mt-1 font-mono text-sm text-value">★ {stats.average_rating.toFixed(1)} ({reviews.length} reviews)</p>
+      )}
+
+      {stats && stats.count > 0 && (
+        <div className="mt-3 flex flex-wrap gap-4 rounded border border-line bg-field px-4 py-3 text-sm">
+          <span className="text-value">
+            <strong>{stats.positive_count}</strong> positive ({stats.positive_pct}%)
+          </span>
+          <span className="text-red-600">
+            <strong>{stats.negative_count}</strong> negative
+          </span>
+          {stats.neutral_count > 0 && (
+            <span className="text-ash">
+              <strong>{stats.neutral_count}</strong> neutral
+            </span>
+          )}
+        </div>
       )}
 
       <a

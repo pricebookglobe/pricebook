@@ -2,10 +2,11 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useGeolocation } from "@/components/shared/GeolocationProvider";
 import { ResultRow } from "@/components/search/ResultRow";
 import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
-import { searchProducts, type SearchResponse } from "@/lib/api";
+import { searchProducts, findNearestStore, reportPrice, type SearchResponse, type SearchResult } from "@/lib/api";
 import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -19,6 +20,77 @@ const TIER_LABEL: Record<string, string> = {
 const AT_STORE_METERS = 150;
 
 type Mode = "menu" | "text";
+
+function formatDistance(meters: number): string {
+  return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(1)} km`;
+}
+
+// One "best price" callout — used for both the nearby-best and city-wide-
+// best results. Carries its own map link and price-accuracy report buttons
+// so a shopper never has to scroll to the table below to act on either.
+function PriceCallout({ label, result }: { label: string; result: SearchResult }) {
+  const { t } = useLanguage();
+  const [reported, setReported] = useState<"correct_price" | "wrong_price" | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function handleReport(type: "correct_price" | "wrong_price") {
+    setBusy(true);
+    try {
+      const supabase = createBrowserSupabase();
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        window.location.href = "/login";
+        return;
+      }
+      await reportPrice({
+        store_id: result.store_id,
+        product_id: result.product_id,
+        report_type: type,
+        accessToken: data.session.access_token
+      });
+      setReported(type);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mb-3 rounded border border-value bg-value-soft px-4 py-3">
+      <p className="text-sm text-ink">
+        {label}: <strong>{result.price.toFixed(2)} {result.currency}</strong> at{" "}
+        <Link href={`/store/${result.store_id}`} className="underline">
+          {result.store_name}
+        </Link>{" "}
+        ({formatDistance(result.distance_m)} away).
+      </p>
+      <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+        <a
+          href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-value underline hover:text-value/80"
+        >
+          {t("Open in Maps")}
+        </a>
+        {reported ? (
+          <span className="font-mono text-[11px] text-value">
+            {reported === "correct_price" ? t("Thanks — marked as correct.") : t("Thanks — marked as wrong.")}
+          </span>
+        ) : (
+          <>
+            <span className="text-ash">{t("Is this price accurate?")}</span>
+            <button disabled={busy} onClick={() => handleReport("correct_price")} className="text-value underline hover:text-value/80">
+              {t("Yes")}
+            </button>
+            <button disabled={busy} onClick={() => handleReport("wrong_price")} className="text-flag underline hover:text-flag/80">
+              {t("No, it was higher in store")}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Powers both /check-price (camera, upload, or type it in — starts on the
 // three-button menu) and /search-items (starts straight on the type-it-in
@@ -34,8 +106,29 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [showWiderResults, setShowWiderResults] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locationCheck, setLocationCheck] = useState<
+    { store: { store_id: string; store_name: string; distance_m: number } | null } | null
+  >(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFindMyLocation() {
+    setLocating(true);
+    setLocationCheck(null);
+    try {
+      if (!coords) {
+        setError(t("Turn on location so we can tell where you are."));
+        return;
+      }
+      const store = await findNearestStore(coords.lat, coords.lng);
+      setLocationCheck({ store });
+    } catch (e: any) {
+      setError(e.message ?? "Couldn't check your location.");
+    } finally {
+      setLocating(false);
+    }
+  }
 
   async function runSearch(input: { text?: string; imageBase64?: string; structured?: any }) {
     if (!coords) {
@@ -87,12 +180,43 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const atStore = sorted.find((r) => r.distance_m <= AT_STORE_METERS) ?? null;
   const tableRows = atStore && !showWiderResults ? [] : sorted;
 
+  // Only worth calling out the city-wide best when it's actually a
+  // different store than the nearby best — otherwise it's the same
+  // information said twice.
+  const cityBestDiffersFromNear =
+    result?.city_best && (!result.near_best || result.city_best.store_id !== result.near_best.store_id);
+
   const outlineButton =
     "flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white";
 
   return (
     <AppPage>
-      <p className="mb-6 text-sm text-ash">{t("Track best prices, near you first.")}</p>
+      <p className="mb-4 text-sm text-ash">{t("Track best prices, near you first.")}</p>
+
+      <button
+        onClick={handleFindMyLocation}
+        disabled={locating}
+        className="mb-6 w-full rounded bg-value px-4 py-3 font-display text-[15px] font-medium text-white hover:bg-value/90 disabled:opacity-40"
+      >
+        {locating ? t("Finding your location…") : t("Find My Location")}
+      </button>
+
+      {locationCheck && (
+        <p className="-mt-3 mb-6 text-sm text-ink">
+          {locationCheck.store ? (
+            <>
+              {t("You're at")} <strong>{locationCheck.store.store_name}</strong>.
+            </>
+          ) : coords ? (
+            <>
+              {t("You're at your current location")} ({coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}) —{" "}
+              {t("no registered store here.")}
+            </>
+          ) : (
+            t("Couldn't determine your location.")
+          )}
+        </p>
+      )}
 
       {mode === "menu" && !busy && (
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -153,6 +277,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 </>
               )}
             </p>
+          )}
+
+          {result.near_best && <PriceCallout label={t("Best price within 5km")} result={result.near_best} />}
+          {cityBestDiffersFromNear && result.city_best && (
+            <PriceCallout label={t("Best price in the whole city")} result={result.city_best} />
           )}
 
           {atStore && (
