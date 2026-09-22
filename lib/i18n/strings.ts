@@ -129,6 +129,8 @@ export const UI_STRINGS = [
   "Finding your location…",
   "Check Price",
   "Enter details",
+  "Enter item details",
+  "Snap a photo or enter the details — then set your price.",
   "You're at",
   "matched within 10 meters",
   "View on map",

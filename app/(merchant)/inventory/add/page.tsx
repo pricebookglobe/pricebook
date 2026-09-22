@@ -11,7 +11,6 @@ import { useLanguage } from "@/lib/i18n/LanguageProvider";
 export default function AddItemPage() {
   const router = useRouter();
   const { t } = useLanguage();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [storeId, setStoreId] = useState<string | null>(null);
@@ -25,6 +24,7 @@ export default function AddItemPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [mode, setMode] = useState<"menu" | "text">("menu");
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -128,55 +128,70 @@ export default function AddItemPage() {
       </Link>
       <header className="mb-6">
         <h1 className="font-display text-xl font-semibold text-ink">{t("Add an item")}</h1>
-        <p className="mt-1 text-sm text-ash">{t("Describe it, snap it, or upload a photo — then set your price.")}</p>
+        <p className="mt-1 text-sm text-ash">{t("Snap a photo or enter the details — then set your price.")}</p>
       </header>
 
       {!product && (
         <div className="flex flex-col gap-3">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (textQuery.trim()) extract({ text: textQuery.trim() });
-            }}
-            className="flex items-center gap-2 rounded border border-line bg-field-raised px-3 py-2"
-          >
-            <input
-              value={textQuery}
-              onChange={(e) => setTextQuery(e.target.value)}
-              placeholder={t("e.g. Al Ain fresh milk 1L")}
-              className="flex-1 bg-transparent text-[15px] text-ink placeholder:text-ash outline-none"
-              disabled={extracting}
-            />
-            <button
-              type="button"
-              onClick={() => cameraInputRef.current?.click()}
-              disabled={extracting}
-              className="rounded-sm border border-line px-3 py-1.5 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40"
+          {mode === "menu" && !extracting && (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+              >
+                {t("Snap")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("text")}
+                className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+              >
+                {t("Enter item details")}
+              </button>
+            </div>
+          )}
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+
+          {mode === "text" && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (textQuery.trim()) extract({ text: textQuery.trim() });
+              }}
+              className="flex items-center gap-2 rounded border border-line bg-field-raised px-3 py-2"
             >
-              {t("Snap")}
-            </button>
-            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={extracting}
-              className="rounded-sm border border-line px-3 py-1.5 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40"
-            >
-              {t("Upload")}
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-            <button
-              type="submit"
-              disabled={extracting || !textQuery.trim()}
-              className={`rounded-sm px-4 py-1.5 font-display text-sm font-medium transition-colors disabled:opacity-40 ${
-                textQuery.trim()
-                  ? "bg-value text-white hover:bg-value/90"
-                  : "bg-ink text-field hover:bg-value hover:text-white"
-              }`}
-            >
-              {extracting ? t("Reading…") : t("Identify")}
-            </button>
-          </form>
+              <input
+                autoFocus
+                value={textQuery}
+                onChange={(e) => setTextQuery(e.target.value)}
+                placeholder={t("e.g. Al Ain fresh milk 1L")}
+                className="flex-1 bg-transparent text-[15px] text-ink placeholder:text-ash outline-none"
+                disabled={extracting}
+              />
+              <button
+                type="button"
+                onClick={() => setMode("menu")}
+                disabled={extracting}
+                className="text-sm text-ash underline hover:text-ink disabled:opacity-40"
+              >
+                {t("Cancel")}
+              </button>
+              <button
+                type="submit"
+                disabled={extracting || !textQuery.trim()}
+                className={`rounded-sm px-4 py-1.5 font-display text-sm font-medium transition-colors disabled:opacity-40 ${
+                  textQuery.trim()
+                    ? "bg-value text-white hover:bg-value/90"
+                    : "bg-ink text-field hover:bg-value hover:text-white"
+                }`}
+              >
+                {extracting ? t("Reading…") : t("Identify")}
+              </button>
+            </form>
+          )}
+
+          {extracting && mode === "menu" && <p className="text-sm text-ash">{t("Reading…")}</p>}
           {saved && <p className="text-sm text-value">{t("Saved — add another item, or head back to your dashboard.")}</p>}
         </div>
       )}
