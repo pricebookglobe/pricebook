@@ -205,6 +205,9 @@ export const UI_STRINGS = [
   "Are you sure you want to log out of your account?",
   "Discard",
   "Message store",
+  "Reports",
+  "Sort: worst → best",
+  "Sorted: worst → best",
 
   // Store page / Messages / merchant Overview
   "Loading…",

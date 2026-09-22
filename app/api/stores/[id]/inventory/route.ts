@@ -37,7 +37,24 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     .order("updated_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  if (!data || data.length === 0) return NextResponse.json(data);
+
+  // Price-report counts per item, for the "worst to best" sort and the
+  // report-count badge on the Registered Items page — one query for all
+  // of this store's reports, grouped in JS rather than a per-item request.
+  const { data: reports } = await supabase
+    .from("price_reports")
+    .select("product_id, report_type")
+    .eq("store_id", params.id);
+
+  const withReports = data.map((row: any) => {
+    const rows = (reports ?? []).filter((r) => r.product_id === row.products.id);
+    const positive = rows.filter((r) => r.report_type === "correct_price").length;
+    const negative = rows.filter((r) => r.report_type === "wrong_price").length;
+    return { ...row, report_positive: positive, report_negative: negative };
+  });
+
+  return NextResponse.json(withReports);
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {

@@ -15,6 +15,7 @@ export default function RegisteredItemsPage() {
   const [rows, setRows] = useState<InventoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [sortWorstFirst, setSortWorstFirst] = useState(false);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -39,15 +40,48 @@ export default function RegisteredItemsPage() {
     });
   }, [router]);
 
+  // Worst-to-best: rank by the share of reports that were negative
+  // (wrong_price), so an item with 8 wrong out of 10 sorts above one
+  // with 1 wrong out of 10, regardless of total report volume. Items
+  // with no reports at all sort last — there's nothing bad to flag.
+  const sortedRows = sortWorstFirst
+    ? [...rows].sort((a, b) => {
+        const totalA = (a.report_positive ?? 0) + (a.report_negative ?? 0);
+        const totalB = (b.report_positive ?? 0) + (b.report_negative ?? 0);
+        const negPctA = totalA ? (a.report_negative ?? 0) / totalA : -1;
+        const negPctB = totalB ? (b.report_negative ?? 0) / totalB : -1;
+        return negPctB - negPctA;
+      })
+    : rows;
+
   return (
     <AppPage>
-      <h1 className="mb-1 font-display text-xl font-semibold text-ink">{t("Registered items")}</h1>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="font-display text-xl font-semibold text-ink">{t("Registered items")}</h1>
+        <button
+          onClick={() => {
+            setSortWorstFirst((s) => !s);
+            setPage(0);
+          }}
+          className="rounded-sm border border-line bg-field-raised px-3 py-1.5 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+        >
+          {sortWorstFirst ? t("Sorted: worst → best") : t("Sort: worst → best")}
+        </button>
+      </div>
       <p className="mb-6 text-sm text-ash">{t("Every item you've listed, with its size, price, and status.")}</p>
 
       {loading && <p className="text-sm text-ash">…</p>}
 
       {!loading && storeId && token && (
-        <InventoryTable storeId={storeId} token={token} rows={rows} setRows={setRows} page={page} onPageChange={setPage} />
+        <InventoryTable
+          storeId={storeId}
+          token={token}
+          rows={sortedRows}
+          setRows={setRows}
+          page={page}
+          onPageChange={setPage}
+          showReportBadge
+        />
       )}
     </AppPage>
   );

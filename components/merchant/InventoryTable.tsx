@@ -14,7 +14,37 @@ export type InventoryRow = {
   in_stock: boolean;
   is_hidden: boolean;
   products: { id: string; canonical_name: string; brand: string | null; image_url: string | null; size?: number | null; unit?: string | null };
+  report_positive?: number;
+  report_negative?: number;
 };
+
+// Small colored circle with the report count inside — green when mostly
+// correct-price reports, red when mostly wrong-price, amber in between,
+// grey when the item has no reports yet. Distinct from TrustDot (a plain
+// dot for a whole store) since this needs to show the actual number.
+function ReportCountBadge({ positive, negative }: { positive: number; negative: number }) {
+  const total = positive + negative;
+  if (total === 0) {
+    return (
+      <span
+        className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-ash/30 px-1 font-mono text-[10px] font-medium text-ink"
+        title="No price reports yet"
+      >
+        0
+      </span>
+    );
+  }
+  const pct = (positive / total) * 100;
+  const color = pct > 90 ? "bg-value" : pct >= 75 ? "bg-flag" : "bg-red-600";
+  return (
+    <span
+      className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 font-mono text-[10px] font-medium text-white ${color}`}
+      title={`${positive} said correct, ${negative} said wrong`}
+    >
+      {total}
+    </span>
+  );
+}
 
 export function InventoryTable({
   storeId,
@@ -22,7 +52,8 @@ export function InventoryTable({
   rows,
   setRows,
   page,
-  onPageChange
+  onPageChange,
+  showReportBadge = false
 }: {
   storeId: string;
   token: string;
@@ -30,6 +61,7 @@ export function InventoryTable({
   setRows: (updater: (rows: InventoryRow[]) => InventoryRow[]) => void;
   page: number;
   onPageChange: (page: number) => void;
+  showReportBadge?: boolean;
 }) {
   const { t } = useLanguage();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -107,6 +139,7 @@ export function InventoryTable({
             <th>{t("Item")}</th>
             <th>{t("Size / Qty")}</th>
             <th>{t("Status")}</th>
+            {showReportBadge && <th>{t("Reports")}</th>}
             <th className="num">{t("Price")}</th>
             <th className="num">{t("Actions")}</th>
           </tr>
@@ -143,6 +176,11 @@ export function InventoryTable({
                 </span>
                 {row.is_hidden && <span className="ml-2 text-ash">· {t("Hidden")}</span>}
               </td>
+              {showReportBadge && (
+                <td>
+                  <ReportCountBadge positive={row.report_positive ?? 0} negative={row.report_negative ?? 0} />
+                </td>
+              )}
               <td className="num">
                 {row.price.toFixed(2)} <span className="text-xs text-ash">{row.currency}</span>
               </td>
