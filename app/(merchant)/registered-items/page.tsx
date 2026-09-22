@@ -63,7 +63,7 @@ export default function RegisteredItemsPage() {
             setSortWorstFirst((s) => !s);
             setPage(0);
           }}
-          className="rounded-sm border border-line bg-field-raised px-3 py-1.5 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+          className="rounded-sm bg-value px-3 py-1.5 font-display text-sm font-medium text-white transition-colors hover:bg-value/90"
         >
           {sortWorstFirst ? t("Sorted: worst → best") : t("Sort: worst → best")}
         </button>
