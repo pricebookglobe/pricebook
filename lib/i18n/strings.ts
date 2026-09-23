@@ -232,6 +232,12 @@ export const UI_STRINGS = [
   "Fill in missing nutrition facts ({n})",
   "Filling in nutrition facts… ({done} of {total})",
   "Filled in nutrition facts for {n} items.",
+  "Scan Barcode",
+  "Reading barcode…",
+  "Couldn't find a barcode in that photo — try again with the barcode centered and in focus, or use Snap / Enter item details instead.",
+  "That barcode isn't in the product database — try Snap or Enter item details instead.",
+  "Couldn't scan that barcode. Try again, or use Snap / Enter item details instead.",
+  "From the product database — real label data, not an estimate.",
   "AI estimate — check the actual package",
   "Hide nutrition facts",
 

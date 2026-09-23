@@ -12,10 +12,12 @@ export default function AddItemPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   const [storeId, setStoreId] = useState<string | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [lastImageBase64, setLastImageBase64] = useState<string | null>(null);
+  const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [textQuery, setTextQuery] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [product, setProduct] = useState<StructuredProduct | null>(null);
@@ -26,8 +28,15 @@ export default function AddItemPage() {
   const [saved, setSaved] = useState(false);
   const [mode, setMode] = useState<"menu" | "text">("menu");
   const [nutrition, setNutrition] = useState<NutritionFacts | null>(null);
+  const [nutritionFromDatabase, setNutritionFromDatabase] = useState(false);
   const [loadingNutrition, setLoadingNutrition] = useState(false);
   const [nutritionError, setNutritionError] = useState<string | null>(null);
+  const [scanningBarcode, setScanningBarcode] = useState(false);
+  const [barcodeSupported, setBarcodeSupported] = useState(false);
+
+  useEffect(() => {
+    setBarcodeSupported(typeof window !== "undefined" && "BarcodeDetector" in window);
+  }, []);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -85,11 +94,59 @@ export default function AddItemPage() {
     e.target.value = "";
   }
 
+  async function handleBarcodeFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setScanningBarcode(true);
+    setError(null);
+    try {
+      // @ts-ignore — BarcodeDetector is a real browser API but not yet in
+      // TypeScript's standard lib types.
+      const detector = new window.BarcodeDetector({
+        formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"]
+      });
+      const bitmap = await createImageBitmap(file);
+      const barcodes = await detector.detect(bitmap);
+
+      if (!barcodes.length) {
+        setError(t("Couldn't find a barcode in that photo — try again with the barcode centered and in focus, or use Snap / Enter item details instead."));
+        return;
+      }
+
+      const res = await fetch("/api/products/barcode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ barcode: barcodes[0].rawValue })
+      });
+      const data = await res.json();
+
+      if (!data.found) {
+        setError(t("That barcode isn't in the product database — try Snap or Enter item details instead."));
+        return;
+      }
+
+      setProduct(data.structured);
+      setProductImageUrl(data.image_url ?? null);
+      setLastImageBase64(null);
+      if (data.nutrition_facts) {
+        setNutrition(data.nutrition_facts);
+        setNutritionFromDatabase(true);
+      }
+    } catch (e: any) {
+      setError(e.message ?? t("Couldn't scan that barcode. Try again, or use Snap / Enter item details instead."));
+    } finally {
+      setScanningBarcode(false);
+    }
+  }
+
   function updateProductField<K extends keyof StructuredProduct>(key: K, value: StructuredProduct[K]) {
     setProduct((p) => (p ? { ...p, [key]: value } : p));
   }
 
   function updateNutritionField<K extends keyof NutritionFacts>(key: K, value: NutritionFacts[K]) {
+    setNutritionFromDatabase(false);
     setNutrition((n) =>
       n ? { ...n, [key]: value } : ({ serving_size: null, calories: null, protein_g: null, fat_g: null, carbs_g: null, sugar_g: null, sodium_mg: null, [key]: value } as NutritionFacts)
     );
@@ -107,6 +164,7 @@ export default function AddItemPage() {
       });
       if (!res.ok) throw new Error((await res.json()).error);
       setNutrition(await res.json());
+      setNutritionFromDatabase(false);
     } catch (e: any) {
       setNutritionError(e.message ?? "Couldn't estimate nutrition facts.");
     } finally {
@@ -122,7 +180,12 @@ export default function AddItemPage() {
       const productRes = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...product, imageBase64: lastImageBase64 ?? undefined, nutrition_facts: nutrition })
+        body: JSON.stringify({
+          ...product,
+          imageBase64: lastImageBase64 ?? undefined,
+          imageUrl: !lastImageBase64 ? productImageUrl ?? undefined : undefined,
+          nutrition_facts: nutrition
+        })
       });
       if (!productRes.ok) throw new Error((await productRes.json()).error);
       const { product_id } = await productRes.json();
@@ -142,13 +205,24 @@ export default function AddItemPage() {
       setPrice("");
       setTextQuery("");
       setLastImageBase64(null);
+      setProductImageUrl(null);
       setNutrition(null);
+      setNutritionFromDatabase(false);
       setNutritionError(null);
     } catch (e: any) {
       setError(e.message ?? "Couldn't save this item.");
     } finally {
       setSaving(false);
     }
+  }
+
+  function resetProduct() {
+    setProduct(null);
+    setProductImageUrl(null);
+    setNutrition(null);
+    setNutritionFromDatabase(false);
+    setNutritionError(null);
+    setError(null);
   }
 
   return (
@@ -163,8 +237,17 @@ export default function AddItemPage() {
 
       {!product && (
         <div className="flex flex-col gap-3">
-          {mode === "menu" && !extracting && (
+          {mode === "menu" && !extracting && !scanningBarcode && (
             <div className="flex flex-col gap-2 sm:flex-row">
+              {barcodeSupported && (
+                <button
+                  type="button"
+                  onClick={() => barcodeInputRef.current?.click()}
+                  className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+                >
+                  {t("Scan Barcode")}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
@@ -181,7 +264,9 @@ export default function AddItemPage() {
               </button>
             </div>
           )}
+          {scanningBarcode && <p className="text-sm text-ash">{t("Reading barcode…")}</p>}
           <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+          <input ref={barcodeInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleBarcodeFile} />
 
           {mode === "text" && (
             <form
@@ -230,7 +315,7 @@ export default function AddItemPage() {
         <div className="mt-2 flex flex-col gap-3 rounded border border-line bg-field-raised p-4">
           <button
             type="button"
-            onClick={() => setProduct(null)}
+            onClick={resetProduct}
             className="self-start text-sm text-ash underline hover:text-ink"
           >
             ← {t("Back to add item")}
@@ -330,7 +415,9 @@ export default function AddItemPage() {
             {nutrition && (
               <>
                 <p className="mt-1 text-xs text-ash">
-                  {t("AI estimate based on similar products — please check against the actual package before relying on it.")}
+                  {nutritionFromDatabase
+                    ? t("From the product database — real label data, not an estimate.")
+                    : t("AI estimate based on similar products — please check against the actual package before relying on it.")}
                 </p>
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                   <label className="text-xs text-ash">
@@ -398,7 +485,10 @@ export default function AddItemPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setNutrition(null)}
+                  onClick={() => {
+                    setNutrition(null);
+                    setNutritionFromDatabase(false);
+                  }}
                   className="mt-2 text-xs text-ash underline hover:text-ink"
                 >
                   {t("Remove nutrition facts")}
@@ -417,7 +507,7 @@ export default function AddItemPage() {
             >
               {saving ? t("Saving…") : t("Save item")}
             </button>
-            <button onClick={() => setProduct(null)} className="rounded-sm px-4 py-2 font-display text-sm text-ash">
+            <button onClick={resetProduct} className="rounded-sm px-4 py-2 font-display text-sm text-ash">
               {t("Cancel")}
             </button>
           </div>

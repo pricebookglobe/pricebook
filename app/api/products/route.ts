@@ -4,7 +4,7 @@ import { embedProductDescription, type StructuredProduct, type NutritionFacts } 
 import { uploadProductImage } from "@/lib/storage";
 
 export async function POST(req: NextRequest) {
-  const body: StructuredProduct & { imageBase64?: string; nutrition_facts?: NutritionFacts | null } = await req.json();
+  const body: StructuredProduct & { imageBase64?: string; imageUrl?: string; nutrition_facts?: NutritionFacts | null } = await req.json();
   if (!body.product_name || !body.category) {
     return NextResponse.json({ error: "product_name and category are required" }, { status: 400 });
   }
@@ -66,9 +66,13 @@ export async function POST(req: NextRequest) {
 
   // A photo taken during "Add item" becomes the product's listing photo —
   // best-effort, never blocks saving the product if the upload fails.
+  // A barcode lookup instead passes a direct image URL (from the product
+  // database) that we can just store as-is, no upload needed.
   if (body.imageBase64) {
     const imageUrl = await uploadProductImage(body.imageBase64, created.id);
     if (imageUrl) await supabase.from("products").update({ image_url: imageUrl }).eq("id", created.id);
+  } else if (body.imageUrl) {
+    await supabase.from("products").update({ image_url: body.imageUrl }).eq("id", created.id);
   }
 
   const embedding = await embedProductDescription(body);
