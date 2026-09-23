@@ -247,7 +247,10 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         return;
       }
       if (!data.found) {
-        setError(t("That barcode isn't in the product database — try Camera or Enter details instead."));
+        setError(
+          t("That barcode isn't in the product database — try Camera or Enter details instead.") +
+            ` (${t("Scanned")}: ${data.scanned_barcode ?? barcode})`
+        );
         setScanningBarcode(false);
         return;
       }

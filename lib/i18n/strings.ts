@@ -244,6 +244,7 @@ export const UI_STRINGS = [
   "Camera access was denied — allow camera access in your browser settings and try again.",
   "Center the barcode inside the box",
   "Couldn't access the camera.",
+  "Scanned",
   "AI estimate — check the actual package",
   "Hide nutrition facts",
 

@@ -113,7 +113,10 @@ export default function AddItemPage() {
         return;
       }
       if (!data.found) {
-        setError(t("That barcode isn't in the product database — try Snap or Enter item details instead."));
+        setError(
+          t("That barcode isn't in the product database — try Snap or Enter item details instead.") +
+            ` (${t("Scanned")}: ${data.scanned_barcode ?? barcode})`
+        );
         return;
       }
 

@@ -60,7 +60,10 @@ export async function POST(req: NextRequest) {
     // in the database — surface it as a real, distinct error instead.
     if (!res.ok) {
       return NextResponse.json(
-        { error: `Product lookup service returned an error (${res.status}). Try again in a moment.` },
+        {
+          error: `Product lookup service returned an error (${res.status}) for barcode "${barcode}". Try again in a moment, or check that this looks like a real barcode number.`,
+          scanned_barcode: barcode
+        },
         { status: 502 }
       );
     }
@@ -68,7 +71,7 @@ export async function POST(req: NextRequest) {
     const data = await res.json();
 
     if (data.status !== 1 || !data.product) {
-      return NextResponse.json({ found: false });
+      return NextResponse.json({ found: false, scanned_barcode: barcode });
     }
 
     const product = data.product;
