@@ -7,6 +7,7 @@ import { useGeolocation } from "@/components/shared/GeolocationProvider";
 import { ResultRow } from "@/components/search/ResultRow";
 import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
 import { searchProducts, findNearestStore, reportPrice, type SearchResponse, type SearchResult } from "@/lib/api";
+import { scanBarcodeFromFile } from "@/lib/scanBarcode";
 import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -235,15 +236,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
     setScanningBarcode(true);
     setError(null);
-    let objectUrl: string | null = null;
     try {
-      // Same pure-JS decoder used on the merchant's Add Item screen —
-      // works identically on every browser, no native API dependency.
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const reader = new BrowserMultiFormatReader();
-      objectUrl = URL.createObjectURL(file);
-      const result = await reader.decodeFromImageUrl(objectUrl);
-      const barcode = result.getText();
+      const barcode = await scanBarcodeFromFile(file);
 
       const res = await fetch("/api/products/barcode", {
         method: "POST",
@@ -263,13 +257,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       runSearch({ structured: data.structured });
     } catch (e: any) {
       const isNotFound = e?.name === "NotFoundException" || e?.constructor?.name === "NotFoundException";
-      if (isNotFound) {
+      const isTimeout = e?.name === "BarcodeTimeoutError";
+      if (isNotFound || isTimeout) {
         setError(t("Couldn't find a barcode in that photo — try again with the barcode centered and in focus, or use Camera / Enter details instead."));
       } else {
         setError(`Barcode scan failed: ${e?.message ?? String(e)}`);
       }
     } finally {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
       setScanningBarcode(false);
     }
   }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import type { StructuredProduct, NutritionFacts } from "@/lib/aiVision";
+import { scanBarcodeFromFile } from "@/lib/scanBarcode";
 import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
@@ -102,20 +103,8 @@ export default function AddItemPage() {
 
     setScanningBarcode(true);
     setError(null);
-    let objectUrl: string | null = null;
     try {
-      // A pure-JS decoder (ZXing) rather than the browser's native
-      // BarcodeDetector API — that native API only ships enabled by
-      // default on Android Chrome and ChromeOS, not desktop Chrome,
-      // Firefox, or Safari, which made the button effectively invisible
-      // for a lot of real testing and real users. This works identically
-      // on every browser and platform, no feature detection needed.
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const { NotFoundException } = await import("@zxing/library");
-      const reader = new BrowserMultiFormatReader();
-      objectUrl = URL.createObjectURL(file);
-      const result = await reader.decodeFromImageUrl(objectUrl);
-      const barcode = result.getText();
+      const barcode = await scanBarcodeFromFile(file);
 
       const res = await fetch("/api/products/barcode", {
         method: "POST",
@@ -138,18 +127,18 @@ export default function AddItemPage() {
       }
     } catch (e: any) {
       // ZXing throws NotFoundException specifically when the image has no
-      // readable barcode — that gets the friendly retry message. Anything
-      // else is a real error (module load, network, a bug), and showing
-      // its actual message is what makes a silent "nothing happens"
-      // failure diagnosable instead of a dead end.
+      // readable barcode — that (and our own timeout) gets the friendly
+      // retry message. Anything else is a real error (module load,
+      // network, a bug), and showing its actual message is what makes a
+      // silent "nothing happens" failure diagnosable instead of a dead end.
       const isNotFound = e?.name === "NotFoundException" || e?.constructor?.name === "NotFoundException";
-      if (isNotFound) {
+      const isTimeout = e?.name === "BarcodeTimeoutError";
+      if (isNotFound || isTimeout) {
         setError(t("Couldn't find a barcode in that photo — try again with the barcode centered and in focus, or use Snap / Enter item details instead."));
       } else {
         setError(`Barcode scan failed: ${e?.message ?? String(e)}`);
       }
     } finally {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
       setScanningBarcode(false);
     }
   }
