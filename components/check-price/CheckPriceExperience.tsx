@@ -7,7 +7,7 @@ import { useGeolocation } from "@/components/shared/GeolocationProvider";
 import { ResultRow } from "@/components/search/ResultRow";
 import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
 import { searchProducts, findNearestStore, reportPrice, type SearchResponse, type SearchResult } from "@/lib/api";
-import { scanBarcodeFromFile } from "@/lib/scanBarcode";
+import { BarcodeScanner } from "@/components/shared/BarcodeScanner";
 import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -165,8 +165,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [showLocationMap, setShowLocationMap] = useState(false);
   const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
   const [scanningBarcode, setScanningBarcode] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFindMyLocation() {
     setLocating(true);
@@ -229,16 +229,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     e.target.value = "";
   }
 
-  async function handleBarcodeFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
+  async function handleBarcodeDetected(barcode: string) {
+    setShowScanner(false);
     setScanningBarcode(true);
     setError(null);
     try {
-      const barcode = await scanBarcodeFromFile(file);
-
       const res = await fetch("/api/products/barcode", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -248,21 +243,16 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
       if (!data.found) {
         setError(t("That barcode isn't in the product database — try Camera or Enter details instead."));
+        setScanningBarcode(false);
         return;
       }
 
       // Skips the AI guessing step entirely — the barcode already gives
       // an exact product match, so this goes straight into the normal
       // search pipeline with real, confirmed product details.
-      runSearch({ structured: data.structured });
+      await runSearch({ structured: data.structured });
     } catch (e: any) {
-      const isNotFound = e?.name === "NotFoundException" || e?.constructor?.name === "NotFoundException";
-      const isTimeout = e?.name === "BarcodeTimeoutError";
-      if (isNotFound || isTimeout) {
-        setError(t("Couldn't find a barcode in that photo — try again with the barcode centered and in focus, or use Camera / Enter details instead."));
-      } else {
-        setError(`Barcode scan failed: ${e?.message ?? String(e)}`);
-      }
+      setError(`Barcode lookup failed: ${e?.message ?? String(e)}`);
     } finally {
       setScanningBarcode(false);
     }
@@ -355,7 +345,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
       {mode === "menu" && checkPriceRevealed && !busy && !scanningBarcode && (
         <div className="mb-6 flex flex-col gap-2 sm:flex-row">
-          <button onClick={() => barcodeInputRef.current?.click()} className={outlineButton}>
+          <button onClick={() => setShowScanner(true)} className={outlineButton}>
             {t("Scan Barcode")}
           </button>
           <button onClick={() => cameraInputRef.current?.click()} className={outlineButton}>
@@ -368,7 +358,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       )}
       {scanningBarcode && <p className="mb-6 text-sm text-ash">{t("Reading barcode…")}</p>}
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
-      <input ref={barcodeInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleBarcodeFile} />
+      {showScanner && <BarcodeScanner onDetected={handleBarcodeDetected} onClose={() => setShowScanner(false)} />}
 
       {mode === "text" && (
         <GuidedTextEntry

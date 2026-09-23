@@ -241,6 +241,9 @@ export const UI_STRINGS = [
   "Retry",
   "That barcode isn't in the product database — try Camera or Enter details instead.",
   "Couldn't find a barcode in that photo — try again with the barcode centered and in focus, or use Camera / Enter details instead.",
+  "Camera access was denied — allow camera access in your browser settings and try again.",
+  "Center the barcode inside the box",
+  "Couldn't access the camera.",
   "AI estimate — check the actual package",
   "Hide nutrition facts",
 

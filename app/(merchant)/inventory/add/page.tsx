@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import type { StructuredProduct, NutritionFacts } from "@/lib/aiVision";
-import { scanBarcodeFromFile } from "@/lib/scanBarcode";
+import { BarcodeScanner } from "@/components/shared/BarcodeScanner";
 import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
@@ -13,7 +13,6 @@ export default function AddItemPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   const [storeId, setStoreId] = useState<string | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -33,6 +32,7 @@ export default function AddItemPage() {
   const [loadingNutrition, setLoadingNutrition] = useState(false);
   const [nutritionError, setNutritionError] = useState<string | null>(null);
   const [scanningBarcode, setScanningBarcode] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -96,16 +96,11 @@ export default function AddItemPage() {
     e.target.value = "";
   }
 
-  async function handleBarcodeFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
+  async function handleBarcodeDetected(barcode: string) {
+    setShowScanner(false);
     setScanningBarcode(true);
     setError(null);
     try {
-      const barcode = await scanBarcodeFromFile(file);
-
       const res = await fetch("/api/products/barcode", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -126,18 +121,7 @@ export default function AddItemPage() {
         setNutritionFromDatabase(true);
       }
     } catch (e: any) {
-      // ZXing throws NotFoundException specifically when the image has no
-      // readable barcode — that (and our own timeout) gets the friendly
-      // retry message. Anything else is a real error (module load,
-      // network, a bug), and showing its actual message is what makes a
-      // silent "nothing happens" failure diagnosable instead of a dead end.
-      const isNotFound = e?.name === "NotFoundException" || e?.constructor?.name === "NotFoundException";
-      const isTimeout = e?.name === "BarcodeTimeoutError";
-      if (isNotFound || isTimeout) {
-        setError(t("Couldn't find a barcode in that photo — try again with the barcode centered and in focus, or use Snap / Enter item details instead."));
-      } else {
-        setError(`Barcode scan failed: ${e?.message ?? String(e)}`);
-      }
+      setError(`Barcode lookup failed: ${e?.message ?? String(e)}`);
     } finally {
       setScanningBarcode(false);
     }
@@ -242,7 +226,7 @@ export default function AddItemPage() {
             <div className="flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
-                onClick={() => barcodeInputRef.current?.click()}
+                onClick={() => setShowScanner(true)}
                 className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
               >
                 {t("Scan Barcode")}
@@ -265,7 +249,7 @@ export default function AddItemPage() {
           )}
           {scanningBarcode && <p className="text-sm text-ash">{t("Reading barcode…")}</p>}
           <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
-          <input ref={barcodeInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleBarcodeFile} />
+          {showScanner && <BarcodeScanner onDetected={handleBarcodeDetected} onClose={() => setShowScanner(false)} />}
 
           {mode === "text" && (
             <form
