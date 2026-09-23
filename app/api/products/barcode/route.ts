@@ -58,6 +58,17 @@ export async function POST(req: NextRequest) {
     // res.json() on an error body still parses to *something* without
     // status: 1. That's a false negative for a product that may well be
     // in the database — surface it as a real, distinct error instead.
+    // Open Food Facts is documented as always returning 200 with
+    // status: 0 for an unknown barcode — but in practice, a barcode it
+    // has genuinely never seen at all can 404 at the routing layer
+    // before reaching that logic. Treating 404 as a real error was
+    // producing a misleading "lookup service failed" message for what's
+    // actually just a normal "not in the database" result — the same
+    // outcome as status: 0, just via a different HTTP status.
+    if (res.status === 404) {
+      return NextResponse.json({ found: false, scanned_barcode: barcode });
+    }
+
     if (!res.ok) {
       return NextResponse.json(
         {
