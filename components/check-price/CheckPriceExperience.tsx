@@ -163,7 +163,9 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   >(null);
   const [showLocationMap, setShowLocationMap] = useState(false);
   const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
+  const [scanningBarcode, setScanningBarcode] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFindMyLocation() {
     setLocating(true);
@@ -224,6 +226,52 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     const imageBase64 = await fileToBase64(file);
     runSearch({ imageBase64 });
     e.target.value = "";
+  }
+
+  async function handleBarcodeFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setScanningBarcode(true);
+    setError(null);
+    let objectUrl: string | null = null;
+    try {
+      // Same pure-JS decoder used on the merchant's Add Item screen —
+      // works identically on every browser, no native API dependency.
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      const reader = new BrowserMultiFormatReader();
+      objectUrl = URL.createObjectURL(file);
+      const result = await reader.decodeFromImageUrl(objectUrl);
+      const barcode = result.getText();
+
+      const res = await fetch("/api/products/barcode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ barcode })
+      });
+      const data = await res.json();
+
+      if (!data.found) {
+        setError(t("That barcode isn't in the product database — try Camera or Enter details instead."));
+        return;
+      }
+
+      // Skips the AI guessing step entirely — the barcode already gives
+      // an exact product match, so this goes straight into the normal
+      // search pipeline with real, confirmed product details.
+      runSearch({ structured: data.structured });
+    } catch (e: any) {
+      const isNotFound = e?.name === "NotFoundException" || e?.constructor?.name === "NotFoundException";
+      if (isNotFound) {
+        setError(t("Couldn't find a barcode in that photo — try again with the barcode centered and in focus, or use Camera / Enter details instead."));
+      } else {
+        setError(`Barcode scan failed: ${e?.message ?? String(e)}`);
+      }
+    } finally {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      setScanningBarcode(false);
+    }
   }
 
   const sorted = result?.local_results.length
@@ -311,8 +359,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         </div>
       )}
 
-      {mode === "menu" && checkPriceRevealed && !busy && (
+      {mode === "menu" && checkPriceRevealed && !busy && !scanningBarcode && (
         <div className="mb-6 flex flex-col gap-2 sm:flex-row">
+          <button onClick={() => barcodeInputRef.current?.click()} className={outlineButton}>
+            {t("Scan Barcode")}
+          </button>
           <button onClick={() => cameraInputRef.current?.click()} className={outlineButton}>
             {t("Snap")}
           </button>
@@ -321,7 +372,9 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           </button>
         </div>
       )}
+      {scanningBarcode && <p className="mb-6 text-sm text-ash">{t("Reading barcode…")}</p>}
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+      <input ref={barcodeInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleBarcodeFile} />
 
       {mode === "text" && (
         <GuidedTextEntry

@@ -111,6 +111,7 @@ export default function AddItemPage() {
       // for a lot of real testing and real users. This works identically
       // on every browser and platform, no feature detection needed.
       const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      const { NotFoundException } = await import("@zxing/library");
       const reader = new BrowserMultiFormatReader();
       objectUrl = URL.createObjectURL(file);
       const result = await reader.decodeFromImageUrl(objectUrl);
@@ -136,10 +137,17 @@ export default function AddItemPage() {
         setNutritionFromDatabase(true);
       }
     } catch (e: any) {
-      // ZXing throws NotFoundException (no readable barcode in the image)
-      // as well as real errors — both land here, so a not-found result
-      // and a genuine failure get the same friendly retry message.
-      setError(t("Couldn't find a barcode in that photo — try again with the barcode centered and in focus, or use Snap / Enter item details instead."));
+      // ZXing throws NotFoundException specifically when the image has no
+      // readable barcode — that gets the friendly retry message. Anything
+      // else is a real error (module load, network, a bug), and showing
+      // its actual message is what makes a silent "nothing happens"
+      // failure diagnosable instead of a dead end.
+      const isNotFound = e?.name === "NotFoundException" || e?.constructor?.name === "NotFoundException";
+      if (isNotFound) {
+        setError(t("Couldn't find a barcode in that photo — try again with the barcode centered and in focus, or use Snap / Enter item details instead."));
+      } else {
+        setError(`Barcode scan failed: ${e?.message ?? String(e)}`);
+      }
     } finally {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
       setScanningBarcode(false);
