@@ -32,6 +32,7 @@ function PriceCallout({ label, result }: { label: string; result: SearchResult }
   const { t } = useLanguage();
   const [reported, setReported] = useState<"correct_price" | "wrong_price" | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showNutrition, setShowNutrition] = useState(false);
 
   async function handleReport(type: "correct_price" | "wrong_price") {
     setBusy(true);
@@ -87,7 +88,56 @@ function PriceCallout({ label, result }: { label: string; result: SearchResult }
             </button>
           </>
         )}
+        {result.nutrition_facts && (
+          <button onClick={() => setShowNutrition((s) => !s)} className="text-ink underline hover:text-ink/80">
+            {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
+          </button>
+        )}
       </div>
+      {showNutrition && result.nutrition_facts && (
+        <div className="mt-2 rounded border border-value/40 bg-white/60 px-3 py-2">
+          <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-ash">
+            {t("AI estimate — check the actual package")}
+          </p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink">
+            {result.nutrition_facts.serving_size && (
+              <span>
+                {t("Serving size")}: <strong>{result.nutrition_facts.serving_size}</strong>
+              </span>
+            )}
+            {result.nutrition_facts.calories != null && (
+              <span>
+                {t("Calories")}: <strong>{result.nutrition_facts.calories}</strong>
+              </span>
+            )}
+            {result.nutrition_facts.protein_g != null && (
+              <span>
+                {t("Protein (g)")}: <strong>{result.nutrition_facts.protein_g}</strong>
+              </span>
+            )}
+            {result.nutrition_facts.fat_g != null && (
+              <span>
+                {t("Fat (g)")}: <strong>{result.nutrition_facts.fat_g}</strong>
+              </span>
+            )}
+            {result.nutrition_facts.carbs_g != null && (
+              <span>
+                {t("Carbs (g)")}: <strong>{result.nutrition_facts.carbs_g}</strong>
+              </span>
+            )}
+            {result.nutrition_facts.sugar_g != null && (
+              <span>
+                {t("Sugar (g)")}: <strong>{result.nutrition_facts.sugar_g}</strong>
+              </span>
+            )}
+            {result.nutrition_facts.sodium_mg != null && (
+              <span>
+                {t("Sodium (mg)")}: <strong>{result.nutrition_facts.sodium_mg}</strong>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -104,6 +154,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [result, setResult] = useState<SearchResponse | null>(null);
   const [showWiderResults, setShowWiderResults] = useState(false);
+  const [showAtStoreNutrition, setShowAtStoreNutrition] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
@@ -328,10 +379,64 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 You are at <strong>{atStore.store_name}</strong> — the price here is{" "}
                 <strong>{atStore.price.toFixed(2)} {atStore.currency}</strong>.
               </p>
-              {!showWiderResults && sorted.length > 1 && (
-                <button onClick={() => setShowWiderResults(true)} className="mt-2 text-sm text-value underline hover:text-value/80">
-                  See best prices nearby too
-                </button>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                {!showWiderResults && sorted.length > 1 && (
+                  <button onClick={() => setShowWiderResults(true)} className="text-sm text-value underline hover:text-value/80">
+                    See best prices nearby too
+                  </button>
+                )}
+                {atStore.nutrition_facts && (
+                  <button
+                    onClick={() => setShowAtStoreNutrition((s) => !s)}
+                    className="text-sm text-ink underline hover:text-ink/80"
+                  >
+                    {showAtStoreNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
+                  </button>
+                )}
+              </div>
+              {showAtStoreNutrition && atStore.nutrition_facts && (
+                <div className="mt-2 rounded border border-value/40 bg-white/60 px-3 py-2">
+                  <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-ash">
+                    {t("AI estimate — check the actual package")}
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink">
+                    {atStore.nutrition_facts.serving_size && (
+                      <span>
+                        {t("Serving size")}: <strong>{atStore.nutrition_facts.serving_size}</strong>
+                      </span>
+                    )}
+                    {atStore.nutrition_facts.calories != null && (
+                      <span>
+                        {t("Calories")}: <strong>{atStore.nutrition_facts.calories}</strong>
+                      </span>
+                    )}
+                    {atStore.nutrition_facts.protein_g != null && (
+                      <span>
+                        {t("Protein (g)")}: <strong>{atStore.nutrition_facts.protein_g}</strong>
+                      </span>
+                    )}
+                    {atStore.nutrition_facts.fat_g != null && (
+                      <span>
+                        {t("Fat (g)")}: <strong>{atStore.nutrition_facts.fat_g}</strong>
+                      </span>
+                    )}
+                    {atStore.nutrition_facts.carbs_g != null && (
+                      <span>
+                        {t("Carbs (g)")}: <strong>{atStore.nutrition_facts.carbs_g}</strong>
+                      </span>
+                    )}
+                    {atStore.nutrition_facts.sugar_g != null && (
+                      <span>
+                        {t("Sugar (g)")}: <strong>{atStore.nutrition_facts.sugar_g}</strong>
+                      </span>
+                    )}
+                    {atStore.nutrition_facts.sodium_mg != null && (
+                      <span>
+                        {t("Sodium (mg)")}: <strong>{atStore.nutrition_facts.sodium_mg}</strong>
+                      </span>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           )}
