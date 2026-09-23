@@ -32,11 +32,6 @@ export default function AddItemPage() {
   const [loadingNutrition, setLoadingNutrition] = useState(false);
   const [nutritionError, setNutritionError] = useState<string | null>(null);
   const [scanningBarcode, setScanningBarcode] = useState(false);
-  const [barcodeSupported, setBarcodeSupported] = useState(false);
-
-  useEffect(() => {
-    setBarcodeSupported(typeof window !== "undefined" && "BarcodeDetector" in window);
-  }, []);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -107,24 +102,24 @@ export default function AddItemPage() {
 
     setScanningBarcode(true);
     setError(null);
+    let objectUrl: string | null = null;
     try {
-      // @ts-ignore — BarcodeDetector is a real browser API but not yet in
-      // TypeScript's standard lib types.
-      const detector = new window.BarcodeDetector({
-        formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"]
-      });
-      const bitmap = await createImageBitmap(file);
-      const barcodes = await detector.detect(bitmap);
-
-      if (!barcodes.length) {
-        setError(t("Couldn't find a barcode in that photo — try again with the barcode centered and in focus, or use Snap / Enter item details instead."));
-        return;
-      }
+      // A pure-JS decoder (ZXing) rather than the browser's native
+      // BarcodeDetector API — that native API only ships enabled by
+      // default on Android Chrome and ChromeOS, not desktop Chrome,
+      // Firefox, or Safari, which made the button effectively invisible
+      // for a lot of real testing and real users. This works identically
+      // on every browser and platform, no feature detection needed.
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      const reader = new BrowserMultiFormatReader();
+      objectUrl = URL.createObjectURL(file);
+      const result = await reader.decodeFromImageUrl(objectUrl);
+      const barcode = result.getText();
 
       const res = await fetch("/api/products/barcode", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ barcode: barcodes[0].rawValue })
+        body: JSON.stringify({ barcode })
       });
       const data = await res.json();
 
@@ -141,8 +136,12 @@ export default function AddItemPage() {
         setNutritionFromDatabase(true);
       }
     } catch (e: any) {
-      setError(e.message ?? t("Couldn't scan that barcode. Try again, or use Snap / Enter item details instead."));
+      // ZXing throws NotFoundException (no readable barcode in the image)
+      // as well as real errors — both land here, so a not-found result
+      // and a genuine failure get the same friendly retry message.
+      setError(t("Couldn't find a barcode in that photo — try again with the barcode centered and in focus, or use Snap / Enter item details instead."));
     } finally {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
       setScanningBarcode(false);
     }
   }
@@ -244,15 +243,13 @@ export default function AddItemPage() {
         <div className="flex flex-col gap-3">
           {mode === "menu" && !extracting && !scanningBarcode && (
             <div className="flex flex-col gap-2 sm:flex-row">
-              {barcodeSupported && (
-                <button
-                  type="button"
-                  onClick={() => barcodeInputRef.current?.click()}
-                  className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
-                >
-                  {t("Scan Barcode")}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => barcodeInputRef.current?.click()}
+                className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+              >
+                {t("Scan Barcode")}
+              </button>
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
