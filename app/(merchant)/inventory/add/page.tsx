@@ -108,6 +108,10 @@ export default function AddItemPage() {
       });
       const data = await res.json();
 
+      if (data.error) {
+        setError(data.error);
+        return;
+      }
       if (!data.found) {
         setError(t("That barcode isn't in the product database — try Snap or Enter item details instead."));
         return;

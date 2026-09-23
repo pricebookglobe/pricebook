@@ -52,6 +52,19 @@ export async function POST(req: NextRequest) {
     const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`, {
       headers: { "User-Agent": "PriceBook/1.0 (grocery price comparison app)" }
     });
+
+    // A non-200 response (rate limiting, a service hiccup) was previously
+    // treated the same as a genuine "not in the database" result, since
+    // res.json() on an error body still parses to *something* without
+    // status: 1. That's a false negative for a product that may well be
+    // in the database — surface it as a real, distinct error instead.
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: `Product lookup service returned an error (${res.status}). Try again in a moment.` },
+        { status: 502 }
+      );
+    }
+
     const data = await res.json();
 
     if (data.status !== 1 || !data.product) {

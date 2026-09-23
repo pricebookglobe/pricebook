@@ -241,6 +241,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       });
       const data = await res.json();
 
+      if (data.error) {
+        setError(data.error);
+        setScanningBarcode(false);
+        return;
+      }
       if (!data.found) {
         setError(t("That barcode isn't in the product database — try Camera or Enter details instead."));
         setScanningBarcode(false);
