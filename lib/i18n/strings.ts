@@ -238,6 +238,7 @@ export const UI_STRINGS = [
   "That barcode isn't in the product database — try Snap or Enter item details instead.",
   "Couldn't scan that barcode. Try again, or use Snap / Enter item details instead.",
   "From the product database — real label data, not an estimate.",
+  "Retry",
   "AI estimate — check the actual package",
   "Hide nutrition facts",
 

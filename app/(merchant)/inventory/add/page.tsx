@@ -69,7 +69,13 @@ export default function AddItemPage() {
         body: JSON.stringify(input)
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      setProduct(await res.json());
+      const extracted = await res.json();
+      setProduct(extracted);
+      // Runs in the background while the merchant sets a price — not
+      // awaited, so it doesn't block the confirm screen from appearing.
+      // Barcode-scanned items skip this entirely (they already have real
+      // label data from extract() never being called for that path).
+      lookupNutrition(extracted);
     } catch (e: any) {
       setError(e.message ?? "Couldn't read that product.");
     } finally {
@@ -152,15 +158,14 @@ export default function AddItemPage() {
     );
   }
 
-  async function lookupNutrition() {
-    if (!product) return;
+  async function lookupNutrition(forProduct: StructuredProduct) {
     setLoadingNutrition(true);
     setNutritionError(null);
     try {
       const res = await fetch("/api/products/nutrition", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(product)
+        body: JSON.stringify(forProduct)
       });
       if (!res.ok) throw new Error((await res.json()).error);
       setNutrition(await res.json());
@@ -398,19 +403,21 @@ export default function AddItemPage() {
           <div className="rounded border border-line bg-field p-3">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium text-ink">{t("Nutrition facts")}</p>
-              {!nutrition && (
-                <button
-                  type="button"
-                  onClick={lookupNutrition}
-                  disabled={loadingNutrition}
-                  className="rounded-sm border border-line bg-field-raised px-3 py-1 font-display text-xs text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40"
-                >
-                  {loadingNutrition ? t("Estimating…") : t("Look up nutrition facts")}
-                </button>
-              )}
+              {loadingNutrition && <span className="font-mono text-xs text-ash">{t("Estimating…")}</span>}
             </div>
 
-            {nutritionError && <p className="mt-1 text-xs text-flag">{nutritionError}</p>}
+            {nutritionError && (
+              <p className="mt-1 text-xs text-flag">
+                {nutritionError}{" "}
+                <button
+                  type="button"
+                  onClick={() => product && lookupNutrition(product)}
+                  className="underline hover:text-flag/80"
+                >
+                  {t("Retry")}
+                </button>
+              </p>
+            )}
 
             {nutrition && (
               <>
