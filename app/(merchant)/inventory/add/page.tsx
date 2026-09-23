@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
-import type { StructuredProduct } from "@/lib/aiVision";
+import type { StructuredProduct, NutritionFacts } from "@/lib/aiVision";
 import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
@@ -25,6 +25,9 @@ export default function AddItemPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [mode, setMode] = useState<"menu" | "text">("menu");
+  const [nutrition, setNutrition] = useState<NutritionFacts | null>(null);
+  const [loadingNutrition, setLoadingNutrition] = useState(false);
+  const [nutritionError, setNutritionError] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -86,6 +89,31 @@ export default function AddItemPage() {
     setProduct((p) => (p ? { ...p, [key]: value } : p));
   }
 
+  function updateNutritionField<K extends keyof NutritionFacts>(key: K, value: NutritionFacts[K]) {
+    setNutrition((n) =>
+      n ? { ...n, [key]: value } : ({ serving_size: null, calories: null, protein_g: null, fat_g: null, carbs_g: null, sugar_g: null, sodium_mg: null, [key]: value } as NutritionFacts)
+    );
+  }
+
+  async function lookupNutrition() {
+    if (!product) return;
+    setLoadingNutrition(true);
+    setNutritionError(null);
+    try {
+      const res = await fetch("/api/products/nutrition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(product)
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      setNutrition(await res.json());
+    } catch (e: any) {
+      setNutritionError(e.message ?? "Couldn't estimate nutrition facts.");
+    } finally {
+      setLoadingNutrition(false);
+    }
+  }
+
   async function handleSave() {
     if (!product || !storeId || !price) return;
     setSaving(true);
@@ -94,7 +122,7 @@ export default function AddItemPage() {
       const productRes = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...product, imageBase64: lastImageBase64 ?? undefined })
+        body: JSON.stringify({ ...product, imageBase64: lastImageBase64 ?? undefined, nutrition_facts: nutrition })
       });
       if (!productRes.ok) throw new Error((await productRes.json()).error);
       const { product_id } = await productRes.json();
@@ -114,6 +142,8 @@ export default function AddItemPage() {
       setPrice("");
       setTextQuery("");
       setLastImageBase64(null);
+      setNutrition(null);
+      setNutritionError(null);
     } catch (e: any) {
       setError(e.message ?? "Couldn't save this item.");
     } finally {
@@ -278,6 +308,103 @@ export default function AddItemPage() {
                 className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
               />
             </label>
+          </div>
+
+          <div className="rounded border border-line bg-field p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-medium text-ink">{t("Nutrition facts")}</p>
+              {!nutrition && (
+                <button
+                  type="button"
+                  onClick={lookupNutrition}
+                  disabled={loadingNutrition}
+                  className="rounded-sm border border-line bg-field-raised px-3 py-1 font-display text-xs text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40"
+                >
+                  {loadingNutrition ? t("Estimating…") : t("Look up nutrition facts")}
+                </button>
+              )}
+            </div>
+
+            {nutritionError && <p className="mt-1 text-xs text-flag">{nutritionError}</p>}
+
+            {nutrition && (
+              <>
+                <p className="mt-1 text-xs text-ash">
+                  {t("AI estimate based on similar products — please check against the actual package before relying on it.")}
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <label className="text-xs text-ash">
+                    {t("Serving size")}
+                    <input
+                      value={nutrition.serving_size ?? ""}
+                      onChange={(e) => updateNutritionField("serving_size", e.target.value || null)}
+                      className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                    />
+                  </label>
+                  <label className="text-xs text-ash">
+                    {t("Calories")}
+                    <input
+                      type="number"
+                      value={nutrition.calories ?? ""}
+                      onChange={(e) => updateNutritionField("calories", e.target.value ? parseFloat(e.target.value) : null)}
+                      className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                    />
+                  </label>
+                  <label className="text-xs text-ash">
+                    {t("Protein (g)")}
+                    <input
+                      type="number"
+                      value={nutrition.protein_g ?? ""}
+                      onChange={(e) => updateNutritionField("protein_g", e.target.value ? parseFloat(e.target.value) : null)}
+                      className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                    />
+                  </label>
+                  <label className="text-xs text-ash">
+                    {t("Fat (g)")}
+                    <input
+                      type="number"
+                      value={nutrition.fat_g ?? ""}
+                      onChange={(e) => updateNutritionField("fat_g", e.target.value ? parseFloat(e.target.value) : null)}
+                      className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                    />
+                  </label>
+                  <label className="text-xs text-ash">
+                    {t("Carbs (g)")}
+                    <input
+                      type="number"
+                      value={nutrition.carbs_g ?? ""}
+                      onChange={(e) => updateNutritionField("carbs_g", e.target.value ? parseFloat(e.target.value) : null)}
+                      className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                    />
+                  </label>
+                  <label className="text-xs text-ash">
+                    {t("Sugar (g)")}
+                    <input
+                      type="number"
+                      value={nutrition.sugar_g ?? ""}
+                      onChange={(e) => updateNutritionField("sugar_g", e.target.value ? parseFloat(e.target.value) : null)}
+                      className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                    />
+                  </label>
+                  <label className="text-xs text-ash">
+                    {t("Sodium (mg)")}
+                    <input
+                      type="number"
+                      value={nutrition.sodium_mg ?? ""}
+                      onChange={(e) => updateNutritionField("sodium_mg", e.target.value ? parseFloat(e.target.value) : null)}
+                      className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                    />
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNutrition(null)}
+                  className="mt-2 text-xs text-ash underline hover:text-ink"
+                >
+                  {t("Remove nutrition facts")}
+                </button>
+              </>
+            )}
           </div>
 
           {error && <p className="text-sm text-flag">{error}</p>}

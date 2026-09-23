@@ -118,3 +118,45 @@ export async function embedProductDescription(
     return res.data[0].embedding;
   });
 }
+
+export type NutritionFacts = {
+  serving_size: string | null;
+  calories: number | null;
+  protein_g: number | null;
+  fat_g: number | null;
+  carbs_g: number | null;
+  sugar_g: number | null;
+  sodium_mg: number | null;
+};
+
+// GPT-4o has no live web access here — this is its best estimate from
+// training knowledge for a product matching this description, not a
+// lookup of the actual package. It's usually a reasonable starting point
+// for well-known branded products, but should always be shown to the
+// merchant as an editable estimate to check against the real label,
+// never presented as a verified fact.
+export async function estimateNutritionFacts(structured: StructuredProduct): Promise<NutritionFacts> {
+  const description = [structured.brand, structured.manufacturer, structured.product_name, structured.size, structured.unit]
+    .filter(Boolean)
+    .join(" ");
+
+  return withRetry(async () => {
+    const response = await openai().chat.completions.create({
+      model: "gpt-4o",
+      max_tokens: 500,
+      messages: [
+        {
+          role: "user",
+          content:
+            `Give your best estimate of typical nutrition facts for this grocery product: "${description}" (category: ${structured.category}). ` +
+            "Use your general knowledge of this product or similar products — you don't have live internet access, so this is an estimate, not a verified label reading. " +
+            "Return ONLY JSON matching this shape, with numbers only (no units in the values) and null for anything you can't reasonably estimate: " +
+            '{"serving_size":"","calories":0,"protein_g":0,"fat_g":0,"carbs_g":0,"sugar_g":0,"sodium_mg":0}'
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    return JSON.parse(response.choices[0].message.content ?? "{}");
+  });
+}

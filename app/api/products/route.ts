@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceSupabase } from "@/lib/supabaseClient";
-import { embedProductDescription, type StructuredProduct } from "@/lib/aiVision";
+import { embedProductDescription, type StructuredProduct, type NutritionFacts } from "@/lib/aiVision";
 import { uploadProductImage } from "@/lib/storage";
 
 export async function POST(req: NextRequest) {
-  const body: StructuredProduct & { imageBase64?: string } = await req.json();
+  const body: StructuredProduct & { imageBase64?: string; nutrition_facts?: NutritionFacts | null } = await req.json();
   if (!body.product_name || !body.category) {
     return NextResponse.json({ error: "product_name and category are required" }, { status: 400 });
   }
@@ -41,6 +41,10 @@ export async function POST(req: NextRequest) {
       if (embedError) return NextResponse.json({ error: embedError.message }, { status: 500 });
     }
 
+    if (body.nutrition_facts) {
+      await supabase.from("products").update({ nutrition_facts: body.nutrition_facts }).eq("id", existing.id);
+    }
+
     return NextResponse.json({ product_id: existing.id, created: false });
   }
 
@@ -52,7 +56,8 @@ export async function POST(req: NextRequest) {
       manufacturer: body.manufacturer ?? null,
       size: body.size,
       unit: body.unit,
-      category: body.category
+      category: body.category,
+      nutrition_facts: body.nutrition_facts ?? null
     })
     .select("id")
     .single();
