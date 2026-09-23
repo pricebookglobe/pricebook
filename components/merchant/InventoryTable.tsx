@@ -6,6 +6,7 @@ import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Pagination, paginate } from "@/components/admin/Pagination";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
+import type { NutritionFacts } from "@/lib/aiVision";
 
 export type InventoryRow = {
   id: string;
@@ -13,7 +14,7 @@ export type InventoryRow = {
   currency: string;
   in_stock: boolean;
   is_hidden: boolean;
-  products: { id: string; canonical_name: string; brand: string | null; image_url: string | null; size?: number | null; unit?: string | null };
+  products: { id: string; canonical_name: string; brand: string | null; image_url: string | null; size?: number | null; unit?: string | null; nutrition_facts?: NutritionFacts | null };
   report_positive?: number;
   report_negative?: number;
 };
@@ -71,13 +72,18 @@ export function InventoryTable({
   const [editing, setEditing] = useState<InventoryRow | null>(null);
   const [editName, setEditName] = useState("");
   const [editPrice, setEditPrice] = useState("");
+  const [editNutrition, setEditNutrition] = useState<NutritionFacts | null>(null);
+  const [loadingNutrition, setLoadingNutrition] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const visible = paginate(rows, page);
 
-  async function patchItem(row: InventoryRow, patch: { price?: number; in_stock?: boolean; is_hidden?: boolean; product_name?: string }) {
+  async function patchItem(
+    row: InventoryRow,
+    patch: { price?: number; in_stock?: boolean; is_hidden?: boolean; product_name?: string; nutrition_facts?: NutritionFacts | null }
+  ) {
     setBusyId(row.id);
     try {
       await fetch(`/api/stores/${storeId}/inventory`, {
@@ -85,11 +91,19 @@ export function InventoryTable({
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ product_id: row.products.id, ...patch })
       });
-      const { product_name, ...rest } = patch;
+      const { product_name, nutrition_facts, ...rest } = patch;
       setRows((r) =>
         r.map((x) =>
           x.id === row.id
-            ? { ...x, ...rest, products: product_name ? { ...x.products, canonical_name: product_name } : x.products }
+            ? {
+                ...x,
+                ...rest,
+                products: {
+                  ...x.products,
+                  ...(product_name ? { canonical_name: product_name } : {}),
+                  ...(nutrition_facts !== undefined ? { nutrition_facts } : {})
+                }
+              }
             : x
         )
       );
@@ -112,6 +126,36 @@ export function InventoryTable({
     setEditing(row);
     setEditName(row.products.canonical_name);
     setEditPrice(String(row.price));
+    setEditNutrition(row.products.nutrition_facts ?? null);
+  }
+
+  function updateEditNutritionField<K extends keyof NutritionFacts>(key: K, value: NutritionFacts[K]) {
+    setEditNutrition((n) =>
+      n
+        ? { ...n, [key]: value }
+        : ({ serving_size: null, calories: null, protein_g: null, fat_g: null, carbs_g: null, sugar_g: null, sodium_mg: null, [key]: value } as NutritionFacts)
+    );
+  }
+
+  async function lookupNutritionForEdit() {
+    if (!editing) return;
+    setLoadingNutrition(true);
+    try {
+      const res = await fetch("/api/products/nutrition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_name: editing.products.canonical_name,
+          brand: editing.products.brand,
+          size: editing.products.size,
+          unit: editing.products.unit,
+          category: ""
+        })
+      });
+      if (res.ok) setEditNutrition(await res.json());
+    } finally {
+      setLoadingNutrition(false);
+    }
   }
 
   async function saveEdit() {
@@ -120,8 +164,11 @@ export function InventoryTable({
     if (Number.isNaN(price) || price < 0) return;
     if (!editName.trim()) return;
     setSavingEdit(true);
-    const patch: { price: number; product_name?: string } = { price };
+    const patch: { price: number; product_name?: string; nutrition_facts?: NutritionFacts | null } = { price };
     if (editName.trim() !== editing.products.canonical_name) patch.product_name = editName.trim();
+    if (JSON.stringify(editNutrition) !== JSON.stringify(editing.products.nutrition_facts ?? null)) {
+      patch.nutrition_facts = editNutrition;
+    }
     await patchItem(editing, patch);
     setSavingEdit(false);
     setEditing(null);
@@ -236,6 +283,101 @@ export function InventoryTable({
                 className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
               />
             </label>
+
+            <div className="mt-4 rounded border border-line bg-field p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-ink">{t("Nutrition facts")}</p>
+                {!editNutrition && (
+                  <button
+                    type="button"
+                    onClick={lookupNutritionForEdit}
+                    disabled={loadingNutrition}
+                    className="rounded-sm border border-line bg-field-raised px-2 py-1 font-display text-xs text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40"
+                  >
+                    {loadingNutrition ? t("Estimating…") : t("Look up nutrition facts")}
+                  </button>
+                )}
+              </div>
+              {editNutrition && (
+                <>
+                  <p className="mt-1 text-[11px] text-ash">
+                    {t("AI estimate based on similar products — please check against the actual package before relying on it.")}
+                  </p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <label className="text-xs text-ash">
+                      {t("Serving size")}
+                      <input
+                        value={editNutrition.serving_size ?? ""}
+                        onChange={(e) => updateEditNutritionField("serving_size", e.target.value || null)}
+                        className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                      />
+                    </label>
+                    <label className="text-xs text-ash">
+                      {t("Calories")}
+                      <input
+                        type="number"
+                        value={editNutrition.calories ?? ""}
+                        onChange={(e) => updateEditNutritionField("calories", e.target.value ? parseFloat(e.target.value) : null)}
+                        className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                      />
+                    </label>
+                    <label className="text-xs text-ash">
+                      {t("Protein (g)")}
+                      <input
+                        type="number"
+                        value={editNutrition.protein_g ?? ""}
+                        onChange={(e) => updateEditNutritionField("protein_g", e.target.value ? parseFloat(e.target.value) : null)}
+                        className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                      />
+                    </label>
+                    <label className="text-xs text-ash">
+                      {t("Fat (g)")}
+                      <input
+                        type="number"
+                        value={editNutrition.fat_g ?? ""}
+                        onChange={(e) => updateEditNutritionField("fat_g", e.target.value ? parseFloat(e.target.value) : null)}
+                        className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                      />
+                    </label>
+                    <label className="text-xs text-ash">
+                      {t("Carbs (g)")}
+                      <input
+                        type="number"
+                        value={editNutrition.carbs_g ?? ""}
+                        onChange={(e) => updateEditNutritionField("carbs_g", e.target.value ? parseFloat(e.target.value) : null)}
+                        className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                      />
+                    </label>
+                    <label className="text-xs text-ash">
+                      {t("Sugar (g)")}
+                      <input
+                        type="number"
+                        value={editNutrition.sugar_g ?? ""}
+                        onChange={(e) => updateEditNutritionField("sugar_g", e.target.value ? parseFloat(e.target.value) : null)}
+                        className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                      />
+                    </label>
+                    <label className="text-xs text-ash">
+                      {t("Sodium (mg)")}
+                      <input
+                        type="number"
+                        value={editNutrition.sodium_mg ?? ""}
+                        onChange={(e) => updateEditNutritionField("sodium_mg", e.target.value ? parseFloat(e.target.value) : null)}
+                        className="mt-0.5 w-full rounded border border-line bg-field-raised px-2 py-1 text-sm text-ink outline-none"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditNutrition(null)}
+                    className="mt-2 text-xs text-ash underline hover:text-ink"
+                  >
+                    {t("Remove nutrition facts")}
+                  </button>
+                </>
+              )}
+            </div>
+
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setEditing(null)}

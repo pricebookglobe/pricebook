@@ -227,6 +227,8 @@ export const UI_STRINGS = [
   "Sugar (g)",
   "Sodium (mg)",
   "Remove nutrition facts",
+  "AI estimate — check the actual package",
+  "Hide nutrition facts",
 
   // Store page / Messages / merchant Overview
   "Loading…",

@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const supabase = createServiceSupabase();
   const { data, error } = await supabase
     .from("store_inventory")
-    .select("id, price, currency, in_stock, is_hidden, updated_at, products ( id, canonical_name, brand, size, unit, category, image_url )")
+    .select("id, price, currency, in_stock, is_hidden, updated_at, products ( id, canonical_name, brand, size, unit, category, image_url, nutrition_facts )")
     .eq("store_id", params.id)
     .order("updated_at", { ascending: false });
 
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const { product_id, price, in_stock, is_hidden, product_name } = await req.json();
+  const { product_id, price, in_stock, is_hidden, product_name, nutrition_facts } = await req.json();
   if (!product_id) return NextResponse.json({ error: "product_id is required" }, { status: 400 });
 
   const verified = await verifyOwnership(req, params.id);
@@ -92,6 +92,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       .update({ canonical_name: product_name.trim() })
       .eq("id", product_id);
     if (productError) return NextResponse.json({ error: productError.message }, { status: 500 });
+  }
+
+  if (nutrition_facts !== undefined) {
+    const { error: nutritionError } = await supabase
+      .from("products")
+      .update({ nutrition_facts })
+      .eq("id", product_id);
+    if (nutritionError) return NextResponse.json({ error: nutritionError.message }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

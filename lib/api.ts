@@ -1,3 +1,13 @@
+export type NutritionFacts = {
+  serving_size: string | null;
+  calories: number | null;
+  protein_g: number | null;
+  fat_g: number | null;
+  carbs_g: number | null;
+  sugar_g: number | null;
+  sodium_mg: number | null;
+};
+
 export type SearchResult = {
   store_id: string;
   store_name: string;
@@ -11,6 +21,7 @@ export type SearchResult = {
   similarity: number;
   trust_badge: "green" | "orange" | "red" | "unrated";
   wrong_pct: number;
+  nutrition_facts: NutritionFacts | null;
 };
 
 export type SearchResponse = {
