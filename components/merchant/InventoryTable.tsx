@@ -77,6 +77,7 @@ export function InventoryTable({
   const [savingEdit, setSavingEdit] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [viewingNutrition, setViewingNutrition] = useState<InventoryRow | null>(null);
 
   const visible = paginate(rows, page);
 
@@ -236,6 +237,9 @@ export function InventoryTable({
                   disabled={busyId === row.id}
                   actions={[
                     { label: t("Edit item"), onClick: () => openEdit(row) },
+                    ...(row.products.nutrition_facts
+                      ? [{ label: t("View nutrition facts"), onClick: () => setViewingNutrition(row) }]
+                      : []),
                     {
                       label: row.is_hidden ? t("Unhide") : t("Hide"),
                       tone: "warning",
@@ -448,6 +452,66 @@ export function InventoryTable({
       />
 
       <ImageLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
+
+      {viewingNutrition && viewingNutrition.products.nutrition_facts && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setViewingNutrition(null)}>
+          <div className="w-full max-w-sm rounded-lg bg-white p-6 text-left shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-display text-lg font-semibold text-ink">{t("Nutrition facts")}</h2>
+            <p className="mt-1 text-sm text-ash">{viewingNutrition.products.canonical_name}</p>
+            <p className="mt-2 font-mono text-[11px] text-ash">{t("AI estimate — check the actual package")}</p>
+            <div className="mt-3 flex flex-col gap-1.5 text-sm text-ink">
+              {viewingNutrition.products.nutrition_facts.serving_size && (
+                <div className="flex justify-between border-b border-line pb-1.5">
+                  <span className="text-ash">{t("Serving size")}</span>
+                  <strong>{viewingNutrition.products.nutrition_facts.serving_size}</strong>
+                </div>
+              )}
+              {viewingNutrition.products.nutrition_facts.calories != null && (
+                <div className="flex justify-between border-b border-line pb-1.5">
+                  <span className="text-ash">{t("Calories")}</span>
+                  <strong>{viewingNutrition.products.nutrition_facts.calories}</strong>
+                </div>
+              )}
+              {viewingNutrition.products.nutrition_facts.protein_g != null && (
+                <div className="flex justify-between border-b border-line pb-1.5">
+                  <span className="text-ash">{t("Protein (g)")}</span>
+                  <strong>{viewingNutrition.products.nutrition_facts.protein_g}</strong>
+                </div>
+              )}
+              {viewingNutrition.products.nutrition_facts.fat_g != null && (
+                <div className="flex justify-between border-b border-line pb-1.5">
+                  <span className="text-ash">{t("Fat (g)")}</span>
+                  <strong>{viewingNutrition.products.nutrition_facts.fat_g}</strong>
+                </div>
+              )}
+              {viewingNutrition.products.nutrition_facts.carbs_g != null && (
+                <div className="flex justify-between border-b border-line pb-1.5">
+                  <span className="text-ash">{t("Carbs (g)")}</span>
+                  <strong>{viewingNutrition.products.nutrition_facts.carbs_g}</strong>
+                </div>
+              )}
+              {viewingNutrition.products.nutrition_facts.sugar_g != null && (
+                <div className="flex justify-between border-b border-line pb-1.5">
+                  <span className="text-ash">{t("Sugar (g)")}</span>
+                  <strong>{viewingNutrition.products.nutrition_facts.sugar_g}</strong>
+                </div>
+              )}
+              {viewingNutrition.products.nutrition_facts.sodium_mg != null && (
+                <div className="flex justify-between pb-1.5">
+                  <span className="text-ash">{t("Sodium (mg)")}</span>
+                  <strong>{viewingNutrition.products.nutrition_facts.sodium_mg}</strong>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setViewingNutrition(null)}
+              className="mt-4 w-full rounded-sm bg-ink px-4 py-2 font-display text-sm text-field transition-colors hover:bg-value hover:text-white"
+            >
+              {t("Close")}
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

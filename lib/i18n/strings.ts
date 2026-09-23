@@ -227,6 +227,8 @@ export const UI_STRINGS = [
   "Sugar (g)",
   "Sodium (mg)",
   "Remove nutrition facts",
+  "Close",
+  "View nutrition facts",
   "AI estimate — check the actual package",
   "Hide nutrition facts",
 
