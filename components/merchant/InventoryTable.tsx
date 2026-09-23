@@ -14,7 +14,7 @@ export type InventoryRow = {
   currency: string;
   in_stock: boolean;
   is_hidden: boolean;
-  products: { id: string; canonical_name: string; brand: string | null; image_url: string | null; size?: number | null; unit?: string | null; nutrition_facts?: NutritionFacts | null };
+  products: { id: string; canonical_name: string; brand: string | null; image_url: string | null; size?: number | null; unit?: string | null; category?: string | null; nutrition_facts?: NutritionFacts | null };
   report_positive?: number;
   report_negative?: number;
 };

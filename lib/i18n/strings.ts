@@ -229,6 +229,9 @@ export const UI_STRINGS = [
   "Remove nutrition facts",
   "Close",
   "View nutrition facts",
+  "Fill in missing nutrition facts ({n})",
+  "Filling in nutrition facts… ({done} of {total})",
+  "Filled in nutrition facts for {n} items.",
   "AI estimate — check the actual package",
   "Hide nutrition facts",
 
