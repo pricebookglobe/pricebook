@@ -186,7 +186,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     }
   }
 
-  async function runSearch(input: { text?: string; imageBase64?: string; structured?: any }) {
+  async function runSearch(input: { text?: string; imageBase64?: string; structured?: any; barcode?: string }) {
     if (!coords) {
       setError(t("Turn on location so we can find prices near you."));
       return;
@@ -258,7 +258,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       // Skips the AI guessing step entirely — the barcode already gives
       // an exact product match, so this goes straight into the normal
       // search pipeline with real, confirmed product details.
-      await runSearch({ structured: data.structured });
+      await runSearch({ structured: data.structured, barcode });
     } catch (e: any) {
       setError(`Barcode lookup failed: ${e?.message ?? String(e)}`);
     } finally {

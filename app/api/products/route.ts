@@ -4,7 +4,8 @@ import { embedProductDescription, type StructuredProduct, type NutritionFacts } 
 import { uploadProductImage } from "@/lib/storage";
 
 export async function POST(req: NextRequest) {
-  const body: StructuredProduct & { imageBase64?: string; imageUrl?: string; nutrition_facts?: NutritionFacts | null } = await req.json();
+  const body: StructuredProduct & { imageBase64?: string; imageUrl?: string; nutrition_facts?: NutritionFacts | null; barcode?: string } =
+    await req.json();
   if (!body.product_name || !body.category) {
     return NextResponse.json({ error: "product_name and category are required" }, { status: 400 });
   }
@@ -44,6 +45,13 @@ export async function POST(req: NextRequest) {
     if (body.nutrition_facts) {
       await supabase.from("products").update({ nutrition_facts: body.nutrition_facts }).eq("id", existing.id);
     }
+    // If this same product is matched again later via barcode scan (by
+    // this merchant or another), save the barcode now so that future
+    // customer scans of this exact code match it with certainty instead
+    // of relying on fuzzy text similarity.
+    if (body.barcode) {
+      await supabase.from("products").update({ barcode: body.barcode }).eq("id", existing.id);
+    }
 
     return NextResponse.json({ product_id: existing.id, created: false });
   }
@@ -57,7 +65,8 @@ export async function POST(req: NextRequest) {
       size: body.size,
       unit: body.unit,
       category: body.category,
-      nutrition_facts: body.nutrition_facts ?? null
+      nutrition_facts: body.nutrition_facts ?? null,
+      barcode: body.barcode ?? null
     })
     .select("id")
     .single();

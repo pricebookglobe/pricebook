@@ -18,6 +18,7 @@ export default function AddItemPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [lastImageBase64, setLastImageBase64] = useState<string | null>(null);
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
+  const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
   const [textQuery, setTextQuery] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [product, setProduct] = useState<StructuredProduct | null>(null);
@@ -123,6 +124,7 @@ export default function AddItemPage() {
       setProduct(data.structured);
       setProductImageUrl(data.image_url ?? null);
       setLastImageBase64(null);
+      setScannedBarcode(barcode);
       if (data.nutrition_facts) {
         setNutrition(data.nutrition_facts);
         setNutritionFromDatabase(true);
@@ -176,7 +178,8 @@ export default function AddItemPage() {
           ...product,
           imageBase64: lastImageBase64 ?? undefined,
           imageUrl: !lastImageBase64 ? productImageUrl ?? undefined : undefined,
-          nutrition_facts: nutrition
+          nutrition_facts: nutrition,
+          barcode: scannedBarcode ?? undefined
         })
       });
       if (!productRes.ok) throw new Error((await productRes.json()).error);
@@ -201,6 +204,7 @@ export default function AddItemPage() {
       setNutrition(null);
       setNutritionFromDatabase(false);
       setNutritionError(null);
+      setScannedBarcode(null);
     } catch (e: any) {
       setError(e.message ?? "Couldn't save this item.");
     } finally {
@@ -215,6 +219,7 @@ export default function AddItemPage() {
     setNutritionFromDatabase(false);
     setNutritionError(null);
     setError(null);
+    setScannedBarcode(null);
   }
 
   return (
