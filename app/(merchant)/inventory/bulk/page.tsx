@@ -85,7 +85,18 @@ export default function BulkUploadPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ csv: csvText })
       });
-      const data = await res.json();
+
+      const raw = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        // The server sent back something that isn't JSON at all (a raw
+        // platform error page, most often) — show the response status
+        // instead of a cryptic "unexpected token" parse error.
+        throw new Error(`Server returned an unexpected response (status ${res.status}). Please try again in a moment.`);
+      }
+
       if (!res.ok) throw new Error(data.error ?? "Upload failed.");
       setResult(data);
     } catch (e: any) {

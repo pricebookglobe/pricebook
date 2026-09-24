@@ -14,8 +14,25 @@ async function authenticate(req: NextRequest, storeId: string) {
 
   const supabase = createServiceSupabase();
 
-  const { data: byApiKey } = await supabase.from("stores").select("id").eq("id", storeId).eq("api_key", token).maybeSingle();
-  if (byApiKey) return { supabase };
+  try {
+    const { data: byApiKey, error: apiKeyError } = await supabase
+      .from("stores")
+      .select("id")
+      .eq("id", storeId)
+      .eq("api_key", token)
+      .maybeSingle();
+    if (apiKeyError) {
+      return {
+        error: NextResponse.json(
+          { error: `Store lookup failed: ${apiKeyError.message}. If this mentions "api_key", the database migration for this feature hasn't been run yet.` },
+          { status: 500 }
+        )
+      };
+    }
+    if (byApiKey) return { supabase };
+  } catch (e: any) {
+    return { error: NextResponse.json({ error: `Authentication error: ${e.message ?? String(e)}` }, { status: 500 }) };
+  }
 
   const { data: userData } = await supabase.auth.getUser(token);
   if (userData?.user) {
@@ -38,6 +55,18 @@ const MAX_ROWS = 1000;
 type InputRow = Record<string, string>;
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    return await handlePost(req, params);
+  } catch (e: any) {
+    // A route that throws instead of returning JSON gets a raw platform
+    // HTML error page back on the client, which fails to parse and looks
+    // like nothing happened — wrapping the whole handler guarantees a
+    // real, readable error message comes back no matter what breaks.
+    return NextResponse.json({ error: `Unexpected server error: ${e.message ?? String(e)}` }, { status: 500 });
+  }
+}
+
+async function handlePost(req: NextRequest, params: { id: string }) {
   const verified = await authenticate(req, params.id);
   if (verified.error) return verified.error;
   const { supabase } = verified;
