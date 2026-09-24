@@ -54,6 +54,9 @@ export default function InventoryPage() {
         <Link href="/inventory/search" className={buttonClass}>
           {t("Search Items")}
         </Link>
+        <Link href="/inventory/bulk" className={buttonClass}>
+          {t("Bulk Upload")}
+        </Link>
       </div>
 
       {loading && <p className="text-sm text-ash">…</p>}
