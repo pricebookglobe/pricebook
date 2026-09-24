@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -16,6 +17,7 @@ type StoreDetails = {
   cr_certificate_url: string | null;
   lat: number | null;
   lng: number | null;
+  api_key: string | null;
 };
 
 function fileToBase64(file: File): Promise<string> {
@@ -47,6 +49,9 @@ export default function SettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [deleteOnLogout, setDeleteOnLogout] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [regeneratingKey, setRegeneratingKey] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
 
@@ -90,6 +95,22 @@ export default function SettingsPage() {
         setLocating(false);
       }
     );
+  }
+
+  async function regenerateApiKey() {
+    setRegeneratingKey(true);
+    try {
+      const supabase = createBrowserSupabase();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const res = await fetch("/api/merchant/store/api-key", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${sessionData.session?.access_token}` }
+      });
+      const data = await res.json();
+      if (res.ok) setStore((s) => (s ? { ...s, api_key: data.api_key } : s));
+    } finally {
+      setRegeneratingKey(false);
+    }
   }
 
   async function handleSave() {
@@ -354,6 +375,59 @@ export default function SettingsPage() {
               {t("Replacing this sends it for admin review again before it's approved.")}
             </p>
           </label>
+        </div>
+      )}
+
+      {profile.role === "merchant" && store && (
+        <div className="mt-6 flex flex-col gap-3 rounded border border-line bg-field p-4">
+          <p className="text-sm font-medium text-ink">{t("Store API")}</p>
+          <p className="text-sm text-ash">
+            {t("Connect your own POS or inventory system to automatically update your prices — see the")}{" "}
+            <Link href="/docs/api" className="underline hover:text-ink">
+              {t("API documentation")}
+            </Link>
+            .
+          </p>
+          <div className="text-sm text-ash">
+            {t("Store ID")}
+            <code className="ml-2 rounded border border-line bg-field-raised px-2 py-1 font-mono text-xs text-ink">{store.id}</code>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <code className="rounded border border-line bg-field-raised px-3 py-2 font-mono text-xs text-ink">
+              {showApiKey ? store.api_key ?? "—" : "•".repeat(24)}
+            </code>
+            <button
+              type="button"
+              onClick={() => setShowApiKey((s) => !s)}
+              className="rounded-sm border border-line px-3 py-1.5 font-display text-xs text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+            >
+              {showApiKey ? t("Hide") : t("Show")}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (store.api_key) {
+                  navigator.clipboard.writeText(store.api_key);
+                  setCopiedKey(true);
+                  setTimeout(() => setCopiedKey(false), 2000);
+                }
+              }}
+              className="rounded-sm border border-line px-3 py-1.5 font-display text-xs text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+            >
+              {copiedKey ? t("Copied!") : t("Copy")}
+            </button>
+            <button
+              type="button"
+              onClick={regenerateApiKey}
+              disabled={regeneratingKey}
+              className="rounded-sm border border-line px-3 py-1.5 font-display text-xs text-flag transition-colors hover:bg-flag hover:text-white disabled:opacity-40"
+            >
+              {regeneratingKey ? "…" : t("Regenerate")}
+            </button>
+          </div>
+          <p className="font-mono text-[11px] text-ash/70">
+            {t("Regenerating immediately invalidates the old key — update anything using it right away.")}
+          </p>
         </div>
       )}
 

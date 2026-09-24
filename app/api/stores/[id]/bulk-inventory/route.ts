@@ -3,43 +3,64 @@ import { createServiceSupabase } from "@/lib/supabaseClient";
 import { parseCSVToObjects } from "@/lib/csv";
 import { embedProductDescription } from "@/lib/aiVision";
 
-async function verifyOwnership(req: NextRequest, storeId: string) {
+// Accepts either a logged-in merchant's Supabase session (the dashboard's
+// own bulk-upload page) OR that store's long-lived API key (an external
+// POS/inventory system calling this automatically, which can't
+// practically do a browser login) — same endpoint, same behavior either
+// way, just two ways to prove it's really this store.
+async function authenticate(req: NextRequest, storeId: string) {
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return { error: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) };
 
   const supabase = createServiceSupabase();
-  const { data: userData, error: userError } = await supabase.auth.getUser(token);
-  if (userError || !userData.user) {
-    return { error: NextResponse.json({ error: "Invalid session" }, { status: 401 }) };
+
+  const { data: byApiKey } = await supabase.from("stores").select("id").eq("id", storeId).eq("api_key", token).maybeSingle();
+  if (byApiKey) return { supabase };
+
+  const { data: userData } = await supabase.auth.getUser(token);
+  if (userData?.user) {
+    const { data: store, error: storeError } = await supabase
+      .from("stores")
+      .select("id")
+      .eq("id", storeId)
+      .eq("owner_id", userData.user.id)
+      .maybeSingle();
+    if (storeError) return { error: NextResponse.json({ error: storeError.message }, { status: 500 }) };
+    if (store) return { supabase };
   }
 
-  const { data: store, error: storeError } = await supabase
-    .from("stores")
-    .select("id")
-    .eq("id", storeId)
-    .eq("owner_id", userData.user.id)
-    .maybeSingle();
-
-  if (storeError) return { error: NextResponse.json({ error: storeError.message }, { status: 500 }) };
-  if (!store) return { error: NextResponse.json({ error: "Not your store" }, { status: 403 }) };
-
-  return { supabase };
+  return { error: NextResponse.json({ error: "Invalid session or API key" }, { status: 401 }) };
 }
 
 const REQUIRED_COLUMNS = ["item_name", "category", "price"];
 const MAX_ROWS = 1000;
 
+type InputRow = Record<string, string>;
+
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const verified = await verifyOwnership(req, params.id);
+  const verified = await authenticate(req, params.id);
   if (verified.error) return verified.error;
   const { supabase } = verified;
 
-  const { csv } = await req.json();
-  if (typeof csv !== "string" || !csv.trim()) {
-    return NextResponse.json({ error: "csv text is required" }, { status: 400 });
+  const body = await req.json();
+  let rows: InputRow[];
+
+  if (typeof body.csv === "string" && body.csv.trim()) {
+    rows = parseCSVToObjects(body.csv);
+  } else if (Array.isArray(body.items)) {
+    // A POS/inventory system's own integration — plain JSON is more
+    // natural to generate programmatically than building a CSV string.
+    // Each item's keys are lowercased so callers aren't tripped up by
+    // case (ItemName vs item_name).
+    rows = body.items.map((item: Record<string, unknown>) => {
+      const row: InputRow = {};
+      for (const [k, v] of Object.entries(item)) row[k.toLowerCase()] = v == null ? "" : String(v);
+      return row;
+    });
+  } else {
+    return NextResponse.json({ error: "Provide either csv (string) or items (array of objects)" }, { status: 400 });
   }
 
-  const rows = parseCSVToObjects(csv);
   if (rows.length === 0) {
     return NextResponse.json({ error: "No data rows found — check the file has a header row and at least one item." }, { status: 400 });
   }
@@ -50,7 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const missingColumns = REQUIRED_COLUMNS.filter((c) => !(c in rows[0]));
   if (missingColumns.length) {
     return NextResponse.json(
-      { error: `Missing required column(s): ${missingColumns.join(", ")}. Use the template to check the exact column names.` },
+      { error: `Missing required field(s): ${missingColumns.join(", ")}. See the template or API docs for the exact field names.` },
       { status: 400 }
     );
   }

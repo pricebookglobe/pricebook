@@ -16,7 +16,9 @@ export async function GET(req: NextRequest) {
 
   const { data: store, error } = await auth.supabase
     .from("stores")
-    .select("id, name, city, address, commercial_registration, view_count, verification_status, logo_url, store_photo_url, cr_certificate_url")
+    .select(
+      "id, name, city, address, commercial_registration, view_count, verification_status, logo_url, store_photo_url, cr_certificate_url, api_key"
+    )
     .eq("owner_id", auth.user.id)
     .maybeSingle();
 
