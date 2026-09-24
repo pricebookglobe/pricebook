@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
         radius_meters: meters,
         match_limit: 30,
         query_size: structured.size ?? null,
-        query_unit: structured.unit ?? null
+        query_unit: structured.unit ?? null,
+        min_similarity: SIMILARITY_FALLBACK_THRESHOLD
       });
       if (error) throw error;
       if (data && data.length) {
@@ -77,7 +78,8 @@ export async function POST(req: NextRequest) {
       radius_meters: RADII_M.city,
       match_limit: 50,
       query_size: structured.size ?? null,
-      query_unit: structured.unit ?? null
+      query_unit: structured.unit ?? null,
+      min_similarity: SIMILARITY_FALLBACK_THRESHOLD
     });
     if (cityWide && cityWide.length) {
       const strongCityWide = cityWide.filter((r: any) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
