@@ -413,11 +413,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </p>
           )}
 
-          {result.near_best && <PriceCallout label={t("Best price within 5km")} result={result.near_best} />}
-          {cityBestDiffersFromNear && result.city_best && (
-            <PriceCallout label={t("Best price in the whole city")} result={result.city_best} />
-          )}
-
           {atStore && (
             <div className="mb-4 rounded border border-value bg-value-soft px-4 py-3">
               <p className="text-sm text-ink">
@@ -484,6 +479,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 </div>
               )}
             </div>
+          )}
+
+          {result.near_best && <PriceCallout label={t("Best price within 5km")} result={result.near_best} />}
+          {cityBestDiffersFromNear && result.city_best && (
+            <PriceCallout label={t("Best price in the whole city")} result={result.city_best} />
           )}
 
           {tableRows.length > 0 && (
