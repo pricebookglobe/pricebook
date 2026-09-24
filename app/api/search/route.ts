@@ -35,61 +35,61 @@ export async function POST(req: NextRequest) {
       ? await extractProductFromImage(imageBase64)
       : await parseTextQuery(text);
 
+    const embedding = await embedProductDescription(structured);
     const supabase = createServiceSupabase();
+
+    // Merges two result sets for the same radius by store: an exact
+    // barcode match is added in on top of the normal embedding search,
+    // never used to replace it — a barcode match only proves that one
+    // specific store's item is a certain match, it says nothing about
+    // whether other nearby stores also carry the product (they likely do,
+    // just entered by typing or a photo rather than scanning, so they'd
+    // have no barcode on file at all). Excluding those would mean a
+    // successful barcode match on one store's item made every other
+    // store's genuine listing invisible, which is the opposite of what a
+    // barcode match should do — it should only ever add confidence, not
+    // take visibility away from anything else.
+    function mergeByStore(embeddingRows: any[], barcodeRows: any[]): any[] {
+      const byStore = new Map<string, any>();
+      for (const row of embeddingRows) byStore.set(row.store_id, row);
+      for (const row of barcodeRows) byStore.set(row.store_id, row); // exact match wins if both matched the same store
+      return Array.from(byStore.values());
+    }
+
     let tierUsed: keyof typeof RADII_M | null = null;
     let results: any[] = [];
 
-    // A barcode scan gives a real, unambiguous product identity — if any
-    // store's item was itself added by scanning this exact same barcode,
-    // match on that directly rather than through embedding similarity,
-    // which can legitimately score two descriptions of the very same
-    // product too far apart when different sources phrase brand/name
-    // differently (Open Food Facts saying "Snickers", a store's own
-    // listing saying "Mars", for the same candy bar).
-    let usedExactBarcodeMatch = false;
-    if (barcode) {
-      for (const [tier, meters] of Object.entries(RADII_M) as [keyof typeof RADII_M, number][]) {
-        const { data, error } = await supabase.rpc("search_nearby_products_by_barcode", {
+    for (const [tier, meters] of Object.entries(RADII_M) as [keyof typeof RADII_M, number][]) {
+      const { data: embeddingRows, error } = await supabase.rpc("search_nearby_products", {
+        query_embedding: embedding,
+        user_lat: lat,
+        user_lng: lng,
+        radius_meters: meters,
+        match_limit: 30,
+        query_size: structured.size ?? null,
+        query_unit: structured.unit ?? null,
+        min_similarity: SIMILARITY_FALLBACK_THRESHOLD
+      });
+      if (error) throw error;
+
+      let barcodeRows: any[] = [];
+      if (barcode) {
+        const { data, error: barcodeError } = await supabase.rpc("search_nearby_products_by_barcode", {
           target_barcode: barcode,
           user_lat: lat,
           user_lng: lng,
           radius_meters: meters,
           match_limit: 30
         });
-        if (error) throw error;
-        if (data && data.length) {
-          results = data;
-          tierUsed = tier;
-          usedExactBarcodeMatch = true;
-          break;
-        }
+        if (barcodeError) throw barcodeError;
+        barcodeRows = data ?? [];
       }
-    }
 
-    // No barcode given, or no store has that exact barcode on file yet —
-    // fall back to the normal embedding-based search using whatever
-    // structured product details are available (from the barcode lookup,
-    // the photo, or the text entry).
-    const embedding = usedExactBarcodeMatch ? null : await embedProductDescription(structured);
-
-    if (!usedExactBarcodeMatch) {
-      for (const [tier, meters] of Object.entries(RADII_M) as [keyof typeof RADII_M, number][]) {
-        const { data, error } = await supabase.rpc("search_nearby_products", {
-          query_embedding: embedding,
-          user_lat: lat,
-          user_lng: lng,
-          radius_meters: meters,
-          match_limit: 30,
-          query_size: structured.size ?? null,
-          query_unit: structured.unit ?? null,
-          min_similarity: SIMILARITY_FALLBACK_THRESHOLD
-        });
-        if (error) throw error;
-        if (data && data.length) {
-          results = data;
-          tierUsed = tier;
-          break;
-        }
+      const merged = mergeByStore(embeddingRows ?? [], barcodeRows);
+      if (merged.length) {
+        results = merged;
+        tierUsed = tier;
+        break;
       }
     }
 
@@ -104,29 +104,29 @@ export async function POST(req: NextRequest) {
     // can't tell us that, since it never looks past 5km once it has a hit.
     let nearBest: any = null;
     let cityBest: any = null;
-    const cityWide = usedExactBarcodeMatch
-      ? (
-          await supabase.rpc("search_nearby_products_by_barcode", {
-            target_barcode: barcode,
-            user_lat: lat,
-            user_lng: lng,
-            radius_meters: RADII_M.city,
-            match_limit: 50
-          })
-        ).data
-      : (
-          await supabase.rpc("search_nearby_products", {
-            query_embedding: embedding,
-            user_lat: lat,
-            user_lng: lng,
-            radius_meters: RADII_M.city,
-            match_limit: 50,
-            query_size: structured.size ?? null,
-            query_unit: structured.unit ?? null,
-            min_similarity: SIMILARITY_FALLBACK_THRESHOLD
-          })
-        ).data;
-    if (cityWide && cityWide.length) {
+    const { data: cityWideEmbedding } = await supabase.rpc("search_nearby_products", {
+      query_embedding: embedding,
+      user_lat: lat,
+      user_lng: lng,
+      radius_meters: RADII_M.city,
+      match_limit: 50,
+      query_size: structured.size ?? null,
+      query_unit: structured.unit ?? null,
+      min_similarity: SIMILARITY_FALLBACK_THRESHOLD
+    });
+    let cityWideBarcode: any[] = [];
+    if (barcode) {
+      const { data } = await supabase.rpc("search_nearby_products_by_barcode", {
+        target_barcode: barcode,
+        user_lat: lat,
+        user_lng: lng,
+        radius_meters: RADII_M.city,
+        match_limit: 50
+      });
+      cityWideBarcode = data ?? [];
+    }
+    const cityWide = mergeByStore(cityWideEmbedding ?? [], cityWideBarcode);
+    if (cityWide.length) {
       const strongCityWide = cityWide.filter((r: any) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
       const pool = strongCityWide.length ? strongCityWide : cityWide;
       const nearbyPool = pool.filter((r: any) => r.distance_m <= RADII_M.neighborhood);
