@@ -87,12 +87,26 @@ export async function POST(req: NextRequest) {
 
     const product = data.product;
     const { size, unit } = parseQuantity(product.quantity);
+    const brand = product.brands ? product.brands.split(",")[0].trim() : null;
+
+    // Open Food Facts often includes the brand redundantly at the start
+    // of product_name (brand "Snickers" + product_name "Snickers Duo"),
+    // which both displays oddly ("Snickers Snickers Duo") and, more
+    // importantly, skews the search embedding — the brand ends up
+    // repeated twice in the text sent for matching, which can push a
+    // genuinely matching product below the similarity threshold purely
+    // because of this duplication, not because it's actually different.
+    let productName = product.product_name || product.generic_name || "Unknown product";
+    if (brand && productName.toLowerCase().startsWith(brand.toLowerCase())) {
+      const stripped = productName.slice(brand.length).trim();
+      if (stripped) productName = stripped;
+    }
 
     return NextResponse.json({
       found: true,
       structured: {
-        product_name: product.product_name || product.generic_name || "Unknown product",
-        brand: product.brands ? product.brands.split(",")[0].trim() : null,
+        product_name: productName,
+        brand,
         manufacturer: null,
         size,
         unit,
