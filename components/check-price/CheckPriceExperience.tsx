@@ -59,7 +59,7 @@ function PriceCallout({ label, result }: { label: string; result: SearchResult }
   return (
     <div className="mb-3 rounded border border-value bg-value-soft px-4 py-3">
       <p className="text-sm text-ink">
-        {label}: <strong>{result.price.toFixed(2)} {result.currency}</strong> at{" "}
+        <strong>{result.product_name}</strong> — {label}: <strong>{result.price.toFixed(2)} {result.currency}</strong> at{" "}
         <Link href={`/store/${result.store_id}`} className="underline">
           {result.store_name}
         </Link>{" "}
@@ -421,7 +421,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           {atStore && (
             <div className="mb-4 rounded border border-value bg-value-soft px-4 py-3">
               <p className="text-sm text-ink">
-                You are at <strong>{atStore.store_name}</strong> — the price here is{" "}
+                <strong>{atStore.product_name}</strong> — You are at <strong>{atStore.store_name}</strong> — the price here is{" "}
                 <strong>{atStore.price.toFixed(2)} {atStore.currency}</strong>.
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
