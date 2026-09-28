@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { Pagination, paginate } from "@/components/admin/Pagination";
 
 type HistoryRow = { id: string; query_text: string; category: string | null; searched_at: string };
 
@@ -14,6 +15,7 @@ export default function HistoryPage() {
   const [rows, setRows] = useState<HistoryRow[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -40,8 +42,19 @@ export default function HistoryPage() {
   async function deleteAll() {
     if (!token) return;
     setRows([]);
+    setPage(0);
     await fetch("/api/history", { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
   }
+
+  // If the current page no longer has anything on it (e.g. the last row on
+  // the last page was just deleted), step back a page instead of showing
+  // a blank table with the pager stuck past the end.
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(rows.length / 10));
+    if (page > totalPages - 1) setPage(totalPages - 1);
+  }, [rows.length, page]);
+
+  const pagedRows = paginate(rows, page);
 
   return (
     <AppPage>
@@ -67,7 +80,7 @@ export default function HistoryPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {pagedRows.map((row) => (
               <tr key={row.id}>
                 <td>{row.query_text}</td>
                 <td className="font-mono text-xs text-ash">
@@ -84,6 +97,7 @@ export default function HistoryPage() {
           </tbody>
         </table>
       )}
+      {rows.length > 0 && <Pagination page={page} totalItems={rows.length} onPageChange={setPage} />}
     </AppPage>
   );
 }

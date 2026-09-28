@@ -308,5 +308,11 @@ export const UI_STRINGS = [
   "Back to search bar",
   "Sort by",
   "Best price",
-  "Nearest"
+  "Nearest",
+
+  // Pagination (Search history and elsewhere)
+  "Page",
+  "of",
+  "Back",
+  "Next"
 ] as const;
