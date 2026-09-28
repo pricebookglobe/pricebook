@@ -144,6 +144,23 @@ function PriceCallout({ label, result }: { label: string; result: SearchResult }
   );
 }
 
+// Shown in place of the search box the moment a search is submitted, so the
+// box (and any previous result) disappears immediately rather than sitting
+// there looking unresponsive while the request is in flight.
+function SearchingIndicator() {
+  const { t } = useLanguage();
+  return (
+    <div className="flex items-center gap-2 rounded border border-line bg-field-raised px-4 py-3 text-sm text-ash">
+      <span>{t("Searching…")}</span>
+      <span className="flex items-end gap-1" aria-hidden="true">
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-value" style={{ animationDelay: "0ms" }} />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-value" style={{ animationDelay: "150ms" }} />
+        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-value" style={{ animationDelay: "300ms" }} />
+      </span>
+    </div>
+  );
+}
+
 // Powers both /check-price (camera, upload, or type it in — starts on the
 // three-button menu) and /search-items (starts straight on the type-it-in
 // form, since that's the whole point of that tab). Kept as one component so
@@ -197,6 +214,10 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     setBusy(true);
     setError(null);
     setShowWiderResults(false);
+    // Clear the previous result the moment a new search starts, so the old
+    // answer can never sit on screen looking like the new search didn't do
+    // anything — the searching indicator below takes its place instead.
+    setResult(null);
     try {
       const supabase = createBrowserSupabase();
       const { data } = await supabase.auth.getSession();
@@ -378,45 +399,57 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
       {mode === "text" && !useGuidedForm && (
         <div className="flex flex-col gap-2">
-          <FreeTextSearch onSubmit={(text) => runSearch({ text })} busy={busy} />
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setUseGuidedForm(true)}
-              className="text-sm text-value underline hover:text-value/80"
-            >
-              {t("Or choose from categories instead")}
-            </button>
-            {initialMode === "menu" && (
-              <button
-                type="button"
-                onClick={() => setMode("menu")}
-                className="text-sm text-ash underline hover:text-ink"
-              >
-                {t("Cancel")}
-              </button>
-            )}
-          </div>
+          {busy ? (
+            <SearchingIndicator />
+          ) : (
+            <>
+              <FreeTextSearch onSubmit={(text) => runSearch({ text })} busy={busy} />
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setUseGuidedForm(true)}
+                  className="text-sm text-value underline hover:text-value/80"
+                >
+                  {t("Or choose from categories instead")}
+                </button>
+                {initialMode === "menu" && (
+                  <button
+                    type="button"
+                    onClick={() => setMode("menu")}
+                    className="text-sm text-ash underline hover:text-ink"
+                  >
+                    {t("Cancel")}
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 
       {mode === "text" && useGuidedForm && (
         <div className="flex flex-col gap-2">
-          <GuidedTextEntry
-            onSubmit={(structured) => runSearch({ structured })}
-            onCancel={() => (initialMode === "menu" ? setMode("menu") : router.push("/check-price"))}
-          />
-          <button
-            type="button"
-            onClick={() => setUseGuidedForm(false)}
-            className="self-start text-sm text-value underline hover:text-value/80"
-          >
-            {t("Back to search bar")}
-          </button>
+          {busy ? (
+            <SearchingIndicator />
+          ) : (
+            <>
+              <GuidedTextEntry
+                onSubmit={(structured) => runSearch({ structured })}
+                onCancel={() => (initialMode === "menu" ? setMode("menu") : router.push("/check-price"))}
+              />
+              <button
+                type="button"
+                onClick={() => setUseGuidedForm(false)}
+                className="self-start text-sm text-value underline hover:text-value/80"
+              >
+                {t("Back to search bar")}
+              </button>
+            </>
+          )}
         </div>
       )}
 
-      {busy && <p className="mt-3 text-sm text-ash">{t("Searching…")}</p>}
+      {busy && mode !== "text" && <p className="mt-3 text-sm text-ash">{t("Searching…")}</p>}
       {status === "denied" && (
         <p className="mt-3 text-sm text-flag">
           {t("Location is off, so we can't sort by distance. Enable it in your browser to see nearby prices.")}

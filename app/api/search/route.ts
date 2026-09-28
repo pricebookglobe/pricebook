@@ -135,15 +135,23 @@ export async function POST(req: NextRequest) {
     }
 
     // Log to search history if the caller is logged in — best-effort, never
-    // fails the search itself if this insert has a problem.
+    // fails the search itself if this insert has a problem. This is wrapped
+    // in its own try/catch: previously an unguarded failure here (a stale
+    // token, an Auth API hiccup, etc.) would throw all the way out to the
+    // outer catch and turn a perfectly good search into a 500, which looked
+    // to the user like "search worked once, then stopped returning results."
     if (authToken) {
-      const { data: userData } = await supabase.auth.getUser(authToken);
-      if (userData.user) {
-        await supabase.from("search_history").insert({
-          user_id: userData.user.id,
-          query_text: text ?? structured.product_name,
-          category: structured.category
-        });
+      try {
+        const { data: userData } = await supabase.auth.getUser(authToken);
+        if (userData.user) {
+          await supabase.from("search_history").insert({
+            user_id: userData.user.id,
+            query_text: text ?? structured.product_name,
+            category: structured.category
+          });
+        }
+      } catch (historyErr) {
+        console.error("search_history logging failed (non-fatal)", historyErr);
       }
     }
 
