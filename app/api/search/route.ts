@@ -59,16 +59,21 @@ export async function POST(req: NextRequest) {
       return Array.from(byStore.values());
     }
 
-    // A plain substring match against the product's stored name/brand,
-    // in addition to the embedding search. Embeddings compare *meaning*,
-    // so a partial or truncated word ("Snick" while still typing
-    // "Snickers") can land far enough from the full word's embedding to
-    // miss the similarity floor entirely — even though it's obviously the
-    // same product to a human. This catches that case outright, in any
-    // language, since it's a literal text match rather than a semantic
-    // guess. Uses whatever text is available: what the user actually
-    // typed, or the parsed product name for photo/barcode/guided searches.
-    const partialTextQuery = (text ?? structured.product_name ?? "").trim();
+    // A plain substring match against the product's stored name/brand, in
+    // addition to the embedding search. Embeddings compare *meaning*, so a
+    // partial or truncated word ("Snick" while still typing "Snickers")
+    // can land far enough from the full word's embedding to miss the
+    // similarity floor entirely — even though it's obviously the same
+    // product to a human. This catches that case outright.
+    //
+    // Deliberately uses the PARSED product_name (structured.product_name),
+    // not the raw `text` the user typed: parseTextQuery translates/
+    // transliterates into the common English/Latin-script name products are
+    // actually registered under, so a substring check against it still has
+    // a real chance of hitting even when the user typed in Arabic (or any
+    // other script) — a raw-text substring check against an Arabic query
+    // could never match a Latin-script canonical_name at all.
+    const partialTextQuery = (structured.product_name ?? text ?? "").trim();
 
     let tierUsed: keyof typeof RADII_M | null = null;
     let results: any[] = [];

@@ -81,7 +81,21 @@ export async function parseTextQuery(text: string): Promise<StructuredProduct> {
         {
           role: "user",
           content:
-            `Parse this grocery search into JSON only, no prose: "${text}". ` +
+            `Parse this grocery search into JSON only, no prose: "${text}". The search may be in ` +
+            `any language, but grocery items in this database are registered using their common ` +
+            `English/Latin-script name and brand (e.g. "Al Ain", "Snickers", "Pepsi") — so translate ` +
+            // Registered products are stored under their common English/Latin
+            // name. Without this instruction, a query typed in Arabic (or any
+            // other non-Latin script) gets embedded as-is, and its embedding
+            // lands too far from the stored English-name embedding to pass
+            // the similarity threshold — search finds nothing even though the
+            // product is genuinely in the database. Translating/transliterating
+            // the parsed name here, before embedding, is what actually makes
+            // "any language" search work rather than just accepting any
+            // language as input.
+            `product_name and brand into their standard English/Latin-script form, even if the ` +
+            `input used a different script or language (for example "حليب المراعي" -> product_name ` +
+            `"Al Ain milk"; "سنيكرز" -> product_name "Snickers"). ` +
             `Shape: ${EXTRACTION_SHAPE}. If size/unit aren't mentioned, use null.`
         }
       ],
