@@ -299,5 +299,14 @@ export const UI_STRINGS = [
   "Product",
   "Your price",
   "Position",
-  "Cheaper than {n}% of town"
+  "Cheaper than {n}% of town",
+
+  // Free-text search bar (Search Items)
+  "Type any item, in any language…",
+  "Search",
+  "Or choose from categories instead",
+  "Back to search bar",
+  "Sort by",
+  "Best price",
+  "Nearest"
 ] as const;

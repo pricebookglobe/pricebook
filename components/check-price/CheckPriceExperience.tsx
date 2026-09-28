@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useGeolocation } from "@/components/shared/GeolocationProvider";
 import { ResultRow } from "@/components/search/ResultRow";
 import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
+import { FreeTextSearch } from "@/components/check-price/FreeTextSearch";
 import { searchProducts, findNearestStore, reportPrice, type SearchResponse, type SearchResult } from "@/lib/api";
 import { BarcodeScanner } from "@/components/shared/BarcodeScanner";
 import { AppPage } from "@/components/shared/AppPage";
@@ -166,6 +167,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
   const [scanningBarcode, setScanningBarcode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [useGuidedForm, setUseGuidedForm] = useState(false);
+  const [sortMode, setSortMode] = useState<"price" | "distance">("price");
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFindMyLocation() {
@@ -267,9 +270,14 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   }
 
   const sorted = result?.local_results.length
-    ? [...result.local_results].sort((a, b) => a.price - b.price)
+    ? [...result.local_results].sort((a, b) =>
+        sortMode === "price" ? a.price - b.price : a.distance_m - b.distance_m
+      )
     : [];
-  const cheapestId = sorted[0]?.store_id ?? null;
+  const cheapestId =
+    sorted.length > 0
+      ? sorted.reduce((min, r) => (r.price < min.price ? r : min), sorted[0]).store_id
+      : null;
   const atStore = sorted.find((r) => r.distance_m <= AT_STORE_METERS) ?? null;
   const tableRows = atStore && !showWiderResults ? [] : sorted;
 
@@ -368,11 +376,44 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
       {showScanner && <BarcodeScanner onDetected={handleBarcodeDetected} onClose={() => setShowScanner(false)} />}
 
-      {mode === "text" && (
-        <GuidedTextEntry
-          onSubmit={(structured) => runSearch({ structured })}
-          onCancel={() => (initialMode === "menu" ? setMode("menu") : router.push("/check-price"))}
-        />
+      {mode === "text" && !useGuidedForm && (
+        <div className="flex flex-col gap-2">
+          <FreeTextSearch onSubmit={(text) => runSearch({ text })} busy={busy} />
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setUseGuidedForm(true)}
+              className="text-sm text-value underline hover:text-value/80"
+            >
+              {t("Or choose from categories instead")}
+            </button>
+            {initialMode === "menu" && (
+              <button
+                type="button"
+                onClick={() => setMode("menu")}
+                className="text-sm text-ash underline hover:text-ink"
+              >
+                {t("Cancel")}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {mode === "text" && useGuidedForm && (
+        <div className="flex flex-col gap-2">
+          <GuidedTextEntry
+            onSubmit={(structured) => runSearch({ structured })}
+            onCancel={() => (initialMode === "menu" ? setMode("menu") : router.push("/check-price"))}
+          />
+          <button
+            type="button"
+            onClick={() => setUseGuidedForm(false)}
+            className="self-start text-sm text-value underline hover:text-value/80"
+          >
+            {t("Back to search bar")}
+          </button>
+        </div>
       )}
 
       {busy && <p className="mt-3 text-sm text-ash">{t("Searching…")}</p>}
@@ -484,6 +525,28 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           {result.near_best && <PriceCallout label={t("Best price within 5km")} result={result.near_best} />}
           {cityBestDiffersFromNear && result.city_best && (
             <PriceCallout label={t("Best price in the whole city")} result={result.city_best} />
+          )}
+
+          {tableRows.length > 1 && (
+            <div className="mb-2 flex items-center gap-2 text-sm">
+              <span className="text-ash">{t("Sort by")}:</span>
+              <button
+                onClick={() => setSortMode("price")}
+                className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
+                  sortMode === "price" ? "bg-value text-white" : "border border-line text-ink hover:border-value"
+                }`}
+              >
+                {t("Best price")}
+              </button>
+              <button
+                onClick={() => setSortMode("distance")}
+                className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
+                  sortMode === "distance" ? "bg-value text-white" : "border border-line text-ink hover:border-value"
+                }`}
+              >
+                {t("Nearest")}
+              </button>
+            </div>
           )}
 
           {tableRows.length > 0 && (
