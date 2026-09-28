@@ -49,12 +49,26 @@ export async function POST(req: NextRequest) {
     // store's genuine listing invisible, which is the opposite of what a
     // barcode match should do — it should only ever add confidence, not
     // take visibility away from anything else.
-    function mergeByStore(embeddingRows: any[], barcodeRows: any[]): any[] {
+    function mergeByStore(...rowSets: any[][]): any[] {
       const byStore = new Map<string, any>();
-      for (const row of embeddingRows) byStore.set(row.store_id, row);
-      for (const row of barcodeRows) byStore.set(row.store_id, row); // exact match wins if both matched the same store
+      // Later sets win over earlier ones for the same store — callers pass
+      // sets in ascending confidence order (weakest first).
+      for (const rows of rowSets) {
+        for (const row of rows) byStore.set(row.store_id, row);
+      }
       return Array.from(byStore.values());
     }
+
+    // A plain substring match against the product's stored name/brand,
+    // in addition to the embedding search. Embeddings compare *meaning*,
+    // so a partial or truncated word ("Snick" while still typing
+    // "Snickers") can land far enough from the full word's embedding to
+    // miss the similarity floor entirely — even though it's obviously the
+    // same product to a human. This catches that case outright, in any
+    // language, since it's a literal text match rather than a semantic
+    // guess. Uses whatever text is available: what the user actually
+    // typed, or the parsed product name for photo/barcode/guided searches.
+    const partialTextQuery = (text ?? structured.product_name ?? "").trim();
 
     let tierUsed: keyof typeof RADII_M | null = null;
     let results: any[] = [];
@@ -72,6 +86,19 @@ export async function POST(req: NextRequest) {
       });
       if (error) throw error;
 
+      let textRows: any[] = [];
+      if (partialTextQuery.length >= 2) {
+        const { data, error: textError } = await supabase.rpc("search_nearby_products_by_text", {
+          query_text: partialTextQuery,
+          user_lat: lat,
+          user_lng: lng,
+          radius_meters: meters,
+          match_limit: 30
+        });
+        if (textError) throw textError;
+        textRows = data ?? [];
+      }
+
       let barcodeRows: any[] = [];
       if (barcode) {
         const { data, error: barcodeError } = await supabase.rpc("search_nearby_products_by_barcode", {
@@ -85,7 +112,9 @@ export async function POST(req: NextRequest) {
         barcodeRows = data ?? [];
       }
 
-      const merged = mergeByStore(embeddingRows ?? [], barcodeRows);
+      // Priority (highest confidence wins for a given store): embedding
+      // similarity < substring text match < exact barcode match.
+      const merged = mergeByStore(embeddingRows ?? [], textRows, barcodeRows);
       if (merged.length) {
         results = merged;
         tierUsed = tier;
@@ -114,6 +143,17 @@ export async function POST(req: NextRequest) {
       query_unit: structured.unit ?? null,
       min_similarity: SIMILARITY_FALLBACK_THRESHOLD
     });
+    let cityWideText: any[] = [];
+    if (partialTextQuery.length >= 2) {
+      const { data } = await supabase.rpc("search_nearby_products_by_text", {
+        query_text: partialTextQuery,
+        user_lat: lat,
+        user_lng: lng,
+        radius_meters: RADII_M.city,
+        match_limit: 50
+      });
+      cityWideText = data ?? [];
+    }
     let cityWideBarcode: any[] = [];
     if (barcode) {
       const { data } = await supabase.rpc("search_nearby_products_by_barcode", {
@@ -125,7 +165,7 @@ export async function POST(req: NextRequest) {
       });
       cityWideBarcode = data ?? [];
     }
-    const cityWide = mergeByStore(cityWideEmbedding ?? [], cityWideBarcode);
+    const cityWide = mergeByStore(cityWideEmbedding ?? [], cityWideText, cityWideBarcode);
     if (cityWide.length) {
       const strongCityWide = cityWide.filter((r: any) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
       const pool = strongCityWide.length ? strongCityWide : cityWide;
