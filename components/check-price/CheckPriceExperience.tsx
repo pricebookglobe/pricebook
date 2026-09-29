@@ -172,7 +172,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const { coords, status } = useGeolocation();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [result, setResult] = useState<SearchResponse | null>(null);
-  const [showWiderResults, setShowWiderResults] = useState(false);
   const [showAtStoreNutrition, setShowAtStoreNutrition] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -213,7 +212,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     }
     setBusy(true);
     setError(null);
-    setShowWiderResults(false);
     // Clear the previous result the moment a new search starts, so the old
     // answer can never sit on screen looking like the new search didn't do
     // anything — the searching indicator below takes its place instead.
@@ -300,7 +298,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       ? sorted.reduce((min, r) => (r.price < min.price ? r : min), sorted[0]).store_id
       : null;
   const atStore = sorted.find((r) => r.distance_m <= AT_STORE_METERS) ?? null;
-  const tableRows = atStore && !showWiderResults ? [] : sorted;
+  // Always show the full list of every store carrying the item — it used
+  // to be hidden behind a "See best prices nearby too" link whenever you
+  // were detected as standing at a store, but the shopper should be able
+  // to see item name, "you are at this store," nearby best, city best, and
+  // the full comparison list (with sorting) all at once, not have to ask
+  // for the list.
+  const tableRows = sorted;
 
   // Only worth calling out the city-wide best when it's actually a
   // different store than the nearby best — otherwise it's the same
@@ -460,7 +464,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       {result && (
         <section className="mt-8">
           <div className="mb-2 flex items-baseline justify-between">
-            <h2 className="font-display text-lg font-medium text-ink">
+            <h2 className="font-display text-lg font-bold text-ink">
               {result.query.brand ? `${result.query.brand} ` : ""}
               {result.query.product_name}
             </h2>
@@ -494,11 +498,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 <strong>{atStore.price.toFixed(2)} {atStore.currency}</strong>.
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
-                {!showWiderResults && sorted.length > 1 && (
-                  <button onClick={() => setShowWiderResults(true)} className="text-sm text-value underline hover:text-value/80">
-                    See best prices nearby too
-                  </button>
-                )}
                 {atStore.nutrition_facts && (
                   <button
                     onClick={() => setShowAtStoreNutrition((s) => !s)}
