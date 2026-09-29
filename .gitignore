@@ -3,3 +3,16 @@ node_modules
 .env
 .env.local
 .DS_Store
+
+# Android app (mobile/)
+mobile/node_modules
+mobile/android/app/build
+mobile/android/build
+mobile/android/.gradle
+mobile/android/local.properties
+mobile/android/captures
+mobile/android/app/release
+mobile/android/app/debug
+mobile/android/app/src/main/assets/public
+mobile/android/app/src/main/assets/capacitor.config.json
+mobile/www

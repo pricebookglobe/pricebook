@@ -1,0 +1,53 @@
+name: Build Android test APK
+
+# Builds the PriceBook Android app (a thin wrapper around the live website)
+# every time the mobile/ folder changes, and whenever it's triggered by hand
+# from the Actions tab. The finished .apk is attached to the run as a
+# downloadable file — no Android Studio or local setup needed.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/android-apk.yml"
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install mobile app dependencies
+        run: npm install
+
+      - name: Sync the native Android project
+        run: npx cap sync android
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build the debug APK
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload the APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: PriceBook-debug-apk
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
