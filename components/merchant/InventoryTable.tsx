@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Pagination, paginate } from "@/components/admin/Pagination";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
 import type { NutritionFacts } from "@/lib/aiVision";
+import { displayProductName } from "@/lib/productName";
 
 export type InventoryRow = {
   id: string;
@@ -209,10 +210,7 @@ export function InventoryTable({
                   ) : (
                     <div className="h-9 w-9 rounded bg-field" />
                   )}
-                  <span>
-                    {row.products.brand ? `${row.products.brand} ` : ""}
-                    {row.products.canonical_name}
-                  </span>
+                  <span>{displayProductName(row.products.brand, row.products.canonical_name)}</span>
                 </div>
               </td>
               <td className="font-mono text-xs text-ash">

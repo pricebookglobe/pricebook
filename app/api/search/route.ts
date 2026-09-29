@@ -101,108 +101,81 @@ export async function POST(req: NextRequest) {
     // could never match a Latin-script canonical_name at all.
     const partialTextQuery = (structured.product_name ?? text ?? "").trim();
 
-    let tierUsed: keyof typeof RADII_M | null = null;
-    let results: any[] = [];
-
-    for (const [tier, meters] of Object.entries(RADII_M) as [keyof typeof RADII_M, number][]) {
-      const { data: embeddingRows, error } = await supabase.rpc("search_nearby_products", {
-        query_embedding: embedding,
-        user_lat: lat,
-        user_lng: lng,
-        radius_meters: meters,
-        match_limit: 30,
-        query_size: structured.size ?? null,
-        query_unit: structured.unit ?? null,
-        min_similarity: SIMILARITY_FALLBACK_THRESHOLD
-      });
-      if (error) throw error;
-
-      let textRows: any[] = [];
-      if (partialTextQuery.length >= 2) {
-        const { data, error: textError } = await supabase.rpc("search_nearby_products_by_text", {
-          query_text: partialTextQuery,
-          user_lat: lat,
-          user_lng: lng,
-          radius_meters: meters,
-          match_limit: 30
-        });
-        if (textError) throw textError;
-        textRows = data ?? [];
-      }
-
-      let barcodeRows: any[] = [];
-      if (barcode) {
-        const { data, error: barcodeError } = await supabase.rpc("search_nearby_products_by_barcode", {
-          target_barcode: barcode,
-          user_lat: lat,
-          user_lng: lng,
-          radius_meters: meters,
-          match_limit: 30
-        });
-        if (barcodeError) throw barcodeError;
-        barcodeRows = data ?? [];
-      }
-
-      // Priority (highest confidence wins for a given store): embedding
-      // similarity < substring text match < exact barcode match.
-      const merged = mergeByStoreAndProduct(embeddingRows ?? [], textRows, barcodeRows);
-      if (merged.length) {
-        results = merged;
-        tierUsed = tier;
-        break;
-      }
-    }
-
-    const strongMatches = results.filter((r) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
-    const webEstimate = strongMatches.length ? null : await webFallbackSearch(structured);
-
-    // Separate from the tiered `results` above (which is what fills the
-    // results table and stops widening as soon as some tier has a hit).
-    // This one dedicated city-wide query lets us call out "the best price
-    // near you" versus "the best price in the whole city" side by side,
-    // even when they're different stores — the neighborhood tier alone
-    // can't tell us that, since it never looks past 5km once it has a hit.
-    let nearBest: any = null;
-    let cityBest: any = null;
-    const { data: cityWideEmbedding } = await supabase.rpc("search_nearby_products", {
+    // A single city-wide query is now the one source of truth for the
+    // results list, rather than a tiered "try 5km, then 25km, then the
+    // whole city, and STOP at whichever radius first finds anything."
+    // That tiered approach was built back when the only thing to show was
+    // one "closest option" — but once the whole point became a full
+    // comparison table of every store carrying the item, stopping at the
+    // first radius with a hit silently left out every farther store, even
+    // genuinely matching ones (a store 6km away never made it into the
+    // table just because a store 3km away happened to match first — it
+    // only ever showed up in the separate "best price in the city" callout,
+    // never in the list itself). Querying the full city radius once and
+    // using it for everything means the table always reflects every real
+    // match, at any distance.
+    const { data: cityWideEmbedding, error: embeddingError } = await supabase.rpc("search_nearby_products", {
       query_embedding: embedding,
       user_lat: lat,
       user_lng: lng,
       radius_meters: RADII_M.city,
-      match_limit: 50,
+      match_limit: 100,
       query_size: structured.size ?? null,
       query_unit: structured.unit ?? null,
       min_similarity: SIMILARITY_FALLBACK_THRESHOLD
     });
+    if (embeddingError) throw embeddingError;
+
     let cityWideText: any[] = [];
     if (partialTextQuery.length >= 2) {
-      const { data } = await supabase.rpc("search_nearby_products_by_text", {
+      const { data, error: textError } = await supabase.rpc("search_nearby_products_by_text", {
         query_text: partialTextQuery,
         user_lat: lat,
         user_lng: lng,
         radius_meters: RADII_M.city,
-        match_limit: 50
+        match_limit: 100
       });
+      if (textError) throw textError;
       cityWideText = data ?? [];
     }
+
     let cityWideBarcode: any[] = [];
     if (barcode) {
-      const { data } = await supabase.rpc("search_nearby_products_by_barcode", {
+      const { data, error: barcodeError } = await supabase.rpc("search_nearby_products_by_barcode", {
         target_barcode: barcode,
         user_lat: lat,
         user_lng: lng,
         radius_meters: RADII_M.city,
-        match_limit: 50
+        match_limit: 100
       });
+      if (barcodeError) throw barcodeError;
       cityWideBarcode = data ?? [];
     }
+
+    // Priority (highest confidence wins for a given store+product):
+    // embedding similarity < substring text match < exact barcode match.
     const cityWide = mergeByStoreAndProduct(cityWideEmbedding ?? [], cityWideText, cityWideBarcode);
-    if (cityWide.length) {
-      const strongCityWide = cityWide.filter((r: any) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
-      const pool = strongCityWide.length ? strongCityWide : cityWide;
-      const nearbyPool = pool.filter((r: any) => r.distance_m <= RADII_M.neighborhood);
+
+    const strongMatches = cityWide.filter((r: any) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
+    const results = strongMatches.length ? strongMatches : cityWide;
+    const webEstimate = strongMatches.length ? null : await webFallbackSearch(structured);
+
+    // Purely a display label now ("neighborhood/town/city zone" in the
+    // results header) — reflects how close the nearest real match is, but
+    // no longer gates which results are included; that's what caused
+    // farther-but-genuine matches to go missing.
+    let tierUsed: keyof typeof RADII_M | null = null;
+    if (results.length) {
+      const closest = Math.min(...results.map((r: any) => r.distance_m));
+      tierUsed = closest <= RADII_M.neighborhood ? "neighborhood" : closest <= RADII_M.town ? "town" : "city";
+    }
+
+    let nearBest: any = null;
+    let cityBest: any = null;
+    if (results.length) {
+      const nearbyPool = results.filter((r: any) => r.distance_m <= RADII_M.neighborhood);
       nearBest = nearbyPool.length ? [...nearbyPool].sort((a: any, b: any) => a.price - b.price)[0] : null;
-      cityBest = [...pool].sort((a: any, b: any) => a.price - b.price)[0] ?? null;
+      cityBest = [...results].sort((a: any, b: any) => a.price - b.price)[0] ?? null;
     }
 
     // Log to search history if the caller is logged in — best-effort, never

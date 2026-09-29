@@ -12,6 +12,7 @@ import { BarcodeScanner } from "@/components/shared/BarcodeScanner";
 import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { displayProductName } from "@/lib/productName";
 
 const TIER_LABEL: Record<string, string> = {
   neighborhood: "neighborhood zone",
@@ -472,14 +473,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         <section className="mt-8">
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="font-display text-lg font-bold text-ink">
-              {/* Skip the brand prefix when it's already part of (or the same
-                  as) the parsed product name — e.g. brand "Snickers" and
-                  product_name "Snickers" would otherwise show "Snickers
-                  Snickers" for a query that's just the brand name itself. */}
-              {result.query.brand && !result.query.product_name.toLowerCase().includes(result.query.brand.toLowerCase())
-                ? `${result.query.brand} `
-                : ""}
-              {result.query.product_name}
+              {displayProductName(result.query.brand, result.query.product_name)}
             </h2>
             {result.tier && (
               <span className="font-mono text-xs uppercase tracking-wide text-ash">

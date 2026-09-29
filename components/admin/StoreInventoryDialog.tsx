@@ -6,6 +6,7 @@ import { Pagination, paginate } from "@/components/admin/Pagination";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
+import { displayProductName } from "@/lib/productName";
 
 type InventoryRow = {
   id: string;
@@ -122,10 +123,7 @@ export function StoreInventoryDialog({
                       ) : (
                         <div className="h-9 w-9 rounded bg-field" />
                       )}
-                      <span>
-                        {row.products.brand ? `${row.products.brand} ` : ""}
-                        {row.products.canonical_name}
-                      </span>
+                      <span>{displayProductName(row.products.brand, row.products.canonical_name)}</span>
                     </div>
                   </td>
                   <td className="font-mono text-xs text-ash">

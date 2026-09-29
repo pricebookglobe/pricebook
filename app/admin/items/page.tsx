@@ -8,6 +8,7 @@ import { ClearableSearch } from "@/components/admin/ClearableSearch";
 import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Pagination, paginate } from "@/components/admin/Pagination";
+import { displayProductName } from "@/lib/productName";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
 import { TrustDot } from "@/components/shared/TrustDot";
 
@@ -137,10 +138,7 @@ export default function AdminItemsPage() {
                     ) : (
                       <div className="h-9 w-9 rounded bg-field" />
                     )}
-                    <span>
-                      {i.brand ? `${i.brand} ` : ""}
-                      {i.product_name}
-                    </span>
+                    <span>{displayProductName(i.brand, i.product_name)}</span>
                   </div>
                 </td>
                 <td className="font-mono text-xs text-ash">{i.size ? `${i.size} ${i.unit ?? ""}` : "—"}</td>
