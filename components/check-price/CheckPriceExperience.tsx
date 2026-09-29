@@ -455,7 +455,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           {t("Location is off, so we can't sort by distance. Enable it in your browser to see nearby prices.")}
         </p>
       )}
-      {error && <p className="mt-3 text-sm text-flag">{error}</p>}
+      {error && <p className="mt-3 text-sm text-flag">{t(error)}</p>}
 
       {result && (
         <section className="mt-8">

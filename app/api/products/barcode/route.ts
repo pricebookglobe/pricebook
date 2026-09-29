@@ -93,14 +93,31 @@ export async function POST(req: NextRequest) {
     // of product_name (brand "Snickers" + product_name "Snickers Duo"),
     // which both displays oddly ("Snickers Snickers Duo") and, more
     // importantly, skews the search embedding — the brand ends up
-    // repeated twice in the text sent for matching, which can push a
-    // genuinely matching product below the similarity threshold purely
-    // because of this duplication, not because it's actually different.
+    // repeated in the text sent for matching, which can push a genuinely
+    // matching product below the similarity threshold purely because of
+    // this duplication, not because it's actually different.
+    //
+    // Some source entries have the brand duplicated *within their own*
+    // product_name (e.g. product_name is literally "Toblerone Toblerone
+    // Milk Chocolate"), so a single strip left one copy behind — which
+    // then got the brand prepended again in the UI, producing "Toblerone
+    // Toblerone Milk Chocolate" all over again. Loop the strip so any
+    // number of leading repeats (and any stray separator left between
+    // them, like "-" or ",") are removed, not just the first one.
     let productName = product.product_name || product.generic_name || "Unknown product";
-    if (brand && productName.toLowerCase().startsWith(brand.toLowerCase())) {
-      const stripped = productName.slice(brand.length).trim();
-      if (stripped) productName = stripped;
+    if (brand) {
+      const brandLower = brand.toLowerCase();
+      // Bounded loop (not a while-true) so a pathological input can never
+      // hang the request — a real brand name is never repeated more than
+      // a handful of times, if at all.
+      for (let i = 0; i < 5; i++) {
+        if (!productName.toLowerCase().startsWith(brandLower)) break;
+        const rest = productName.slice(brand.length).replace(/^[\s,\-–—]+/, "").trim();
+        if (!rest || rest.toLowerCase() === productName.toLowerCase()) break;
+        productName = rest;
+      }
     }
+    if (!productName) productName = product.product_name || product.generic_name || "Unknown product";
 
     return NextResponse.json({
       found: true,

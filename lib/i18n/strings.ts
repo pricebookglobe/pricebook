@@ -314,5 +314,9 @@ export const UI_STRINGS = [
   "Page",
   "of",
   "Back",
-  "Next"
+  "Next",
+
+  // Search failure messages (Snap / Enter details with nothing recognizable)
+  "Couldn't recognize a product in that photo — try a clearer, closer photo, or Enter details instead.",
+  "Couldn't understand that search — try rephrasing, or Enter details instead."
 ] as const;

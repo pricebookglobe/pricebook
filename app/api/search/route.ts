@@ -35,6 +35,25 @@ export async function POST(req: NextRequest) {
       ? await extractProductFromImage(imageBase64)
       : await parseTextQuery(text);
 
+    // When a photo doesn't clearly show a product (blurry, no product in
+    // frame, an unusual angle), GPT-4o's vision extraction can come back
+    // with an empty product_name rather than throwing — the request then
+    // "succeeds" with nothing to actually search for, and the person just
+    // sees a blank heading with no obvious explanation ("Snap returns
+    // nothing"). Treat that the same as a real failure, with a message
+    // that tells them what to try instead, rather than silently searching
+    // for an empty string.
+    if (!structured?.product_name || !String(structured.product_name).trim()) {
+      return NextResponse.json(
+        {
+          error: imageBase64
+            ? "Couldn't recognize a product in that photo — try a clearer, closer photo, or Enter details instead."
+            : "Couldn't understand that search — try rephrasing, or Enter details instead."
+        },
+        { status: 422 }
+      );
+    }
+
     const embedding = await embedProductDescription(structured);
     const supabase = createServiceSupabase();
 
