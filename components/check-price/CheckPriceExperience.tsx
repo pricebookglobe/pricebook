@@ -293,9 +293,16 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         sortMode === "price" ? a.price - b.price : a.distance_m - b.distance_m
       )
     : [];
-  const cheapestId =
+  // Identifies the single cheapest row, not just the cheapest store — a
+  // store can now show more than one row (different products matching the
+  // same partial-name search), so "store_id" alone could mark more than
+  // one row as "cheapest" even when only one of them actually is.
+  const cheapestKey =
     sorted.length > 0
-      ? sorted.reduce((min, r) => (r.price < min.price ? r : min), sorted[0]).store_id
+      ? (() => {
+          const min = sorted.reduce((m, r) => (r.price < m.price ? r : m), sorted[0]);
+          return `${min.store_id}::${min.product_id}`;
+        })()
       : null;
   const atStore = sorted.find((r) => r.distance_m <= AT_STORE_METERS) ?? null;
   // Always show the full list of every store carrying the item — it used
@@ -465,7 +472,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         <section className="mt-8">
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="font-display text-lg font-bold text-ink">
-              {result.query.brand ? `${result.query.brand} ` : ""}
+              {/* Skip the brand prefix when it's already part of (or the same
+                  as) the parsed product name — e.g. brand "Snickers" and
+                  product_name "Snickers" would otherwise show "Snickers
+                  Snickers" for a query that's just the brand name itself. */}
+              {result.query.brand && !result.query.product_name.toLowerCase().includes(result.query.brand.toLowerCase())
+                ? `${result.query.brand} `
+                : ""}
               {result.query.product_name}
             </h2>
             {result.tier && (
@@ -585,6 +598,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             <table className="data-table">
               <thead>
                 <tr>
+                  <th>{t("Product")}</th>
                   <th>{t("Store")}</th>
                   <th className="num">{t("Distance")}</th>
                   <th className="num">{t("Price")}</th>
@@ -593,7 +607,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               </thead>
               <tbody>
                 {tableRows.map((r) => (
-                  <ResultRow key={r.store_id + r.product_id} result={r} isCheapest={r.store_id === cheapestId} />
+                  <ResultRow
+                    key={r.store_id + r.product_id}
+                    result={r}
+                    isCheapest={`${r.store_id}::${r.product_id}` === cheapestKey}
+                  />
                 ))}
               </tbody>
             </table>

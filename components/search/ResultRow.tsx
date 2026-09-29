@@ -64,6 +64,7 @@ export function ResultRow({ result, isCheapest }: { result: SearchResult; isChea
   return (
     <>
       <tr>
+        <td className="font-medium text-ink">{result.product_name}</td>
         <td>
           <div className="flex items-center gap-2">
             <span className={"h-2 w-2 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />
@@ -146,7 +147,7 @@ export function ResultRow({ result, isCheapest }: { result: SearchResult; isChea
       </tr>
       {showNutrition && result.nutrition_facts && (
         <tr>
-          <td colSpan={4} className="bg-field px-3 py-2">
+          <td colSpan={5} className="bg-field px-3 py-2">
             <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-ash">
               {t("Nutrition facts")} · {t("AI estimate — check the actual package")}
             </p>

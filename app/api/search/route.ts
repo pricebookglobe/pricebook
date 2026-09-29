@@ -68,14 +68,21 @@ export async function POST(req: NextRequest) {
     // store's genuine listing invisible, which is the opposite of what a
     // barcode match should do — it should only ever add confidence, not
     // take visibility away from anything else.
-    function mergeByStore(...rowSets: any[][]): any[] {
-      const byStore = new Map<string, any>();
-      // Later sets win over earlier ones for the same store — callers pass
-      // sets in ascending confidence order (weakest first).
+    // Keyed by store + PRODUCT, not just store — a single store can
+    // genuinely carry more than one item matching the search (e.g. both
+    // "Snickers" and "Snickers Duo" for a "snick" search), and those are
+    // different products that should both show up, not compete for one
+    // slot per store. Keying by store_id alone silently dropped every
+    // match but one per store; a store selling several matching items
+    // would only ever show whichever one happened to be merged in last.
+    function mergeByStoreAndProduct(...rowSets: any[][]): any[] {
+      const byStoreProduct = new Map<string, any>();
+      // Later sets win over earlier ones for the same store+product —
+      // callers pass sets in ascending confidence order (weakest first).
       for (const rows of rowSets) {
-        for (const row of rows) byStore.set(row.store_id, row);
+        for (const row of rows) byStoreProduct.set(`${row.store_id}::${row.product_id}`, row);
       }
-      return Array.from(byStore.values());
+      return Array.from(byStoreProduct.values());
     }
 
     // A plain substring match against the product's stored name/brand, in
@@ -138,7 +145,7 @@ export async function POST(req: NextRequest) {
 
       // Priority (highest confidence wins for a given store): embedding
       // similarity < substring text match < exact barcode match.
-      const merged = mergeByStore(embeddingRows ?? [], textRows, barcodeRows);
+      const merged = mergeByStoreAndProduct(embeddingRows ?? [], textRows, barcodeRows);
       if (merged.length) {
         results = merged;
         tierUsed = tier;
@@ -189,7 +196,7 @@ export async function POST(req: NextRequest) {
       });
       cityWideBarcode = data ?? [];
     }
-    const cityWide = mergeByStore(cityWideEmbedding ?? [], cityWideText, cityWideBarcode);
+    const cityWide = mergeByStoreAndProduct(cityWideEmbedding ?? [], cityWideText, cityWideBarcode);
     if (cityWide.length) {
       const strongCityWide = cityWide.filter((r: any) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
       const pool = strongCityWide.length ? strongCityWide : cityWide;
