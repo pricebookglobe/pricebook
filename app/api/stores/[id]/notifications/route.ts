@@ -51,7 +51,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const { data: priceReportRows, error: priceError } = await supabase
     .from("price_reports")
     .select("id, report_type, created_at, products ( canonical_name, brand )")
-    .eq("store_id", params.id);
+    .eq("store_id", params.id)
+    .is("dismissed_at", null);
   if (priceError) return NextResponse.json({ error: priceError.message }, { status: 500 });
 
   const reviews = (reviewRows ?? []).map((n) => ({
@@ -76,15 +77,40 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json(merged);
 }
 
-// Dismisses (deletes) a notification only — the underlying review is
-// untouched and stays visible to customers on the store's public page.
+// Dismisses one notification, or all of them at once. A review notification
+// is actually deleted (the underlying review is untouched and stays
+// visible to customers on the store's public page); a price-report
+// notification is only flagged dismissed_at, never deleted — the report
+// itself must keep counting toward the Registered Items badge and the
+// Overview summary.
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const { notification_id } = await req.json();
-  if (!notification_id) return NextResponse.json({ error: "notification_id is required" }, { status: 400 });
-
+  const body = await req.json();
   const verified = await verifyOwnership(req, params.id);
   if (verified.error) return verified.error;
   const { supabase } = verified;
+
+  if (body.all) {
+    const [reviewResult, priceResult] = await Promise.all([
+      supabase.from("store_review_notifications").delete().eq("store_id", params.id),
+      supabase.from("price_reports").update({ dismissed_at: new Date().toISOString() }).eq("store_id", params.id).is("dismissed_at", null)
+    ]);
+    if (reviewResult.error) return NextResponse.json({ error: reviewResult.error.message }, { status: 500 });
+    if (priceResult.error) return NextResponse.json({ error: priceResult.error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
+
+  const { notification_id, type } = body;
+  if (!notification_id) return NextResponse.json({ error: "notification_id is required" }, { status: 400 });
+
+  if (type === "price_report") {
+    const { error } = await supabase
+      .from("price_reports")
+      .update({ dismissed_at: new Date().toISOString() })
+      .eq("store_id", params.id)
+      .eq("id", notification_id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
 
   const { error } = await supabase
     .from("store_review_notifications")

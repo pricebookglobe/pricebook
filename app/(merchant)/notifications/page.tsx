@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -62,7 +63,8 @@ export default function NotificationsPage() {
   const [rows, setRows] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
-  const [pendingDelete, setPendingDelete] = useState<ReviewNotification | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Notification | null>(null);
+  const [pendingDeleteAll, setPendingDeleteAll] = useState(false);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -90,17 +92,28 @@ export default function NotificationsPage() {
     });
   }, [router]);
 
-  // Only review notifications can be dismissed here — a price report is the
-  // same underlying record that powers the Registered Items report badge
-  // and the Overview price-report count, so it isn't something this screen
-  // can delete without also erasing that trust signal elsewhere.
-  async function dismiss(n: ReviewNotification) {
+  // A review notification is actually deleted; a price-report notification
+  // is only marked dismissed server-side (see the API route) so the report
+  // keeps counting toward the Registered Items badge and the Overview
+  // summary — it just stops showing up in this list.
+  async function dismiss(n: Notification) {
     if (!storeId || !token) return;
-    setRows((r) => r.filter((x) => x.id !== n.id));
+    setRows((r) => r.filter((x) => !(x.type === n.type && x.id === n.id)));
     await fetch(`/api/stores/${storeId}/notifications`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ notification_id: n.id })
+      body: JSON.stringify({ notification_id: n.id, type: n.type })
+    });
+  }
+
+  async function dismissAll() {
+    if (!storeId || !token) return;
+    setRows([]);
+    setPage(0);
+    await fetch(`/api/stores/${storeId}/notifications`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ all: true })
     });
   }
 
@@ -108,7 +121,17 @@ export default function NotificationsPage() {
 
   return (
     <AppPage>
-      <h1 className="mb-1 font-display text-xl font-semibold text-ink">{t("Notifications")}</h1>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <h1 className="font-display text-xl font-semibold text-ink">{t("Notifications")}</h1>
+        {rows.length > 0 && isNativeApp && (
+          <button
+            onClick={() => setPendingDeleteAll(true)}
+            className="rounded-md bg-red-600 px-3 py-1.5 font-mono text-[11px] font-medium text-white shadow-sm active:scale-[0.98]"
+          >
+            {t("Delete all")}
+          </button>
+        )}
+      </div>
       <p className="mb-6 text-sm text-ash">{t("Every review and price report your store has received.")}</p>
 
       {loading && <p className="text-sm text-ash">…</p>}
@@ -117,21 +140,16 @@ export default function NotificationsPage() {
       {visible.length > 0 && isNativeApp && (
         <div className="flex flex-col gap-2">
           {visible.map((n) => (
-            <div key={`${n.type}-${n.id}`} className="rounded-lg border border-line bg-field-raised p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="font-mono text-[11px] text-ash">{new Date(n.created_at).toLocaleDateString()}</p>
-                  <NotificationSummary n={n} t={t} />
-                </div>
-                {n.type === "review" && (
-                  <button
-                    onClick={() => setPendingDelete(n)}
-                    className="shrink-0 text-sm text-ash underline hover:text-flag"
-                  >
-                    {t("Delete")}
-                  </button>
-                )}
-              </div>
+            <div key={`${n.type}-${n.id}`} className="relative rounded-lg border border-line bg-field-raised p-3 pr-9">
+              <p className="font-mono text-[11px] text-ash">{new Date(n.created_at).toLocaleDateString()}</p>
+              <NotificationSummary n={n} t={t} />
+              <button
+                onClick={() => setPendingDelete(n)}
+                aria-label={t("Delete")}
+                className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-red-600 hover:bg-red-50"
+              >
+                <X size={16} strokeWidth={2.25} />
+              </button>
             </div>
           ))}
         </div>
@@ -154,11 +172,9 @@ export default function NotificationsPage() {
                   <NotificationSummary n={n} t={t} />
                 </td>
                 <td className="num">
-                  {n.type === "review" && (
-                    <button onClick={() => setPendingDelete(n)} className="text-sm text-ash underline hover:text-flag">
-                      {t("Delete")}
-                    </button>
-                  )}
+                  <button onClick={() => setPendingDelete(n)} className="text-sm text-red-600 underline hover:text-red-700">
+                    {t("Delete")}
+                  </button>
                 </td>
               </tr>
             ))}
@@ -171,12 +187,28 @@ export default function NotificationsPage() {
       <ConfirmDialog
         open={!!pendingDelete}
         title={t("Delete this notification?")}
-        message={t("This only removes it from your notifications — the review itself stays visible to customers on your store page.")}
+        message={
+          pendingDelete?.type === "review"
+            ? t("This only removes it from your notifications — the review itself stays visible to customers on your store page.")
+            : t("This only removes it from your notifications — the price report still counts on Registered Items and Store overview.")
+        }
         confirmLabel={t("Delete")}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => {
           if (pendingDelete) dismiss(pendingDelete);
           setPendingDelete(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={pendingDeleteAll}
+        title={t("Delete all notifications?")}
+        message={t("This only removes them from your notifications — reviews and price reports themselves are unaffected.")}
+        confirmLabel={t("Delete all")}
+        onCancel={() => setPendingDeleteAll(false)}
+        onConfirm={() => {
+          dismissAll();
+          setPendingDeleteAll(false);
         }}
       />
     </AppPage>

@@ -141,7 +141,7 @@ export default function StoreOverviewPage() {
                 </tr>
               </thead>
               <tbody>
-                {(isNativeApp ? paginate(data.products, productsPage, APP_PAGE_SIZE) : data.products).map((p, idx) => (
+                {paginate(data.products, productsPage, isNativeApp ? APP_PAGE_SIZE : undefined).map((p, idx) => (
                   <tr key={p.product_id} className={isNativeApp ? (idx % 2 === 0 ? "bg-white" : "bg-field") : undefined}>
                     <td>{p.product_name}</td>
                     <td className="num">
@@ -156,8 +156,13 @@ export default function StoreOverviewPage() {
             </table>
           )}
 
-          {isNativeApp && data.products.length > 0 && (
-            <Pagination page={productsPage} totalItems={data.products.length} onPageChange={setProductsPage} pageSize={APP_PAGE_SIZE} />
+          {data.products.length > 0 && (
+            <Pagination
+              page={productsPage}
+              totalItems={data.products.length}
+              onPageChange={setProductsPage}
+              pageSize={isNativeApp ? APP_PAGE_SIZE : undefined}
+            />
           )}
         </>
       )}

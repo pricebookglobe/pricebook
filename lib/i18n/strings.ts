@@ -185,6 +185,9 @@ export const UI_STRINGS = [
   "Delete this notification?",
   "Price reported wrong",
   "Price confirmed correct",
+  "This only removes it from your notifications — the price report still counts on Registered Items and Store overview.",
+  "Delete all notifications?",
+  "This only removes them from your notifications — reviews and price reports themselves are unaffected.",
 
   // Settings (store details)
   "Store details",

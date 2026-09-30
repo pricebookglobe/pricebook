@@ -24,7 +24,7 @@ export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.
           src="/pricebook-icon-transparent.png"
           alt=""
           aria-hidden="true"
-          className="pointer-events-none fixed left-1/2 top-1/2 h-[62vw] max-h-[380px] w-[62vw] max-w-[380px] -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.05]"
+          className="pointer-events-none fixed left-1/2 top-1/2 h-[80vw] max-h-[480px] w-[80vw] max-w-[480px] -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.09]"
         />
 
         <div className="relative z-10 flex min-h-screen flex-col">

@@ -48,7 +48,7 @@ export function MobileTopBar() {
   return (
     <header className="relative z-30 flex items-center justify-between border-b border-line bg-field-raised px-4 py-3">
       <Link href="/" className="flex items-center">
-        <img src="/pricebook-icon-dark.png" alt="PriceBook" className="h-7 w-auto" />
+        <img src="/pricebook-icon-dark.png" alt="PriceBook" className="h-10 w-auto" />
       </Link>
 
       <div className="flex items-center gap-2">
