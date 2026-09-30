@@ -17,14 +17,16 @@ type PriceReportStats = {
   positive_pct: number | null;
 };
 
-// Green above 90% positive, amber from 75% up to 90%, red below 75%. No
-// star at all when there aren't any reports yet — there's nothing to
-// judge accuracy from. Based on price-accuracy reports (shoppers
-// confirming or flagging a price as wrong) rather than the separate
-// 1-5 star review system, since that's the signal actually in use and
-// it's a more direct measure of "can I trust this store's prices."
-function trustStar(positivePct: number | null): { color: string; label: string } | null {
-  if (positivePct === null) return null;
+// Green above 90% positive, amber from 75% up to 90%, red below 75%, and
+// grey when there aren't any price reports yet — the star always shows,
+// so its color is itself the signal, rather than the star's absence
+// being the only clue that there's nothing to judge accuracy from yet.
+// Based on price-accuracy reports (shoppers confirming or flagging a
+// price as wrong) rather than the separate 1-5 star review system, since
+// that's the signal actually in use and it's a more direct measure of
+// "can I trust this store's prices."
+function trustStar(positivePct: number | null): { color: string; label: string } {
+  if (positivePct === null) return { color: "text-ash/40", label: "No price reports yet" };
   if (positivePct > 90) return { color: "text-value", label: "Highly trusted — over 90% of price reports confirmed correct" };
   if (positivePct >= 75) return { color: "text-flag", label: "Mostly trusted — 75% or more of price reports confirmed correct" };
   return { color: "text-red-600", label: "Below 75% of price reports confirmed correct — check prices carefully" };
