@@ -20,21 +20,24 @@
          androidx.core:core-splashscreen, see MainActivity) only recognizes
          its own windowSplashScreen* attributes — a plain android:background
          is silently ignored by Theme.SplashScreen, which is why this was
-         showing a blank/white screen at launch instead of @drawable/splash.
-         This shows our navy background + the shield mark immediately at
-         cold start; postSplashScreenTheme then hands off to the normal app
-         theme once onCreate runs, and Capacitor's own SplashScreen plugin
-         (capacitor.config.ts) takes it from there with the full branded
-         splash.png for up to 3s while the site loads.
+         originally showing a blank/white screen at launch instead of
+         @drawable/splash. postSplashScreenTheme hands off to the normal
+         app theme once onCreate runs, and Capacitor's own SplashScreen
+         plugin (capacitor.config.ts) takes it from there with the full
+         branded navy splash.png for up to 3s while the site loads — this
+         theme only covers the brief native gap before that.
 
-         windowSplashScreenAnimatedIcon is @drawable/splash_icon, not
-         @mipmap/ic_launcher_foreground: the launcher art's navy shield
-         outline and navy "P" are drawn to sit on the adaptive icon's light
-         background, so placed directly on this navy splashBackground they
-         all but disappeared, leaving only the green bits visible (this is
-         what the screenshot showed). splash_icon.png is the same mark on
-         its own small cream card — matching splash.png's card treatment —
-         so it has real contrast regardless of what's behind it. -->
+         Two rounds of fixes landed here:
+         1) windowSplashScreenBackground is white, not navy: the logo's
+            shield outline and "P" are drawn in navy to sit on a light
+            background, so on a navy background they nearly disappeared
+            (only the green bits showed) — reported as "not clear".
+         2) windowSplashScreenAnimatedIcon (@drawable/splash_icon) is
+            generated per-density at the ~192dp container this API actually
+            draws it at, from the high-res app/icon.png master — the first
+            version reused the 48dp launcher-icon PNGs, which the OS then
+            stretched ~4x, which is what was actually causing the blur
+            (not the background color). -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splashBackground</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
