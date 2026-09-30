@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { AppPage } from "@/components/shared/AppPage";
-import { StarRating } from "@/components/shared/StarRating";
+import { EmojiRating, EmojiRatingPicker } from "@/components/shared/EmojiRating";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
@@ -25,11 +25,10 @@ type ReviewStats = { average: number | null; count: number };
 // so its color is itself the signal, rather than its absence being the
 // only clue that there's nothing to judge accuracy from yet. Based on
 // price-accuracy reports (shoppers confirming or flagging a price as
-// wrong) rather than the separate 1-5 star review system below — this is
-// a more direct measure of "can I trust this store's prices," which is
-// why it's a plain colored circle and not a star: the star is reserved
-// for the actual customer star ratings, so the two signals never look
-// like the same kind of thing next to the store name.
+// wrong) rather than the separate 1-5 emoji review system below — this is
+// a more direct measure of "can I trust this store's prices," kept as a
+// plain colored circle (no face) so it never looks like the same kind of
+// signal as the review rating next to it.
 function trustCircle(positivePct: number | null): { color: string; label: string } {
   if (positivePct === null) return { color: "bg-ash/40", label: "No price reports yet" };
   if (positivePct > 90) return { color: "bg-value", label: "Highly trusted — over 90% of price reports confirmed correct" };
@@ -52,7 +51,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
   // left one here, so the form pre-fills it and reads as "edit your
   // review" instead of implying a brand new review can be added each visit.
   const [myReview, setMyReview] = useState<MyReview | null>(null);
-  // The average star rating shown next to the store name — separate from
+  // The average emoji rating shown next to the store name — separate from
   // reviews[] (which is just the list rendered further down the page).
   const [reviewStats, setReviewStats] = useState<ReviewStats>({ average: null, count: 0 });
 
@@ -133,12 +132,12 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
         {/* Price-report correctness: a plain colored circle, kept visually
             distinct from the star rating right next to it. */}
         <span className={"h-3 w-3 shrink-0 rounded-full " + circle.color} title={circle.label} aria-label={circle.label} />
-        {/* Customer star rating, averaged across every shopper's review for
-            this store — separate signal from the circle above. Half-star
-            granularity, the pattern shoppers already know from everywhere
-            else, rather than a raw decimal or an unsegmented partial fill. */}
+        {/* Customer emoji rating, averaged across every shopper's review for
+            this store — separate signal from the circle above. Rounds the
+            average to the nearest whole face (1-5) rather than a star's
+            partial fill. */}
         <span className="text-base font-normal">
-          <StarRating rating={reviewStats.count > 0 ? reviewStats.average : null} count={reviewStats.count} size={18} />
+          <EmojiRating rating={reviewStats.count > 0 ? reviewStats.average : null} count={reviewStats.count} size={22} />
         </span>
       </h1>
       <p className="mt-1 text-sm text-ash">{store.address}, {store.city}</p>
@@ -176,17 +175,8 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
             {t("One review per store — editing yours below updates it, it won't add a new one.")}
           </p>
         )}
-        <div className="mt-2 flex gap-1">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              onClick={() => setMyRating(n)}
-              className={n <= myRating ? "text-value" : "text-ash/40"}
-              aria-label={`${n} stars`}
-            >
-              ★
-            </button>
-          ))}
+        <div className="mt-2">
+          <EmojiRatingPicker value={myRating} onChange={setMyRating} />
         </div>
         <textarea
           value={comment}
@@ -209,7 +199,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
         {reviews.length === 0 && <p className="text-sm text-ash">{t("No reviews yet.")}</p>}
         {reviews.map((r) => (
           <div key={r.id} className="border-b border-line py-3">
-            <StarRating rating={r.rating} showValue={false} size={14} />
+            <EmojiRating rating={r.rating} showValue={false} size={18} />
             {r.comment && <p className="mt-1 text-sm text-ink">{r.comment}</p>}
             <p className="mt-1 font-mono text-[11px] text-ash">
               {/* Reviewer identity is never shown — only ever a generic label. */}

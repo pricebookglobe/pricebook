@@ -30,7 +30,16 @@ const AT_STORE_METERS = 150;
 // menu/search screen instead of the results list the shopper was just
 // looking at. Caching the last result in sessionStorage (cleared when the
 // app/tab session ends) lets it be restored on remount instead.
-const SEARCH_CACHE_KEY = "pricebook:lastSearchResult";
+//
+// Keyed PER SCREEN (by initialMode — "menu" for /check-price, "text" for
+// /search-items): this component backs both screens, and a single shared
+// key meant a Check Price result was still sitting there when you then
+// went to Search items, making that screen look "stuck" showing the other
+// screen's result instead of starting fresh. Each screen now only ever
+// restores its own last result.
+function searchCacheKey(mode: Mode): string {
+  return `pricebook:lastSearchResult:${mode}`;
+}
 const SEARCH_CACHE_MAX_AGE_MS = 30 * 60 * 1000; // 30 min — long enough to survive a store detour, short enough prices don't go stale
 
 type Mode = "menu" | "text";
@@ -306,18 +315,27 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [sortMode, setSortMode] = useState<"price" | "distance">("price");
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Restore the last results on remount (see SEARCH_CACHE_KEY comment above).
+  // Restore this screen's own last results on remount (see the cache
+  // comment above initialMode's screen — Check Price vs Search items never
+  // read each other's cached result).
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem(SEARCH_CACHE_KEY);
+      const key = searchCacheKey(initialMode);
+      const raw = sessionStorage.getItem(key);
       if (!raw) return;
-      const cached = JSON.parse(raw) as { result: SearchResponse; mode: Mode; savedAt: number };
+      const cached = JSON.parse(raw) as { result: SearchResponse; savedAt: number };
       if (Date.now() - cached.savedAt > SEARCH_CACHE_MAX_AGE_MS) {
-        sessionStorage.removeItem(SEARCH_CACHE_KEY);
+        sessionStorage.removeItem(key);
         return;
       }
       setResult(cached.result);
-      setMode(cached.mode);
+      // A restored result implies "Check Price" was already pressed and a
+      // method already chosen — without this, the "Check Price" menu
+      // button re-appears ABOVE the old result on remount (checkPriceRevealed
+      // resets to false on every fresh mount), so it looked like two
+      // screens stacked on top of each other rather than one clear result.
+      setCheckPriceRevealed(true);
+      setMode("menu");
     } catch {
       // corrupt or unavailable storage — just start fresh
     }
@@ -325,18 +343,21 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep the cache in sync with whatever's currently on screen.
+  // Keep this screen's own cache slot in sync with whatever's currently on
+  // screen — a null result (new search starting, or "start new check")
+  // clears it immediately, so it can never resurface a stale result later.
   useEffect(() => {
     try {
+      const key = searchCacheKey(initialMode);
       if (result) {
-        sessionStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify({ result, mode, savedAt: Date.now() }));
+        sessionStorage.setItem(key, JSON.stringify({ result, savedAt: Date.now() }));
       } else {
-        sessionStorage.removeItem(SEARCH_CACHE_KEY);
+        sessionStorage.removeItem(key);
       }
     } catch {
       // storage full/unavailable — the list just won't survive a back-navigation this time
     }
-  }, [result, mode]);
+  }, [result, initialMode]);
 
   async function handleFindMyLocation() {
     setLocating(true);
@@ -354,6 +375,20 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     } finally {
       setLocating(false);
     }
+  }
+
+  // Explicit reset for "Start a new check": clears the result and every bit
+  // of state tied to the last one, and drops back to the Check Price menu
+  // (scan/snap/enter details) rather than leaving the old answer showing
+  // while the shopper decides how to check a different item.
+  function startNewCheck() {
+    setResult(null);
+    setError(null);
+    setLocationCheck(null);
+    setShowLocationMap(false);
+    setUseGuidedForm(false);
+    setMode(initialMode);
+    setCheckPriceRevealed(true);
   }
 
   async function runSearch(input: { text?: string; imageBase64?: string; structured?: any; barcode?: string }) {
@@ -632,15 +667,24 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
       {result && (
         <section className="mt-8">
-          <div className="mb-2 flex items-baseline justify-between">
+          <div className="mb-2 flex items-baseline justify-between gap-2">
             <h2 className="font-display text-lg font-bold text-ink">
               {displayProductName(result.query.brand, result.query.product_name)}
             </h2>
-            {result.tier && (
-              <span className="font-mono text-xs uppercase tracking-wide text-ash">
-                {t(TIER_LABEL[result.tier] ?? result.tier)}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {result.tier && (
+                <span className="font-mono text-xs uppercase tracking-wide text-ash">
+                  {t(TIER_LABEL[result.tier] ?? result.tier)}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={startNewCheck}
+                className="whitespace-nowrap text-sm text-value underline hover:text-value/80"
+              >
+                {t("Start new check")}
+              </button>
+            </div>
           </div>
 
           {sorted.length === 0 && (

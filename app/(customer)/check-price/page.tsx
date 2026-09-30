@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { GeolocationProvider } from "@/components/shared/GeolocationProvider";
 import { CheckPriceExperience } from "@/components/check-price/CheckPriceExperience";
 import { useAccount } from "@/lib/AccountProvider";
 
@@ -19,9 +18,7 @@ export default function CheckPricePage() {
 
   if (loading || !profile || profile.role !== "customer") return null;
 
-  return (
-    <GeolocationProvider>
-      <CheckPriceExperience initialMode="menu" />
-    </GeolocationProvider>
-  );
+  // GeolocationProvider now lives in this route group's layout.tsx, shared
+  // with Search Items, so it doesn't restart on every tab switch.
+  return <CheckPriceExperience initialMode="menu" />;
 }
