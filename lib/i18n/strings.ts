@@ -178,10 +178,13 @@ export const UI_STRINGS = [
   // Notifications (merchant)
   "Notifications",
   "Every review your store has received.",
+  "Every review and price report your store has received.",
   "Date",
   "Result",
   "No notifications yet.",
   "Delete this notification?",
+  "Price reported wrong",
+  "Price confirmed correct",
 
   // Settings (store details)
   "Store details",

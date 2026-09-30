@@ -36,7 +36,7 @@ export default function InventoryPage() {
         return;
       }
       setStoreId(store.id);
-      const invRes = await fetch(`/api/stores/${store.id}/inventory`);
+      const invRes = await fetch(`/api/stores/${store.id}/inventory`, { cache: "no-store" });
       if (invRes.ok) setRows(await invRes.json());
       setLoading(false);
     });

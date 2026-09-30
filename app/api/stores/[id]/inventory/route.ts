@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceSupabase } from "@/lib/supabaseClient";
 
+// Read fresh every time — this backs the report-count badge on Registered
+// Items, which needs to reflect a just-submitted price report immediately.
+export const dynamic = "force-dynamic";
+
 // Verifies the caller is logged in AND owns the store at params.id — the
 // earlier version trusted the store_id in the URL with no auth check at
 // all, which let anyone write to any store's inventory. Every write below
