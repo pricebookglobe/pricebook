@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand tokens (mirrors tailwind.config.ts: ink / field / value). -->
+    <color name="colorPrimary">#16223F</color>
+    <color name="colorPrimaryDark">#0F1830</color>
+    <color name="colorAccent">#1F8A5F</color>
+
+    <!-- Shown as the window background the instant the process starts,
+         before Capacitor's own JS-driven splash (capacitor.config.ts,
+         SplashScreen plugin) can take over — matches splash.png's
+         background so there's no flash of white in that gap. -->
+    <color name="splashBackground">#16223F</color>
+</resources>

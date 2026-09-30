@@ -8,7 +8,8 @@
     "@capacitor/core": "^6.1.2",
     "@capacitor/app": "^6.0.1",
     "@capacitor/status-bar": "^6.0.1",
-    "@capacitor/splash-screen": "^6.0.3"
+    "@capacitor/splash-screen": "^6.0.3",
+    "@capacitor/geolocation": "^6.0.1"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.1.2",

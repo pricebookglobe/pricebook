@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { AppPage } from "@/components/shared/AppPage";
+import { StarRating } from "@/components/shared/StarRating";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
@@ -132,21 +133,13 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
         {/* Price-report correctness: a plain colored circle, kept visually
             distinct from the star rating right next to it. */}
         <span className={"h-3 w-3 shrink-0 rounded-full " + circle.color} title={circle.label} aria-label={circle.label} />
-        {/* Customer star rating, from the 1-5 star reviews below — separate
-            signal from the circle above. */}
-        {reviewStats.count > 0 ? (
-          <span
-            className="flex items-center gap-1 font-mono text-sm font-normal text-value"
-            title={`${reviewStats.average?.toFixed(1)} average from ${reviewStats.count} review${reviewStats.count === 1 ? "" : "s"}`}
-          >
-            ★ {reviewStats.average?.toFixed(1)}
-            <span className="text-xs text-ash">({reviewStats.count})</span>
-          </span>
-        ) : (
-          <span className="font-mono text-sm font-normal text-ash/40" title={t("No reviews yet")}>
-            ★
-          </span>
-        )}
+        {/* Customer star rating, averaged across every shopper's review for
+            this store — separate signal from the circle above. Half-star
+            granularity, the pattern shoppers already know from everywhere
+            else, rather than a raw decimal or an unsegmented partial fill. */}
+        <span className="text-base font-normal">
+          <StarRating rating={reviewStats.count > 0 ? reviewStats.average : null} count={reviewStats.count} size={18} />
+        </span>
       </h1>
       <p className="mt-1 text-sm text-ash">{store.address}, {store.city}</p>
       <p className="mt-0.5 font-mono text-[10px] text-ash/60">store id: {store.id}</p>
@@ -216,7 +209,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
         {reviews.length === 0 && <p className="text-sm text-ash">{t("No reviews yet.")}</p>}
         {reviews.map((r) => (
           <div key={r.id} className="border-b border-line py-3">
-            <p className="font-mono text-sm text-value">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</p>
+            <StarRating rating={r.rating} showValue={false} size={14} />
             {r.comment && <p className="mt-1 text-sm text-ink">{r.comment}</p>}
             <p className="mt-1 font-mono text-[11px] text-ash">
               {/* Reviewer identity is never shown — only ever a generic label. */}

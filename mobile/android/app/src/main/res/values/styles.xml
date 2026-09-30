@@ -16,7 +16,19 @@
     </style>
 
 
+    <!-- The Android 12+ SplashScreen API (backported pre-31 by
+         androidx.core:core-splashscreen, see MainActivity) only recognizes
+         its own windowSplashScreen* attributes — a plain android:background
+         is silently ignored by Theme.SplashScreen, which is why this was
+         showing a blank/white screen at launch instead of @drawable/splash.
+         This shows our navy background + the shield mark immediately at
+         cold start; postSplashScreenTheme then hands off to the normal app
+         theme once onCreate runs, and Capacitor's own SplashScreen plugin
+         (capacitor.config.ts) takes it from there with the full branded
+         splash.png for up to 3s while the site loads. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">@color/splashBackground</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>

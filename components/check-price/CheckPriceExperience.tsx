@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useGeolocation } from "@/components/shared/GeolocationProvider";
@@ -22,6 +22,16 @@ const TIER_LABEL: Record<string, string> = {
 };
 
 const AT_STORE_METERS = 150;
+
+// Next.js unmounts this whole screen on client-side navigation (e.g.
+// tapping a store to open /store/[id]), and this component's search
+// results only ever lived in local React state — so pressing the back
+// button from the store page always returned to a freshly-reset, empty
+// menu/search screen instead of the results list the shopper was just
+// looking at. Caching the last result in sessionStorage (cleared when the
+// app/tab session ends) lets it be restored on remount instead.
+const SEARCH_CACHE_KEY = "pricebook:lastSearchResult";
+const SEARCH_CACHE_MAX_AGE_MS = 30 * 60 * 1000; // 30 min — long enough to survive a store detour, short enough prices don't go stale
 
 type Mode = "menu" | "text";
 
@@ -295,6 +305,38 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [useGuidedForm, setUseGuidedForm] = useState(false);
   const [sortMode, setSortMode] = useState<"price" | "distance">("price");
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  // Restore the last results on remount (see SEARCH_CACHE_KEY comment above).
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(SEARCH_CACHE_KEY);
+      if (!raw) return;
+      const cached = JSON.parse(raw) as { result: SearchResponse; mode: Mode; savedAt: number };
+      if (Date.now() - cached.savedAt > SEARCH_CACHE_MAX_AGE_MS) {
+        sessionStorage.removeItem(SEARCH_CACHE_KEY);
+        return;
+      }
+      setResult(cached.result);
+      setMode(cached.mode);
+    } catch {
+      // corrupt or unavailable storage — just start fresh
+    }
+    // Only ever run once, right after mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep the cache in sync with whatever's currently on screen.
+  useEffect(() => {
+    try {
+      if (result) {
+        sessionStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify({ result, mode, savedAt: Date.now() }));
+      } else {
+        sessionStorage.removeItem(SEARCH_CACHE_KEY);
+      }
+    } catch {
+      // storage full/unavailable — the list just won't survive a back-navigation this time
+    }
+  }, [result, mode]);
 
   async function handleFindMyLocation() {
     setLocating(true);
