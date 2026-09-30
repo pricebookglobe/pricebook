@@ -18,10 +18,71 @@ const TRUST_COLOR: Record<SearchResult["trust_badge"], string> = {
   unrated: "bg-ash/40"
 };
 
-export function ResultRow({ result, isCheapest }: { result: SearchResult; isCheapest: boolean }) {
+function NutritionPanel({ result, dark = false }: { result: SearchResult; dark?: boolean }) {
+  const { t } = useLanguage();
+  if (!result.nutrition_facts) return null;
+  return (
+    <div className={dark ? "mt-2 rounded bg-white/10 px-3 py-2" : "bg-field px-3 py-2"}>
+      <p className={`mb-1.5 font-mono text-[10px] uppercase tracking-wide ${dark ? "text-field/60" : "text-ash"}`}>
+        {t("Nutrition facts")} · {t("AI estimate — check the actual package")}
+      </p>
+      <div className={`flex flex-wrap gap-x-4 gap-y-1 text-xs ${dark ? "text-field" : "text-ink"}`}>
+        {result.nutrition_facts.serving_size && (
+          <span>
+            {t("Serving size")}: <strong>{result.nutrition_facts.serving_size}</strong>
+          </span>
+        )}
+        {result.nutrition_facts.calories != null && (
+          <span>
+            {t("Calories")}: <strong>{result.nutrition_facts.calories}</strong>
+          </span>
+        )}
+        {result.nutrition_facts.protein_g != null && (
+          <span>
+            {t("Protein (g)")}: <strong>{result.nutrition_facts.protein_g}</strong>
+          </span>
+        )}
+        {result.nutrition_facts.fat_g != null && (
+          <span>
+            {t("Fat (g)")}: <strong>{result.nutrition_facts.fat_g}</strong>
+          </span>
+        )}
+        {result.nutrition_facts.carbs_g != null && (
+          <span>
+            {t("Carbs (g)")}: <strong>{result.nutrition_facts.carbs_g}</strong>
+          </span>
+        )}
+        {result.nutrition_facts.sugar_g != null && (
+          <span>
+            {t("Sugar (g)")}: <strong>{result.nutrition_facts.sugar_g}</strong>
+          </span>
+        )}
+        {result.nutrition_facts.sodium_mg != null && (
+          <span>
+            {t("Sodium (mg)")}: <strong>{result.nutrition_facts.sodium_mg}</strong>
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// The "⋯" actions menu shared by both the table row (website) and the card
+// (app) layouts, so price reporting, messaging and nutrition facts behave
+// identically either way — only the container markup around it differs.
+function ActionsMenu({
+  result,
+  dark = false,
+  showingNutrition,
+  onToggleNutrition
+}: {
+  result: SearchResult;
+  dark?: boolean;
+  showingNutrition: boolean;
+  onToggleNutrition: () => void;
+}) {
   const { t } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showNutrition, setShowNutrition] = useState(false);
   const [reported, setReported] = useState<"correct_price" | "wrong_price" | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -61,6 +122,120 @@ export function ResultRow({ result, isCheapest }: { result: SearchResult; isChea
     setMenuOpen(false);
   }
 
+  if (reported) {
+    return (
+      <span className={`font-mono text-[11px] ${dark ? "text-[#7FE0AE]" : "text-value"}`}>
+        {reported === "correct_price" ? t("Thanks — marked as correct.") : t("Thanks — marked as wrong.")}
+      </span>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setMenuOpen((o) => !o)}
+        className={dark ? "px-2 text-field/60 hover:text-field" : "px-2 text-ash hover:text-ink"}
+        aria-label="More"
+      >
+        ⋯
+      </button>
+      {menuOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+          <div className="absolute right-0 top-6 z-20 w-48 rounded border border-line bg-field-raised py-1 text-left shadow-lg">
+            {result.nutrition_facts && (
+              <button
+                onClick={() => {
+                  onToggleNutrition();
+                  setMenuOpen(false);
+                }}
+                className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field"
+              >
+                {showingNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
+              </button>
+            )}
+            <button
+              disabled={busy}
+              onClick={handleMessage}
+              className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field"
+            >
+              {t("Message store")}
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => handleReport("correct_price")}
+              className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field"
+            >
+              {t("Price is correct")}
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => handleReport("wrong_price")}
+              className="block w-full px-3 py-2 text-left text-sm text-flag hover:bg-field"
+            >
+              {t("Price is wrong")}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function ResultRow({
+  result,
+  isCheapest,
+  variant = "row"
+}: {
+  result: SearchResult;
+  isCheapest: boolean;
+  /** "row" (default) renders a <tr> for the website's table. "card" renders
+   *  a self-contained rounded card, used only in the packaged app, which
+   *  can't use a <table> layout comfortably on a phone-width screen. */
+  variant?: "row" | "card";
+}) {
+  const { t } = useLanguage();
+  const [showNutrition, setShowNutrition] = useState(false);
+
+  if (variant === "card") {
+    return (
+      <div className="rounded-lg border border-line bg-field-raised px-3.5 py-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate font-display text-[14px] font-semibold text-ink">{result.product_name}</p>
+            <div className="mt-1 flex items-center gap-1.5">
+              <span className={"h-1.5 w-1.5 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />
+              <Link href={`/store/${result.store_id}`} className="truncate text-xs text-ash hover:underline">
+                {result.store_name}
+              </Link>
+              <span className="text-xs text-ash">· {formatDistance(result.distance_m)}</span>
+            </div>
+          </div>
+          <ActionsMenu result={result} showingNutrition={showNutrition} onToggleNutrition={() => setShowNutrition((s) => !s)} />
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
+            target="_blank"
+            rel="noreferrer"
+            className="font-mono text-[11px] text-value underline"
+          >
+            {t("view on map")}
+          </a>
+          <p className="font-mono text-[15px] text-ink">
+            {isCheapest && (
+              <span className="mr-2 rounded-sm bg-value px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-wide text-white">
+                {t("Cheapest")}
+              </span>
+            )}
+            {result.price.toFixed(2)} <span className="text-xs font-normal text-ash">{result.currency}</span>
+          </p>
+        </div>
+        {showNutrition && <NutritionPanel result={result} />}
+      </div>
+    );
+  }
+
   return (
     <>
       <tr>
@@ -93,101 +268,13 @@ export function ResultRow({ result, isCheapest }: { result: SearchResult; isChea
           {result.price.toFixed(2)} <span className="text-xs font-normal text-ash">{result.currency}</span>
         </td>
         <td className="relative num">
-          {reported ? (
-            <span className="font-mono text-[11px] text-value">
-              {reported === "correct_price" ? t("Thanks — marked as correct.") : t("Thanks — marked as wrong.")}
-            </span>
-          ) : (
-            <>
-              <button onClick={() => setMenuOpen((o) => !o)} className="px-2 text-ash hover:text-ink" aria-label="More">
-                ⋯
-              </button>
-              {menuOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 top-6 z-20 w-48 rounded border border-line bg-field-raised py-1 text-left shadow-lg">
-                    {result.nutrition_facts && (
-                      <button
-                        onClick={() => {
-                          setShowNutrition((s) => !s);
-                          setMenuOpen(false);
-                        }}
-                        className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field"
-                      >
-                        {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
-                      </button>
-                    )}
-                    <button
-                      disabled={busy}
-                      onClick={handleMessage}
-                      className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field"
-                    >
-                      {t("Message store")}
-                    </button>
-                    <button
-                      disabled={busy}
-                      onClick={() => handleReport("correct_price")}
-                      className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-field"
-                    >
-                      {t("Price is correct")}
-                    </button>
-                    <button
-                      disabled={busy}
-                      onClick={() => handleReport("wrong_price")}
-                      className="block w-full px-3 py-2 text-left text-sm text-flag hover:bg-field"
-                    >
-                      {t("Price is wrong")}
-                    </button>
-                  </div>
-                </>
-              )}
-            </>
-          )}
+          <ActionsMenu result={result} showingNutrition={showNutrition} onToggleNutrition={() => setShowNutrition((s) => !s)} />
         </td>
       </tr>
       {showNutrition && result.nutrition_facts && (
         <tr>
           <td colSpan={5} className="bg-field px-3 py-2">
-            <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-ash">
-              {t("Nutrition facts")} · {t("AI estimate — check the actual package")}
-            </p>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink">
-              {result.nutrition_facts.serving_size && (
-                <span>
-                  {t("Serving size")}: <strong>{result.nutrition_facts.serving_size}</strong>
-                </span>
-              )}
-              {result.nutrition_facts.calories != null && (
-                <span>
-                  {t("Calories")}: <strong>{result.nutrition_facts.calories}</strong>
-                </span>
-              )}
-              {result.nutrition_facts.protein_g != null && (
-                <span>
-                  {t("Protein (g)")}: <strong>{result.nutrition_facts.protein_g}</strong>
-                </span>
-              )}
-              {result.nutrition_facts.fat_g != null && (
-                <span>
-                  {t("Fat (g)")}: <strong>{result.nutrition_facts.fat_g}</strong>
-                </span>
-              )}
-              {result.nutrition_facts.carbs_g != null && (
-                <span>
-                  {t("Carbs (g)")}: <strong>{result.nutrition_facts.carbs_g}</strong>
-                </span>
-              )}
-              {result.nutrition_facts.sugar_g != null && (
-                <span>
-                  {t("Sugar (g)")}: <strong>{result.nutrition_facts.sugar_g}</strong>
-                </span>
-              )}
-              {result.nutrition_facts.sodium_mg != null && (
-                <span>
-                  {t("Sodium (mg)")}: <strong>{result.nutrition_facts.sodium_mg}</strong>
-                </span>
-              )}
-            </div>
+            <NutritionPanel result={result} />
           </td>
         </tr>
       )}

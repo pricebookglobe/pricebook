@@ -32,7 +32,15 @@ function formatDistance(meters: number): string {
 // One "best price" callout — used for both the nearby-best and city-wide-
 // best results. Carries its own map link and price-accuracy report buttons
 // so a shopper never has to scroll to the table below to act on either.
-function PriceCallout({ label, result }: { label: string; result: SearchResult }) {
+function PriceCallout({
+  label,
+  result,
+  isNativeApp = false
+}: {
+  label: string;
+  result: SearchResult;
+  isNativeApp?: boolean;
+}) {
   const { t } = useLanguage();
   const [reported, setReported] = useState<"correct_price" | "wrong_price" | null>(null);
   const [busy, setBusy] = useState(false);
@@ -57,6 +65,104 @@ function PriceCallout({ label, result }: { label: string; result: SearchResult }
     } finally {
       setBusy(false);
     }
+  }
+
+  // Inside the packaged app: a dark card matching the "you are at this
+  // store" treatment, with a large mono price front and center. On the
+  // website (isNativeApp === false) this renders the original light-green
+  // callout box, unchanged from before the app-only redesign.
+  if (isNativeApp) {
+    return (
+      <div className="mb-3 rounded-lg bg-ink px-4 py-3.5 text-field">
+        <p className="font-mono text-[10px] uppercase tracking-wide text-field/50">{label}</p>
+        <p className="mt-1 text-sm">
+          <strong className="text-field">{result.product_name}</strong>
+        </p>
+        <p className="mt-1 font-mono text-2xl text-[#7FE0AE]">
+          {result.price.toFixed(2)} <span className="text-sm text-field/60">{result.currency}</span>
+        </p>
+        <p className="mt-1 text-xs text-field/60">
+          <Link href={`/store/${result.store_id}`} className="underline">
+            {result.store_name}
+          </Link>{" "}
+          · {formatDistance(result.distance_m)}
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[#7FE0AE] underline"
+          >
+            {t("Open in Maps")}
+          </a>
+          {reported ? (
+            <span className="font-mono text-[11px] text-[#7FE0AE]">
+              {reported === "correct_price" ? t("Thanks — marked as correct.") : t("Thanks — marked as wrong.")}
+            </span>
+          ) : (
+            <>
+              <span className="text-field/60">{t("Is this price accurate?")}</span>
+              <button disabled={busy} onClick={() => handleReport("correct_price")} className="text-[#7FE0AE] underline">
+                {t("Yes")}
+              </button>
+              <button disabled={busy} onClick={() => handleReport("wrong_price")} className="text-red-300 underline">
+                {t("No, it was higher in store")}
+              </button>
+            </>
+          )}
+          {result.nutrition_facts && (
+            <button onClick={() => setShowNutrition((s) => !s)} className="text-field underline">
+              {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
+            </button>
+          )}
+        </div>
+        {showNutrition && result.nutrition_facts && (
+          <div className="mt-2 rounded bg-white/10 px-3 py-2">
+            <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-field/60">
+              {t("AI estimate — check the actual package")}
+            </p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-field">
+              {result.nutrition_facts.serving_size && (
+                <span>
+                  {t("Serving size")}: <strong>{result.nutrition_facts.serving_size}</strong>
+                </span>
+              )}
+              {result.nutrition_facts.calories != null && (
+                <span>
+                  {t("Calories")}: <strong>{result.nutrition_facts.calories}</strong>
+                </span>
+              )}
+              {result.nutrition_facts.protein_g != null && (
+                <span>
+                  {t("Protein (g)")}: <strong>{result.nutrition_facts.protein_g}</strong>
+                </span>
+              )}
+              {result.nutrition_facts.fat_g != null && (
+                <span>
+                  {t("Fat (g)")}: <strong>{result.nutrition_facts.fat_g}</strong>
+                </span>
+              )}
+              {result.nutrition_facts.carbs_g != null && (
+                <span>
+                  {t("Carbs (g)")}: <strong>{result.nutrition_facts.carbs_g}</strong>
+                </span>
+              )}
+              {result.nutrition_facts.sugar_g != null && (
+                <span>
+                  {t("Sugar (g)")}: <strong>{result.nutrition_facts.sugar_g}</strong>
+                </span>
+              )}
+              {result.nutrition_facts.sodium_mg != null && (
+                <span>
+                  {t("Sodium (mg)")}: <strong>{result.nutrition_facts.sodium_mg}</strong>
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -500,7 +606,69 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </p>
           )}
 
-          {atStore && (
+          {atStore && isNativeApp && (
+            <div className="mb-4 rounded-lg bg-ink px-4 py-3 text-field">
+              <p className="text-xs text-field/60">{t("You're at")}</p>
+              <p className="font-display text-[16px] font-bold">{atStore.store_name}</p>
+              <p className="mt-1 font-mono text-xl text-[#7FE0AE]">
+                {atStore.price.toFixed(2)} <span className="font-sans text-xs text-field/60">{atStore.currency}</span>
+              </p>
+              {atStore.nutrition_facts && (
+                <button
+                  onClick={() => setShowAtStoreNutrition((s) => !s)}
+                  className="mt-2 text-sm text-field/80 underline hover:text-field"
+                >
+                  {showAtStoreNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
+                </button>
+              )}
+              {showAtStoreNutrition && atStore.nutrition_facts && (
+                <div className="mt-2 rounded bg-white/10 px-3 py-2">
+                  <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-field/60">
+                    {t("AI estimate — check the actual package")}
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-field">
+                    {atStore.nutrition_facts.serving_size && (
+                      <span>
+                        {t("Serving size")}: <strong>{atStore.nutrition_facts.serving_size}</strong>
+                      </span>
+                    )}
+                    {atStore.nutrition_facts.calories != null && (
+                      <span>
+                        {t("Calories")}: <strong>{atStore.nutrition_facts.calories}</strong>
+                      </span>
+                    )}
+                    {atStore.nutrition_facts.protein_g != null && (
+                      <span>
+                        {t("Protein (g)")}: <strong>{atStore.nutrition_facts.protein_g}</strong>
+                      </span>
+                    )}
+                    {atStore.nutrition_facts.fat_g != null && (
+                      <span>
+                        {t("Fat (g)")}: <strong>{atStore.nutrition_facts.fat_g}</strong>
+                      </span>
+                    )}
+                    {atStore.nutrition_facts.carbs_g != null && (
+                      <span>
+                        {t("Carbs (g)")}: <strong>{atStore.nutrition_facts.carbs_g}</strong>
+                      </span>
+                    )}
+                    {atStore.nutrition_facts.sugar_g != null && (
+                      <span>
+                        {t("Sugar (g)")}: <strong>{atStore.nutrition_facts.sugar_g}</strong>
+                      </span>
+                    )}
+                    {atStore.nutrition_facts.sodium_mg != null && (
+                      <span>
+                        {t("Sodium (mg)")}: <strong>{atStore.nutrition_facts.sodium_mg}</strong>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {atStore && !isNativeApp && (
             <div className="mb-4 rounded border border-value bg-value-soft px-4 py-3">
               <p className="text-sm text-ink">
                 <strong>{atStore.product_name}</strong> — You are at <strong>{atStore.store_name}</strong> — the price here is{" "}
@@ -563,9 +731,9 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </div>
           )}
 
-          {result.near_best && <PriceCallout label={t("Best price within 5km")} result={result.near_best} />}
+          {result.near_best && <PriceCallout label={t("Best price within 5km")} result={result.near_best} isNativeApp={isNativeApp} />}
           {cityBestDiffersFromNear && result.city_best && (
-            <PriceCallout label={t("Best price in the whole city")} result={result.city_best} />
+            <PriceCallout label={t("Best price in the whole city")} result={result.city_best} isNativeApp={isNativeApp} />
           )}
 
           {tableRows.length > 1 && (
@@ -590,7 +758,20 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </div>
           )}
 
-          {tableRows.length > 0 && (
+          {tableRows.length > 0 && isNativeApp && (
+            <div className="flex flex-col gap-2">
+              {tableRows.map((r) => (
+                <ResultRow
+                  key={r.store_id + r.product_id}
+                  result={r}
+                  isCheapest={`${r.store_id}::${r.product_id}` === cheapestKey}
+                  variant="card"
+                />
+              ))}
+            </div>
+          )}
+
+          {tableRows.length > 0 && !isNativeApp && (
             <table className="data-table">
               <thead>
                 <tr>
