@@ -17,20 +17,23 @@ type PriceReportStats = {
   negative_count: number;
   positive_pct: number | null;
 };
+type ReviewStats = { average: number | null; count: number };
 
 // Green above 90% positive, amber from 75% up to 90%, red below 75%, and
-// grey when there aren't any price reports yet — the star always shows,
-// so its color is itself the signal, rather than the star's absence
-// being the only clue that there's nothing to judge accuracy from yet.
-// Based on price-accuracy reports (shoppers confirming or flagging a
-// price as wrong) rather than the separate 1-5 star review system, since
-// that's the signal actually in use and it's a more direct measure of
-// "can I trust this store's prices."
-function trustStar(positivePct: number | null): { color: string; label: string } {
-  if (positivePct === null) return { color: "text-ash/40", label: "No price reports yet" };
-  if (positivePct > 90) return { color: "text-value", label: "Highly trusted — over 90% of price reports confirmed correct" };
-  if (positivePct >= 75) return { color: "text-flag", label: "Mostly trusted — 75% or more of price reports confirmed correct" };
-  return { color: "text-red-600", label: "Below 75% of price reports confirmed correct — check prices carefully" };
+// grey when there aren't any price reports yet — the circle always shows,
+// so its color is itself the signal, rather than its absence being the
+// only clue that there's nothing to judge accuracy from yet. Based on
+// price-accuracy reports (shoppers confirming or flagging a price as
+// wrong) rather than the separate 1-5 star review system below — this is
+// a more direct measure of "can I trust this store's prices," which is
+// why it's a plain colored circle and not a star: the star is reserved
+// for the actual customer star ratings, so the two signals never look
+// like the same kind of thing next to the store name.
+function trustCircle(positivePct: number | null): { color: string; label: string } {
+  if (positivePct === null) return { color: "bg-ash/40", label: "No price reports yet" };
+  if (positivePct > 90) return { color: "bg-value", label: "Highly trusted — over 90% of price reports confirmed correct" };
+  if (positivePct >= 75) return { color: "bg-flag", label: "Mostly trusted — 75% or more of price reports confirmed correct" };
+  return { color: "bg-red-600", label: "Below 75% of price reports confirmed correct — check prices carefully" };
 }
 
 export default function StoreDetailPage({ params }: { params: { id: string } }) {
@@ -48,6 +51,9 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
   // left one here, so the form pre-fills it and reads as "edit your
   // review" instead of implying a brand new review can be added each visit.
   const [myReview, setMyReview] = useState<MyReview | null>(null);
+  // The average star rating shown next to the store name — separate from
+  // reviews[] (which is just the list rendered further down the page).
+  const [reviewStats, setReviewStats] = useState<ReviewStats>({ average: null, count: 0 });
 
   useEffect(() => {
     fetch(`/api/stores/${params.id}`).then((r) => r.ok && r.json()).then((s) => s && setStore(s));
@@ -62,6 +68,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
       const headers = data.session ? { Authorization: `Bearer ${data.session.access_token}` } : undefined;
       const refreshed = await fetch(`/api/stores/${params.id}/reviews`, { headers }).then((r) => r.json());
       setReviews(refreshed.reviews ?? []);
+      setReviewStats({ average: refreshed.average_rating ?? null, count: refreshed.count ?? 0 });
       if (refreshed.my_review) {
         setMyReview(refreshed.my_review);
         setMyRating(refreshed.my_review.rating);
@@ -88,6 +95,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
       headers: { Authorization: `Bearer ${data.session.access_token}` }
     }).then((r) => r.json());
     setReviews(refreshed.reviews ?? []);
+    setReviewStats({ average: refreshed.average_rating ?? null, count: refreshed.count ?? 0 });
     if (refreshed.my_review) setMyReview(refreshed.my_review);
     setSubmitting(false);
   }
@@ -114,15 +122,28 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
       </AppPage>
     );
 
-  const star = trustStar(priceStats?.positive_pct ?? null);
+  const circle = trustCircle(priceStats?.positive_pct ?? null);
 
   return (
     <AppPage>
       {backButton}
-      <h1 className="flex items-center gap-2 font-display text-xl font-semibold text-ink">
+      <h1 className="flex flex-wrap items-center gap-2 font-display text-xl font-semibold text-ink">
         {store.name}
-        {star && (
-          <span className={star.color} title={star.label} aria-label={star.label}>
+        {/* Price-report correctness: a plain colored circle, kept visually
+            distinct from the star rating right next to it. */}
+        <span className={"h-3 w-3 shrink-0 rounded-full " + circle.color} title={circle.label} aria-label={circle.label} />
+        {/* Customer star rating, from the 1-5 star reviews below — separate
+            signal from the circle above. */}
+        {reviewStats.count > 0 ? (
+          <span
+            className="flex items-center gap-1 font-mono text-sm font-normal text-value"
+            title={`${reviewStats.average?.toFixed(1)} average from ${reviewStats.count} review${reviewStats.count === 1 ? "" : "s"}`}
+          >
+            ★ {reviewStats.average?.toFixed(1)}
+            <span className="text-xs text-ash">({reviewStats.count})</span>
+          </span>
+        ) : (
+          <span className="font-mono text-sm font-normal text-ash/40" title={t("No reviews yet")}>
             ★
           </span>
         )}
