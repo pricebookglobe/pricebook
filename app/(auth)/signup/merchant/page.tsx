@@ -166,7 +166,7 @@ export default function MerchantSignup() {
         </p>
         <Link
           href="/login"
-          className="mt-6 block rounded-sm bg-value px-4 py-2 text-center font-display text-sm font-medium text-white hover:bg-value/90"
+          className="mt-6 block rounded-sm bg-value px-4 py-2 text-center font-display text-sm font-medium text-white hover:bg-value/90 active:bg-value/90"
         >
           {t("Go to log in")}
         </Link>
@@ -247,7 +247,7 @@ export default function MerchantSignup() {
           <div className="flex items-center justify-between">
             <span className="text-sm text-ash">{t("Store location")} <span className="text-red-600">*</span></span>
             <button type="button" onClick={captureLocation}
-              className="rounded-sm bg-ink px-2 py-1 font-display text-xs font-medium text-field transition-colors hover:bg-value hover:text-white">
+              className="rounded-sm bg-ink px-2 py-1 font-display text-xs font-medium text-field transition-colors hover:bg-value hover:text-white active:bg-value active:text-white">
               {locating ? "…" : coords ? t("Update") : t("Use my location")}
             </button>
           </div>
@@ -307,7 +307,7 @@ export default function MerchantSignup() {
         </label>
 
         <button type="submit" disabled={busy || !agreedToTerms}
-          className="mt-2 rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 disabled:opacity-40">
+          className="mt-2 rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 active:bg-value/90 disabled:opacity-40">
           {busy ? t("Setting up…") : t("Register your store")}
         </button>
       </form>

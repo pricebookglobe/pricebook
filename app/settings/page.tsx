@@ -327,7 +327,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={captureLocation}
                 disabled={locating}
-                className="rounded-sm bg-ink px-2 py-1 font-display text-xs font-medium text-field transition-colors hover:bg-value hover:text-white disabled:opacity-40"
+                className="rounded-sm bg-ink px-2 py-1 font-display text-xs font-medium text-field transition-colors hover:bg-value hover:text-white active:bg-value active:text-white disabled:opacity-40"
               >
                 {locating ? "…" : coords ? t("Update") : t("Use my location")}
               </button>
@@ -399,7 +399,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setShowApiKey((s) => !s)}
-              className="rounded-sm border border-line px-3 py-1.5 font-display text-xs text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+              className="rounded-sm border border-line px-3 py-1.5 font-display text-xs text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
             >
               {showApiKey ? t("Hide") : t("Show")}
             </button>
@@ -412,7 +412,7 @@ export default function SettingsPage() {
                   setTimeout(() => setCopiedKey(false), 2000);
                 }
               }}
-              className="rounded-sm border border-line px-3 py-1.5 font-display text-xs text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+              className="rounded-sm border border-line px-3 py-1.5 font-display text-xs text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
             >
               {copiedKey ? t("Copied!") : t("Copy")}
             </button>
@@ -445,7 +445,7 @@ export default function SettingsPage() {
       <button
         onClick={handleSave}
         disabled={busy}
-        className="mt-6 w-full rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 disabled:opacity-40"
+        className="mt-6 w-full rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 active:bg-value/90 disabled:opacity-40"
       >
         {busy ? t("Saving…") : t("Save changes")}
       </button>

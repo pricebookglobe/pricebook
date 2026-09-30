@@ -130,7 +130,7 @@ export default function BulkUploadPage() {
             </p>
             <button
               onClick={downloadTemplate}
-              className="mt-3 rounded-sm border border-line bg-field-raised px-4 py-2 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+              className="mt-3 rounded-sm border border-line bg-field-raised px-4 py-2 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
             >
               {t("Download template (CSV)")}
             </button>
@@ -144,7 +144,7 @@ export default function BulkUploadPage() {
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-sm border border-line bg-field-raised px-4 py-2 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+                className="rounded-sm border border-line bg-field-raised px-4 py-2 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
               >
                 {t("Choose CSV file")}
               </button>
@@ -156,7 +156,7 @@ export default function BulkUploadPage() {
               <button
                 onClick={handleUpload}
                 disabled={uploading}
-                className="mt-3 rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white transition-colors hover:bg-value/90 disabled:opacity-40"
+                className="mt-3 rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white transition-colors hover:bg-value/90 active:bg-value/90 disabled:opacity-40"
               >
                 {uploading ? t("Uploading…") : t("Upload and process")}
               </button>

@@ -348,7 +348,7 @@ export function InventoryTable({
                     type="button"
                     onClick={lookupNutritionForEdit}
                     disabled={loadingNutrition}
-                    className="rounded-sm border border-line bg-field-raised px-2 py-1 font-display text-xs text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40"
+                    className="rounded-sm border border-line bg-field-raised px-2 py-1 font-display text-xs text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white disabled:opacity-40"
                   >
                     {loadingNutrition ? t("Estimating…") : t("Look up nutrition facts")}
                   </button>
@@ -437,14 +437,14 @@ export function InventoryTable({
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setEditing(null)}
-                className="rounded-sm bg-blue-600 px-4 py-2 font-display text-sm font-medium text-white transition-colors hover:bg-value"
+                className="rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white transition-colors hover:bg-value/90 active:bg-value/90"
               >
                 {t("Cancel")}
               </button>
               <button
                 onClick={saveEdit}
                 disabled={savingEdit || !editName.trim()}
-                className="rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 disabled:opacity-40"
+                className="rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 active:bg-value/90 disabled:opacity-40"
               >
                 {savingEdit ? t("Saving…") : t("Save")}
               </button>
@@ -557,7 +557,7 @@ export function InventoryTable({
             </div>
             <button
               onClick={() => setViewingNutrition(null)}
-              className="mt-4 w-full rounded-sm bg-ink px-4 py-2 font-display text-sm text-field transition-colors hover:bg-value hover:text-white"
+              className="mt-4 w-full rounded-sm bg-ink px-4 py-2 font-display text-sm text-field transition-colors hover:bg-value hover:text-white active:bg-value active:text-white"
             >
               {t("Close")}
             </button>

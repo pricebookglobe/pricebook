@@ -148,7 +148,7 @@ export function AccountMenu() {
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setConfirmingLogout(false)}
-                className="rounded-sm bg-blue-600 px-4 py-2 font-display text-sm font-medium text-white hover:bg-blue-700"
+                className="rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 active:bg-value/90"
               >
                 {t("Discard")}
               </button>
