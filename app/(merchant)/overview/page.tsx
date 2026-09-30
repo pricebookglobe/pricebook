@@ -7,10 +7,12 @@ import { useAccount } from "@/lib/AccountProvider";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
 import { Pagination, paginate } from "@/components/admin/Pagination";
+import { StarRating } from "@/components/shared/StarRating";
 
 const APP_PAGE_SIZE = 5;
 
 type ProductPosition = { product_id: string; product_name: string; price: number; currency: string; percentile: number };
+type Review = { id: string; rating: number; comment: string | null; created_at: string };
 type Overview = {
   product_count: number;
   view_count: number;
@@ -20,6 +22,8 @@ type Overview = {
   review_count: number;
   positive_reviews: number;
   negative_reviews: number;
+  average_rating: number | null;
+  reviews: Review[];
   price_report_count: number;
   correct_price_reports: number;
   wrong_price_reports: number;
@@ -126,6 +130,39 @@ export default function StoreOverviewPage() {
               <strong>{data.wrong_price_reports}</strong> {t("negative — wrong price")}
             </span>
           </div>
+
+          {/* Reviews — same counts/average as the public store page, but
+              private to the merchant here, plus the actual review text so
+              they can read their customers' feedback without leaving the
+              dashboard. Reviewer identity stays hidden either way. */}
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded border border-line bg-field px-4 py-3 text-sm">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="text-ink">
+                <strong>{data.review_count}</strong> {t("reviews")}
+              </span>
+              <span className="text-value">
+                <strong>{data.positive_reviews}</strong> {t("positive (4-5★)")}
+              </span>
+              <span className="text-red-600">
+                <strong>{data.negative_reviews}</strong> {t("negative (1-2★)")}
+              </span>
+            </div>
+            <StarRating rating={data.average_rating} count={data.review_count} size={16} />
+          </div>
+
+          {data.reviews.length > 0 && (
+            <div className="mb-6 rounded border border-line bg-field-raised">
+              {data.reviews.map((r) => (
+                <div key={r.id} className="border-b border-line px-4 py-3 last:border-b-0">
+                  <StarRating rating={r.rating} showValue={false} size={14} />
+                  {r.comment && <p className="mt-1 text-sm text-ink">{r.comment}</p>}
+                  <p className="mt-1 font-mono text-[11px] text-ash">
+                    {t("Shopper")} · {new Date(r.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
 
           {data.products.length === 0 && (
             <p className="text-sm text-ash">{t("Add items to your inventory to see how your prices compare in town.")}</p>

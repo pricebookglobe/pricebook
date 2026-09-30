@@ -40,8 +40,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     : null;
 
   // Same positive/negative split used on the customer-facing store page:
-  // 4-5 stars positive, 1-2 negative, 3 neutral.
-  const { data: reviews, error: reviewsError } = await supabase.from("reviews").select("rating").eq("store_id", params.id);
+  // 4-5 stars positive, 1-2 negative, 3 neutral. Also pulls the actual
+  // reviews (no reviewer identity, same as the public page) so a merchant
+  // can read their customers' feedback here rather than only seeing counts.
+  const { data: reviews, error: reviewsError } = await supabase
+    .from("reviews")
+    .select("id, rating, comment, created_at")
+    .eq("store_id", params.id)
+    .order("created_at", { ascending: false });
   if (reviewsError) {
     // Surfaced instead of silently defaulting to 0 — a real backend
     // problem here was previously indistinguishable from "no reviews yet."
@@ -50,6 +56,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const reviewCount = reviews?.length ?? 0;
   const positiveReviews = reviews?.filter((r) => r.rating >= 4).length ?? 0;
   const negativeReviews = reviews?.filter((r) => r.rating <= 2).length ?? 0;
+  const averageRating = reviewCount ? reviews!.reduce((sum, r) => sum + r.rating, 0) / reviewCount : null;
 
   // Price-accuracy reports (the "Is this price accurate? Yes / No" prompt
   // shown on search results) — a separate system from star reviews above,
@@ -74,6 +81,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     review_count: reviewCount,
     positive_reviews: positiveReviews,
     negative_reviews: negativeReviews,
+    average_rating: averageRating,
+    reviews: reviews ?? [],
     price_report_count: priceReportCount,
     correct_price_reports: correctPriceReports,
     wrong_price_reports: wrongPriceReports
