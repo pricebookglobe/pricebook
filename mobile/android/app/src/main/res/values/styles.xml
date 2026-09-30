@@ -25,10 +25,19 @@
          cold start; postSplashScreenTheme then hands off to the normal app
          theme once onCreate runs, and Capacitor's own SplashScreen plugin
          (capacitor.config.ts) takes it from there with the full branded
-         splash.png for up to 3s while the site loads. -->
+         splash.png for up to 3s while the site loads.
+
+         windowSplashScreenAnimatedIcon is @drawable/splash_icon, not
+         @mipmap/ic_launcher_foreground: the launcher art's navy shield
+         outline and navy "P" are drawn to sit on the adaptive icon's light
+         background, so placed directly on this navy splashBackground they
+         all but disappeared, leaving only the green bits visible (this is
+         what the screenshot showed). splash_icon.png is the same mark on
+         its own small cream card — matching splash.png's card treatment —
+         so it has real contrast regardless of what's behind it. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splashBackground</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>
