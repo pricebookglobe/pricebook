@@ -36,13 +36,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (token) {
     const { data: userData } = await supabase.auth.getUser(token);
     if (userData?.user) {
+      // Plain select + take the oldest, not .maybeSingle() — if this
+      // account somehow already has more than one row for this store (from
+      // before the dedup fix in POST below, or a database that's missing
+      // the unique constraint 0024_reviews_unique_per_user.sql adds),
+      // .maybeSingle() errors on >1 row and my_review would silently come
+      // back null, hiding the problem instead of still letting the
+      // reviewer see and edit their (oldest, canonical) review.
       const { data: mine } = await supabase
         .from("reviews")
         .select("id, rating, comment")
         .eq("store_id", params.id)
         .eq("user_id", userData.user.id)
-        .maybeSingle();
-      my_review = mine ?? null;
+        .order("created_at", { ascending: true })
+        .limit(1);
+      my_review = mine?.[0] ?? null;
     }
   }
 
@@ -71,12 +79,31 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "rating must be 1-5" }, { status: 400 });
   }
 
-  const { error } = await supabase
+  // Explicit look-up-then-write instead of a plain upsert(onConflict: ...).
+  // upsert's ON CONFLICT only dedupes if a matching unique constraint
+  // actually exists on (store_id, user_id) in the database — and that's
+  // set up by a SQL migration (supabase/migrations) that has to be run
+  // against the Supabase project separately from deploying this app, so
+  // it's easy for it to silently never have been applied. When that
+  // happens, ON CONFLICT has nothing to match and upsert just inserts a
+  // fresh row every time — exactly the "every submit adds another review"
+  // bug. This makes one-review-per-account correct at the application
+  // layer regardless of whether that constraint made it into the database,
+  // while 0024_reviews_unique_per_user.sql still adds (and enforces) it
+  // there too, as the real backstop against races and any other write path.
+  const { data: existing, error: lookupError } = await supabase
     .from("reviews")
-    .upsert(
-      { store_id: params.id, user_id: userData.user.id, rating, comment: comment ?? null },
-      { onConflict: "store_id,user_id" }
-    );
+    .select("id")
+    .eq("store_id", params.id)
+    .eq("user_id", userData.user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (lookupError) return NextResponse.json({ error: lookupError.message }, { status: 500 });
+
+  const { error } = existing
+    ? await supabase.from("reviews").update({ rating, comment: comment ?? null }).eq("id", existing.id)
+    : await supabase.from("reviews").insert({ store_id: params.id, user_id: userData.user.id, rating, comment: comment ?? null });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
