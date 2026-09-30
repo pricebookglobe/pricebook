@@ -44,11 +44,7 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
-}
+// The google-services plugin (and its classpath dependency in the root
+// build.gradle) was removed — this app has no google-services.json and
+// doesn't use Firebase/push notifications, so it was only ever dead
+// weight that added dependency-resolution risk for no benefit.
