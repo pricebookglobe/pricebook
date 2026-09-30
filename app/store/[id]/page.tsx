@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { useIsNativeApp } from "@/lib/useIsNativeApp";
 
 type StoreInfo = { id: string; name: string; address: string; city: string; lat: number; lng: number };
 type Review = { id: string; rating: number; comment: string | null; created_at: string };
@@ -29,6 +32,8 @@ function trustStar(positivePct: number | null): { color: string; label: string }
 
 export default function StoreDetailPage({ params }: { params: { id: string } }) {
   const { t } = useLanguage();
+  const router = useRouter();
+  const isNativeApp = useIsNativeApp();
   const [store, setStore] = useState<StoreInfo | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [priceStats, setPriceStats] = useState<PriceReportStats | null>(null);
@@ -66,12 +71,33 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
     setSubmitting(false);
   }
 
-  if (!store) return <AppPage><p className="text-sm text-ash">{t("Loading…")}</p></AppPage>;
+  // In the app, this page is always arrived at from some list (search
+  // results, history, a notification) — a back button gets the shopper
+  // there again without relying on the device's own back gesture, which
+  // is easy to miss on a full-screen WebView. The website already has
+  // its own browser back button, so this stays app-only.
+  const backButton = isNativeApp && (
+    <button
+      onClick={() => router.back()}
+      className="mb-4 flex items-center gap-1 font-display text-sm text-ash hover:text-ink"
+    >
+      <ChevronLeft size={16} strokeWidth={2} /> {t("Back")}
+    </button>
+  );
+
+  if (!store)
+    return (
+      <AppPage>
+        {backButton}
+        <p className="text-sm text-ash">{t("Loading…")}</p>
+      </AppPage>
+    );
 
   const star = trustStar(priceStats?.positive_pct ?? null);
 
   return (
     <AppPage>
+      {backButton}
       <h1 className="flex items-center gap-2 font-display text-xl font-semibold text-ink">
         {store.name}
         {star && (

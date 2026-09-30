@@ -6,12 +6,14 @@ import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { InventoryTable, type InventoryRow } from "@/components/merchant/InventoryTable";
+import { useIsNativeApp } from "@/lib/useIsNativeApp";
 
 type SortMode = "none" | "alphabetical" | "worst-to-best";
 
 export default function RegisteredItemsPage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const isNativeApp = useIsNativeApp();
   const [storeId, setStoreId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [rows, setRows] = useState<InventoryRow[]>([]);
@@ -128,7 +130,11 @@ export default function RegisteredItemsPage() {
             <button
               onClick={fillMissingNutrition}
               disabled={fillingNutrition}
-              className="rounded-sm border border-line bg-field-raised px-3 py-1.5 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40"
+              className={
+                isNativeApp
+                  ? "rounded-lg bg-blue-600 px-3 py-1.5 font-display text-sm font-medium text-white shadow-sm transition active:scale-[0.98] disabled:opacity-60"
+                  : "rounded-sm border border-line bg-field-raised px-3 py-1.5 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40"
+              }
             >
               {fillingNutrition
                 ? t("Filling in nutrition facts… ({done} of {total})")
