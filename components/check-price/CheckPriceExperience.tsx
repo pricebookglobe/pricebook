@@ -428,16 +428,18 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const cityBestDiffersFromNear =
     result?.city_best && (!result.near_best || result.city_best.store_id !== result.near_best.store_id);
 
+  // Scan / Snap / Enter details are the secondary actions on this screen —
+  // a light green outline reads as "available action" without competing
+  // with the blue and green primary buttons above. Website unchanged.
   const outlineButton = isNativeApp
-    ? "flex-1 rounded-xl border border-line bg-field-raised px-4 py-3.5 font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:bg-field"
+    ? "flex-1 rounded-xl border border-value/30 bg-value-soft px-4 py-3.5 font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:bg-value-soft/70"
     : "flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white";
 
-  // The app gives its two main calls-to-action (locate my store, check a
-  // price) a solid, high-contrast treatment so the primary action is
-  // obvious at a glance, matching native-app conventions. The website's
-  // outlined buttons are untouched.
+  // The app gives its main calls-to-action a solid, high-contrast treatment
+  // so the primary action is obvious at a glance, matching native-app
+  // conventions. The website's outlined buttons are untouched.
   const primaryButton = isNativeApp
-    ? "mb-3 w-full rounded-xl bg-ink px-4 py-3.5 font-display text-[15px] font-semibold text-field shadow-md transition active:scale-[0.98] disabled:opacity-40"
+    ? "mb-3 w-full rounded-xl bg-blue-600 px-4 py-3.5 font-display text-[15px] font-semibold text-white shadow-md transition active:scale-[0.98] disabled:opacity-40"
     : "mb-3 w-full rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40";
 
   return (

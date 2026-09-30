@@ -4,22 +4,24 @@ import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export const PAGE_SIZE = 10;
 
-export function paginate<T>(items: T[], page: number): T[] {
-  const start = page * PAGE_SIZE;
-  return items.slice(start, start + PAGE_SIZE);
+export function paginate<T>(items: T[], page: number, pageSize: number = PAGE_SIZE): T[] {
+  const start = page * pageSize;
+  return items.slice(start, start + pageSize);
 }
 
 export function Pagination({
   page,
   totalItems,
-  onPageChange
+  onPageChange,
+  pageSize = PAGE_SIZE
 }: {
   page: number;
   totalItems: number;
   onPageChange: (page: number) => void;
+  pageSize?: number;
 }) {
   const { t } = useLanguage();
-  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   if (totalPages <= 1) return null;
 
   return (

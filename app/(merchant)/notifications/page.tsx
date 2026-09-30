@@ -7,6 +7,9 @@ import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Pagination, paginate } from "@/components/admin/Pagination";
+import { useIsNativeApp } from "@/lib/useIsNativeApp";
+
+const APP_PAGE_SIZE = 5;
 
 type Notification = { id: string; review_id: string; rating: number; created_at: string };
 
@@ -21,6 +24,8 @@ function resultLabel(rating: number): { text: string; className: string } {
 export default function NotificationsPage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const isNativeApp = useIsNativeApp();
+  const pageSize = isNativeApp ? APP_PAGE_SIZE : undefined;
   const [storeId, setStoreId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [rows, setRows] = useState<Notification[]>([]);
@@ -63,7 +68,7 @@ export default function NotificationsPage() {
     });
   }
 
-  const visible = paginate(rows, page);
+  const visible = paginate(rows, page, pageSize);
 
   return (
     <AppPage>
@@ -73,7 +78,34 @@ export default function NotificationsPage() {
       {loading && <p className="text-sm text-ash">…</p>}
       {!loading && rows.length === 0 && <p className="text-sm text-ash">{t("No notifications yet.")}</p>}
 
-      {visible.length > 0 && (
+      {visible.length > 0 && isNativeApp && (
+        <div className="flex flex-col gap-2">
+          {visible.map((n) => {
+            const result = resultLabel(n.rating);
+            return (
+              <div key={n.id} className="rounded-lg border border-line bg-field-raised p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-mono text-[11px] text-ash">{new Date(n.created_at).toLocaleDateString()}</p>
+                    <p className={`mt-1 text-sm font-medium ${result.className}`}>
+                      {"★".repeat(n.rating)}
+                      {"☆".repeat(5 - n.rating)} · {t(result.text)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setPendingDelete(n)}
+                    className="shrink-0 text-sm text-ash underline hover:text-flag"
+                  >
+                    {t("Delete")}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {visible.length > 0 && !isNativeApp && (
         <table className="data-table">
           <thead>
             <tr>
@@ -104,7 +136,7 @@ export default function NotificationsPage() {
         </table>
       )}
 
-      <Pagination page={page} totalItems={rows.length} onPageChange={setPage} />
+      <Pagination page={page} totalItems={rows.length} onPageChange={setPage} pageSize={pageSize} />
 
       <ConfirmDialog
         open={!!pendingDelete}

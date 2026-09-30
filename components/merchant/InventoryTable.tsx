@@ -2,12 +2,19 @@
 
 import { useState } from "react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import { RowActionsMenu } from "@/components/admin/RowActionsMenu";
+import { RowActionsMenu, type MenuAction } from "@/components/admin/RowActionsMenu";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { Pagination, paginate } from "@/components/admin/Pagination";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
+import { useIsNativeApp } from "@/lib/useIsNativeApp";
 import type { NutritionFacts } from "@/lib/aiVision";
 import { displayProductName } from "@/lib/productName";
+
+// The app shows 5 items per page (vs. the website's 10) and lays them out
+// as cards instead of a wide table, so the whole row — including its
+// actions menu — fits comfortably on a phone screen without horizontal
+// scrolling. The website's table and page size are untouched.
+const APP_PAGE_SIZE = 5;
 
 export type InventoryRow = {
   id: string;
@@ -66,6 +73,8 @@ export function InventoryTable({
   showReportBadge?: boolean;
 }) {
   const { t } = useLanguage();
+  const isNativeApp = useIsNativeApp();
+  const pageSize = isNativeApp ? APP_PAGE_SIZE : undefined;
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<InventoryRow | null>(null);
   const [pendingHide, setPendingHide] = useState<InventoryRow | null>(null);
@@ -80,7 +89,7 @@ export function InventoryTable({
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [viewingNutrition, setViewingNutrition] = useState<InventoryRow | null>(null);
 
-  const visible = paginate(rows, page);
+  const visible = paginate(rows, page, pageSize);
 
   async function patchItem(
     row: InventoryRow,
@@ -178,86 +187,131 @@ export function InventoryTable({
 
   if (rows.length === 0) return <p className="text-sm text-ash">{t("No items to show.")}</p>;
 
+  // Shared by both the table (website) and card (app) layouts, so the
+  // available actions for a row never drift out of sync between the two.
+  function rowActions(row: InventoryRow): MenuAction[] {
+    return [
+      { label: t("Edit item"), onClick: () => openEdit(row) },
+      ...(row.products.nutrition_facts
+        ? [{ label: t("View nutrition facts"), onClick: () => setViewingNutrition(row) }]
+        : []),
+      {
+        label: row.is_hidden ? t("Unhide") : t("Hide"),
+        tone: "warning",
+        onClick: () => (row.is_hidden ? patchItem(row, { is_hidden: false }) : setPendingHide(row))
+      },
+      {
+        label: row.in_stock ? t("Mark unavailable") : t("Mark available"),
+        tone: row.in_stock ? "warning" : "positive",
+        onClick: () => (row.in_stock ? setPendingUnavailable(row) : patchItem(row, { in_stock: true }))
+      },
+      { label: t("Delete"), tone: "danger", onClick: () => setPendingDelete(row) }
+    ];
+  }
+
   return (
     <>
       {notice && <p className="mb-3 text-sm text-ink">{notice}</p>}
 
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>{t("Item")}</th>
-            <th>{t("Size / Qty")}</th>
-            <th>{t("Status")}</th>
-            {showReportBadge && <th>{t("Reports")}</th>}
-            <th className="num">{t("Price")}</th>
-            <th className="num">{t("Actions")}</th>
-          </tr>
-        </thead>
-        <tbody>
+      {isNativeApp ? (
+        <div className="flex flex-col gap-2">
           {visible.map((row) => (
-            <tr key={row.id}>
-              <td>
-                <div className="flex items-center gap-3">
-                  {row.products.image_url ? (
-                    <button
-                      type="button"
-                      onClick={() => setLightboxUrl(row.products.image_url)}
-                      className="shrink-0"
-                      aria-label="View image"
-                    >
-                      <img src={row.products.image_url} alt="" className="h-9 w-9 rounded object-cover hover:opacity-80" />
-                    </button>
-                  ) : (
-                    <div className="h-9 w-9 rounded bg-field" />
-                  )}
-                  <span>{displayProductName(row.products.brand, row.products.canonical_name)}</span>
+            <div key={row.id} className="rounded-lg border border-line bg-field-raised p-3">
+              <div className="flex items-start gap-3">
+                {row.products.image_url ? (
+                  <button
+                    type="button"
+                    onClick={() => setLightboxUrl(row.products.image_url)}
+                    className="shrink-0"
+                    aria-label="View image"
+                  >
+                    <img src={row.products.image_url} alt="" className="h-11 w-11 rounded object-cover" />
+                  </button>
+                ) : (
+                  <div className="h-11 w-11 shrink-0 rounded bg-field" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-display text-[14px] font-semibold text-ink">
+                    {displayProductName(row.products.brand, row.products.canonical_name)}
+                  </p>
+                  <p className="mt-0.5 font-mono text-[11px] text-ash">
+                    {row.products.size ? `${row.products.size} ${row.products.unit ?? ""}` : "—"}
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <span className={`font-mono text-[11px] ${row.in_stock ? "text-value" : "text-flag"}`}>
+                      {row.in_stock ? t("Available") : t("Unavailable")}
+                    </span>
+                    {row.is_hidden && <span className="font-mono text-[11px] text-ash">· {t("Hidden")}</span>}
+                    {showReportBadge && <ReportCountBadge positive={row.report_positive ?? 0} negative={row.report_negative ?? 0} />}
+                  </div>
                 </div>
-              </td>
-              <td className="font-mono text-xs text-ash">
-                {row.products.size ? `${row.products.size} ${row.products.unit ?? ""}` : "—"}
-              </td>
-              <td className="font-mono text-xs">
-                <span className={row.in_stock ? "text-value" : "text-flag"}>
-                  {row.in_stock ? t("Available") : t("Unavailable")}
-                </span>
-                {row.is_hidden && <span className="ml-2 text-ash">· {t("Hidden")}</span>}
-              </td>
-              {showReportBadge && (
-                <td>
-                  <ReportCountBadge positive={row.report_positive ?? 0} negative={row.report_negative ?? 0} />
-                </td>
-              )}
-              <td className="num">
-                {row.price.toFixed(2)} <span className="text-xs text-ash">{row.currency}</span>
-              </td>
-              <td className="num">
-                <RowActionsMenu
-                  disabled={busyId === row.id}
-                  actions={[
-                    { label: t("Edit item"), onClick: () => openEdit(row) },
-                    ...(row.products.nutrition_facts
-                      ? [{ label: t("View nutrition facts"), onClick: () => setViewingNutrition(row) }]
-                      : []),
-                    {
-                      label: row.is_hidden ? t("Unhide") : t("Hide"),
-                      tone: "warning",
-                      onClick: () => (row.is_hidden ? patchItem(row, { is_hidden: false }) : setPendingHide(row))
-                    },
-                    {
-                      label: row.in_stock ? t("Mark unavailable") : t("Mark available"),
-                      tone: row.in_stock ? "warning" : "positive",
-                      onClick: () => (row.in_stock ? setPendingUnavailable(row) : patchItem(row, { in_stock: true }))
-                    },
-                    { label: t("Delete"), tone: "danger", onClick: () => setPendingDelete(row) }
-                  ]}
-                />
-              </td>
-            </tr>
+                <RowActionsMenu disabled={busyId === row.id} actions={rowActions(row)} />
+              </div>
+              <p className="mt-2 text-right font-mono text-[15px] text-ink">
+                {row.price.toFixed(2)} <span className="text-xs font-normal text-ash">{row.currency}</span>
+              </p>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+      ) : (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t("Item")}</th>
+              <th>{t("Size / Qty")}</th>
+              <th>{t("Status")}</th>
+              {showReportBadge && <th>{t("Reports")}</th>}
+              <th className="num">{t("Price")}</th>
+              <th className="num">{t("Actions")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((row) => (
+              <tr key={row.id}>
+                <td>
+                  <div className="flex items-center gap-3">
+                    {row.products.image_url ? (
+                      <button
+                        type="button"
+                        onClick={() => setLightboxUrl(row.products.image_url)}
+                        className="shrink-0"
+                        aria-label="View image"
+                      >
+                        <img src={row.products.image_url} alt="" className="h-9 w-9 rounded object-cover hover:opacity-80" />
+                      </button>
+                    ) : (
+                      <div className="h-9 w-9 rounded bg-field" />
+                    )}
+                    <span>{displayProductName(row.products.brand, row.products.canonical_name)}</span>
+                  </div>
+                </td>
+                <td className="font-mono text-xs text-ash">
+                  {row.products.size ? `${row.products.size} ${row.products.unit ?? ""}` : "—"}
+                </td>
+                <td className="font-mono text-xs">
+                  <span className={row.in_stock ? "text-value" : "text-flag"}>
+                    {row.in_stock ? t("Available") : t("Unavailable")}
+                  </span>
+                  {row.is_hidden && <span className="ml-2 text-ash">· {t("Hidden")}</span>}
+                </td>
+                {showReportBadge && (
+                  <td>
+                    <ReportCountBadge positive={row.report_positive ?? 0} negative={row.report_negative ?? 0} />
+                  </td>
+                )}
+                <td className="num">
+                  {row.price.toFixed(2)} <span className="text-xs text-ash">{row.currency}</span>
+                </td>
+                <td className="num">
+                  <RowActionsMenu disabled={busyId === row.id} actions={rowActions(row)} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
-      <Pagination page={page} totalItems={rows.length} onPageChange={onPageChange} />
+      <Pagination page={page} totalItems={rows.length} onPageChange={onPageChange} pageSize={pageSize} />
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">

@@ -170,6 +170,10 @@ export const UI_STRINGS = [
   "Delete this item?",
   "Hide this item?",
   "Mark this item unavailable?",
+  "Delete this search?",
+  "This removes it from your search history. This cannot be undone.",
+  "Delete all search history?",
+  "This removes every search from your history. This cannot be undone.",
 
   // Notifications (merchant)
   "Notifications",

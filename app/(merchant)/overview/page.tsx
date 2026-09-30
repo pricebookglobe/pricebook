@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { AppPage } from "@/components/shared/AppPage";
 import { useAccount } from "@/lib/AccountProvider";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { useIsNativeApp } from "@/lib/useIsNativeApp";
+import { Pagination, paginate } from "@/components/admin/Pagination";
+
+const APP_PAGE_SIZE = 5;
 
 type ProductPosition = { product_id: string; product_name: string; price: number; currency: string; percentile: number };
 type Overview = {
@@ -25,8 +29,10 @@ export default function StoreOverviewPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const { profile, storeId, token, loading: accountLoading } = useAccount();
+  const isNativeApp = useIsNativeApp();
   const [data, setData] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [productsPage, setProductsPage] = useState(0);
 
   function positionLabel(percentile: number): string {
     // percent_rank: 0 = cheapest in town, 100 = most expensive. Flip it to a
@@ -135,8 +141,8 @@ export default function StoreOverviewPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.products.map((p) => (
-                  <tr key={p.product_id}>
+                {(isNativeApp ? paginate(data.products, productsPage, APP_PAGE_SIZE) : data.products).map((p, idx) => (
+                  <tr key={p.product_id} className={isNativeApp ? (idx % 2 === 0 ? "bg-white" : "bg-field") : undefined}>
                     <td>{p.product_name}</td>
                     <td className="num">
                       {p.price.toFixed(2)} <span className="text-xs text-ash">{p.currency}</span>
@@ -148,6 +154,10 @@ export default function StoreOverviewPage() {
                 ))}
               </tbody>
             </table>
+          )}
+
+          {isNativeApp && data.products.length > 0 && (
+            <Pagination page={productsPage} totalItems={data.products.length} onPageChange={setProductsPage} pageSize={APP_PAGE_SIZE} />
           )}
         </>
       )}

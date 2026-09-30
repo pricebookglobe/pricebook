@@ -6,6 +6,7 @@ import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { Pagination, paginate } from "@/components/admin/Pagination";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 
 type HistoryRow = { id: string; query_text: string; category: string | null; searched_at: string };
 
@@ -16,6 +17,8 @@ export default function HistoryPage() {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [pendingDeleteOne, setPendingDeleteOne] = useState<HistoryRow | null>(null);
+  const [pendingDeleteAll, setPendingDeleteAll] = useState(false);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -61,7 +64,7 @@ export default function HistoryPage() {
       <header className="mb-6 flex items-center justify-between">
         <h1 className="font-display text-xl font-semibold text-ink">{t("Search history")}</h1>
         {rows.length > 0 && (
-          <button onClick={deleteAll} className="font-mono text-xs text-flag underline hover:text-red-600">
+          <button onClick={() => setPendingDeleteAll(true)} className="font-mono text-xs text-flag underline hover:text-red-600">
             {t("Delete all")}
           </button>
         )}
@@ -88,7 +91,7 @@ export default function HistoryPage() {
                   {new Date(row.searched_at).toLocaleDateString()}
                 </td>
                 <td className="num">
-                  <button onClick={() => deleteOne(row.id)} className="text-sm text-ash underline hover:text-flag">
+                  <button onClick={() => setPendingDeleteOne(row)} className="text-sm text-ash underline hover:text-flag">
                     {t("Delete")}
                   </button>
                 </td>
@@ -98,6 +101,30 @@ export default function HistoryPage() {
         </table>
       )}
       {rows.length > 0 && <Pagination page={page} totalItems={rows.length} onPageChange={setPage} />}
+
+      <ConfirmDialog
+        open={!!pendingDeleteOne}
+        title={t("Delete this search?")}
+        message={t("This removes it from your search history. This cannot be undone.")}
+        confirmLabel={t("Delete")}
+        onCancel={() => setPendingDeleteOne(null)}
+        onConfirm={() => {
+          if (pendingDeleteOne) deleteOne(pendingDeleteOne.id);
+          setPendingDeleteOne(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={pendingDeleteAll}
+        title={t("Delete all search history?")}
+        message={t("This removes every search from your history. This cannot be undone.")}
+        confirmLabel={t("Delete all")}
+        onCancel={() => setPendingDeleteAll(false)}
+        onConfirm={() => {
+          deleteAll();
+          setPendingDeleteAll(false);
+        }}
+      />
     </AppPage>
   );
 }
