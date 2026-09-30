@@ -1,8 +1,35 @@
+"use client";
+
 import { AccountMenu } from "./AccountMenu";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Footer } from "./Footer";
+import { MobileTopBar } from "./MobileTopBar";
+import { MobileTabBar } from "./MobileTabBar";
+import { useIsNativeApp } from "@/lib/useIsNativeApp";
 
 export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.ReactNode; maxWidth?: string }) {
+  const isNativeApp = useIsNativeApp();
+
+  // Inside the packaged Android app only: a slim top bar and a fixed bottom
+  // tab bar, styled like a native app, instead of the website's sidebar.
+  // The website itself — including on a phone's browser — never sees this;
+  // it always renders the layout below.
+  if (isNativeApp) {
+    return (
+      <div className="app-gradient flex min-h-screen flex-col">
+        <MobileTopBar />
+
+        <div className={`mx-auto w-full flex-1 px-5 pb-24 ${maxWidth}`}>
+          <div className="rounded-lg border border-line bg-field-raised p-6 shadow-lg sm:p-8">
+            {children}
+          </div>
+        </div>
+
+        <MobileTabBar />
+      </div>
+    );
+  }
+
   return (
     <div className="app-gradient flex min-h-screen flex-col md:flex-row">
       {/* Dark sidebar on a light blue gradient page — logo, name, nav, and

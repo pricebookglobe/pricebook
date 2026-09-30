@@ -13,6 +13,7 @@ import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { displayProductName } from "@/lib/productName";
+import { useIsNativeApp } from "@/lib/useIsNativeApp";
 
 const TIER_LABEL: Record<string, string> = {
   neighborhood: "neighborhood zone",
@@ -170,6 +171,7 @@ function SearchingIndicator() {
 export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const router = useRouter();
   const { t } = useLanguage();
+  const isNativeApp = useIsNativeApp();
   const { coords, status } = useGeolocation();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [result, setResult] = useState<SearchResponse | null>(null);
@@ -393,14 +395,14 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       )}
 
       {mode === "menu" && checkPriceRevealed && !busy && !scanningBarcode && (
-        <div className="mb-6 flex flex-col gap-2 sm:flex-row">
+        <div className={isNativeApp ? "mb-6 grid grid-cols-2 gap-2" : "mb-6 flex flex-col gap-2 sm:flex-row"}>
           <button onClick={() => setShowScanner(true)} className={outlineButton}>
             {t("Scan Barcode")}
           </button>
           <button onClick={() => cameraInputRef.current?.click()} className={outlineButton}>
             {t("Snap")}
           </button>
-          <button onClick={() => setMode("text")} className={outlineButton}>
+          <button onClick={() => setMode("text")} className={`${outlineButton}${isNativeApp ? " col-span-2" : ""}`}>
             {t("Enter details")}
           </button>
         </div>
