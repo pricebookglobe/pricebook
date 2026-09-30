@@ -38,7 +38,7 @@ export function MobileTabBar() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t border-line bg-ink pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around border-t border-white/10 bg-ink pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(0,0,0,0.18)]"
     >
       {tabs.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname?.startsWith(`${href}/`);
@@ -48,8 +48,16 @@ export function MobileTabBar() {
             href={href}
             className="flex flex-1 flex-col items-center gap-1 px-1 py-2.5 text-center"
           >
-            <Icon size={20} strokeWidth={1.8} className={active ? "text-value" : "text-field/50"} />
-            <span className={`text-[9.5px] leading-tight ${active ? "text-value" : "text-field/50"}`}>{label}</span>
+            <span
+              className={`flex h-7 w-11 items-center justify-center rounded-full transition-colors ${
+                active ? "bg-value/20" : ""
+              }`}
+            >
+              <Icon size={19} strokeWidth={active ? 2.1 : 1.8} className={active ? "text-value" : "text-field/45"} />
+            </span>
+            <span className={`text-[9.5px] leading-tight ${active ? "font-medium text-value" : "text-field/45"}`}>
+              {label}
+            </span>
           </Link>
         );
       })}

@@ -16,16 +16,28 @@ export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.
   // it always renders the layout below.
   if (isNativeApp) {
     return (
-      <div className="app-gradient flex min-h-screen flex-col">
-        <MobileTopBar />
+      <div className="app-gradient relative flex min-h-screen flex-col overflow-hidden">
+        {/* Faint centered wordmark watermark, purely decorative, so the app
+            reads as its own branded product rather than a browser tab even
+            on screens with little other imagery. */}
+        <img
+          src="/pricebook-icon-transparent.png"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none fixed left-1/2 top-1/2 h-[62vw] max-h-[380px] w-[62vw] max-w-[380px] -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.05]"
+        />
 
-        <div className={`mx-auto w-full flex-1 px-5 pb-24 ${maxWidth}`}>
-          <div className="rounded-lg border border-line bg-field-raised p-6 shadow-lg sm:p-8">
-            {children}
+        <div className="relative z-10 flex min-h-screen flex-col">
+          <MobileTopBar />
+
+          <div className={`mx-auto w-full flex-1 px-5 pb-24 ${maxWidth}`}>
+            <div className="rounded-xl border border-line bg-field-raised p-6 shadow-lg sm:p-8">
+              {children}
+            </div>
           </div>
-        </div>
 
-        <MobileTabBar />
+          <MobileTabBar />
+        </div>
       </div>
     );
   }

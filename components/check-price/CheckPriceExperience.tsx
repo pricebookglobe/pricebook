@@ -428,25 +428,34 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const cityBestDiffersFromNear =
     result?.city_best && (!result.near_best || result.city_best.store_id !== result.near_best.store_id);
 
-  const outlineButton =
-    "flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white";
+  const outlineButton = isNativeApp
+    ? "flex-1 rounded-xl border border-line bg-field-raised px-4 py-3.5 font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:bg-field"
+    : "flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white";
+
+  // The app gives its two main calls-to-action (locate my store, check a
+  // price) a solid, high-contrast treatment so the primary action is
+  // obvious at a glance, matching native-app conventions. The website's
+  // outlined buttons are untouched.
+  const primaryButton = isNativeApp
+    ? "mb-3 w-full rounded-xl bg-ink px-4 py-3.5 font-display text-[15px] font-semibold text-field shadow-md transition active:scale-[0.98] disabled:opacity-40"
+    : "mb-3 w-full rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40";
 
   return (
     <AppPage>
       <p className="mb-4 text-sm text-ash">{t("Track best prices, near you first.")}</p>
 
-      <button
-        onClick={handleFindMyLocation}
-        disabled={locating}
-        className="mb-3 w-full rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white disabled:opacity-40"
-      >
+      <button onClick={handleFindMyLocation} disabled={locating} className={primaryButton}>
         {locating ? t("Finding your location…") : t("What store am I at?")}
       </button>
 
       {mode === "menu" && !checkPriceRevealed && (
         <button
           onClick={() => setCheckPriceRevealed(true)}
-          className="mb-6 w-full rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+          className={
+            isNativeApp
+              ? "mb-6 w-full rounded-xl bg-value px-4 py-3.5 font-display text-[15px] font-semibold text-white shadow-md transition active:scale-[0.98]"
+              : "mb-6 w-full rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white"
+          }
         >
           {t("Check Price")}
         </button>
