@@ -10,6 +10,7 @@ import { useIsNativeApp } from "@/lib/useIsNativeApp";
 
 type StoreInfo = { id: string; name: string; address: string; city: string; lat: number; lng: number };
 type Review = { id: string; rating: number; comment: string | null; created_at: string };
+type MyReview = { id: string; rating: number; comment: string | null };
 type PriceReportStats = {
   count: number;
   positive_count: number;
@@ -42,16 +43,31 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
   const [myRating, setMyRating] = useState(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // A shopper gets exactly one review per store, on both the website and
+  // the app (same account, same API). This tracks whether they already
+  // left one here, so the form pre-fills it and reads as "edit your
+  // review" instead of implying a brand new review can be added each visit.
+  const [myReview, setMyReview] = useState<MyReview | null>(null);
 
   useEffect(() => {
     fetch(`/api/stores/${params.id}`).then((r) => r.ok && r.json()).then((s) => s && setStore(s));
-    fetch(`/api/stores/${params.id}/reviews`)
-      .then((r) => r.json())
-      .then((d) => setReviews(d.reviews ?? []));
     fetch(`/api/stores/${params.id}/price-reports`)
       .then((r) => r.json())
       .then(setPriceStats);
     fetch(`/api/stores/${params.id}/view`, { method: "POST" }).catch(() => {});
+
+    (async () => {
+      const supabase = createBrowserSupabase();
+      const { data } = await supabase.auth.getSession();
+      const headers = data.session ? { Authorization: `Bearer ${data.session.access_token}` } : undefined;
+      const refreshed = await fetch(`/api/stores/${params.id}/reviews`, { headers }).then((r) => r.json());
+      setReviews(refreshed.reviews ?? []);
+      if (refreshed.my_review) {
+        setMyReview(refreshed.my_review);
+        setMyRating(refreshed.my_review.rating);
+        setComment(refreshed.my_review.comment ?? "");
+      }
+    })();
   }, [params.id]);
 
   async function submitReview() {
@@ -68,8 +84,11 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
       body: JSON.stringify({ rating: myRating, comment: comment || null })
     });
-    const refreshed = await fetch(`/api/stores/${params.id}/reviews`).then((r) => r.json());
+    const refreshed = await fetch(`/api/stores/${params.id}/reviews`, {
+      headers: { Authorization: `Bearer ${data.session.access_token}` }
+    }).then((r) => r.json());
     setReviews(refreshed.reviews ?? []);
+    if (refreshed.my_review) setMyReview(refreshed.my_review);
     setSubmitting(false);
   }
 
@@ -135,7 +154,14 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
       </a>
 
       <section className="mt-8">
-        <h2 className="font-display text-[15px] font-medium text-ink">{t("Leave a review")}</h2>
+        <h2 className="font-display text-[15px] font-medium text-ink">
+          {myReview ? t("Your review") : t("Leave a review")}
+        </h2>
+        {myReview && (
+          <p className="mt-0.5 text-xs text-ash">
+            {t("One review per store — editing yours below updates it, it won't add a new one.")}
+          </p>
+        )}
         <div className="mt-2 flex gap-1">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
@@ -160,7 +186,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
           disabled={!myRating || submitting}
           className="mt-2 rounded-sm bg-ink px-4 py-1.5 font-display text-sm text-field transition-colors hover:bg-value hover:text-white active:bg-value active:text-white disabled:opacity-40"
         >
-          {submitting ? t("Saving…") : t("Submit review")}
+          {submitting ? t("Saving…") : myReview ? t("Update review") : t("Submit review")}
         </button>
       </section>
 

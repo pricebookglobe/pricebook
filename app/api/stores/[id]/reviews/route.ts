@@ -24,6 +24,28 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const neutral_count = data.length - positive_count - negative_count;
   const positive_pct = data.length ? Math.round((positive_count / data.length) * 1000) / 10 : null;
 
+  // A logged-in shopper gets exactly one review per store (enforced by the
+  // unique(store_id, user_id) constraint and the upsert in POST below). If
+  // they're signed in, tell the frontend what their existing review is (if
+  // any) so it can be shown/edited in place, rather than the page silently
+  // implying a fresh review each visit while POST just overwrites the same
+  // row. Reviewer identity still isn't exposed to anyone else — this is
+  // returned only to the reviewer themself, based on their own token.
+  let my_review: { id: string; rating: number; comment: string | null } | null = null;
+  const token = req.headers.get("authorization")?.replace("Bearer ", "");
+  if (token) {
+    const { data: userData } = await supabase.auth.getUser(token);
+    if (userData?.user) {
+      const { data: mine } = await supabase
+        .from("reviews")
+        .select("id, rating, comment")
+        .eq("store_id", params.id)
+        .eq("user_id", userData.user.id)
+        .maybeSingle();
+      my_review = mine ?? null;
+    }
+  }
+
   return NextResponse.json({
     reviews: data,
     average_rating: avg,
@@ -31,7 +53,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     positive_count,
     negative_count,
     neutral_count,
-    positive_pct
+    positive_pct,
+    my_review
   });
 }
 
