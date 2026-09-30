@@ -7,7 +7,7 @@ import { useAccount } from "@/lib/AccountProvider";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
 import { Pagination, paginate } from "@/components/admin/Pagination";
-import { StarRating } from "@/components/shared/StarRating";
+import { EmojiRating } from "@/components/shared/EmojiRating";
 
 const APP_PAGE_SIZE = 5;
 
@@ -147,14 +147,14 @@ export default function StoreOverviewPage() {
                 <strong>{data.negative_reviews}</strong> {t("negative (1-2★)")}
               </span>
             </div>
-            <StarRating rating={data.average_rating} count={data.review_count} size={16} />
+            <EmojiRating rating={data.average_rating} count={data.review_count} size={22} />
           </div>
 
           {data.reviews.length > 0 && (
             <div className="mb-6 rounded border border-line bg-field-raised">
               {data.reviews.map((r) => (
                 <div key={r.id} className="border-b border-line px-4 py-3 last:border-b-0">
-                  <StarRating rating={r.rating} showValue={false} size={14} />
+                  <EmojiRating rating={r.rating} showValue={false} size={18} />
                   {r.comment && <p className="mt-1 text-sm text-ink">{r.comment}</p>}
                   <p className="mt-1 font-mono text-[11px] text-ash">
                     {t("Shopper")} · {new Date(r.created_at).toLocaleDateString()}

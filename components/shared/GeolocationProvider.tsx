@@ -69,8 +69,17 @@ export function GeolocationProvider({ children }: { children: React.ReactNode })
       // results (and the trust/price data tied to the store they're
       // standing in) stay current for as long as the app is open.
       try {
+        // enableHighAccuracy asks for a GPS-based fix instead of the much
+        // coarser (and much less reliable indoors/near buildings)
+        // network/cell-tower estimate — the difference between being
+        // accurate to a few meters and to a few hundred. That gap is
+        // exactly what was making "you're at this store" fail for
+        // shoppers standing right at a store's entrance: a loose fix put
+        // them outside even a generous radius. maximumAge is dropped from
+        // 15s to 5s so a stale cached fix from before the shopper walked
+        // up to the store isn't reused for longer than necessary.
         watchId = await Geolocation.watchPosition(
-          { enableHighAccuracy: false, timeout: 8000, maximumAge: 15000 },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
           (pos, err) => {
             if (cancelled || manualRef.current) return;
             if (err || !pos) {
