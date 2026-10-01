@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 480">
+  <defs>
+    <linearGradient id="pbGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2FAE7A"/>
+      <stop offset="100%" stop-color="#1F8A5F"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Shield: flat navy outline, white interior, no bevel highlight or drop
+       shadow baked in, so it never haloes against a dark background. -->
+  <path d="M40,98 L140,24 L200,76 L260,24 L360,98
+           L354,232 Q348,344 200,452
+           Q52,344 46,232 Z"
+        fill="#FFFFFF" stroke="#16223F" stroke-width="16"
+        stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- "PB" monogram -->
+  <text x="138" y="238" font-family="'Space Grotesk', Arial, sans-serif" font-weight="700"
+        font-size="150" text-anchor="middle" fill="#16223F">P</text>
+  <text x="252" y="238" font-family="'Space Grotesk', Arial, sans-serif" font-weight="700"
+        font-size="150" text-anchor="middle" fill="url(#pbGreen)">B</text>
+
+  <!-- cart + check glyph -->
+  <g transform="translate(136,278) scale(2.4)" fill="none" stroke="#16223F" stroke-width="1.7"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1 7h3l1.5-2h7L14 7h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"/>
+  </g>
+  <g transform="translate(136,278) scale(2.4)" fill="none" stroke="#1F8A5F" stroke-width="2.1"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5.5 11.5 8 14l5-6"/>
+  </g>
+</svg>
