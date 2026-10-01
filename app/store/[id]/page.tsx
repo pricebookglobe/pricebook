@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ChevronDown, X } from "lucide-react";
 import { AppPage } from "@/components/shared/AppPage";
 import { EmojiRating, EmojiRatingPicker } from "@/components/shared/EmojiRating";
+import { Pagination, paginate } from "@/components/admin/Pagination";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
+
+const REVIEWS_PAGE_SIZE = 5;
 
 type StoreInfo = { id: string; name: string; address: string; city: string; lat: number; lng: number };
 type Review = { id: string; rating: number; comment: string | null; created_at: string };
@@ -54,6 +57,11 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
   // The average emoji rating shown next to the store name — separate from
   // reviews[] (which is just the list rendered further down the page).
   const [reviewStats, setReviewStats] = useState<ReviewStats>({ average: null, count: 0 });
+  // The reviews section stays collapsed to just the average rating by
+  // default — the actual review text is a click away, and closes again via
+  // the X rather than staying open forever once expanded.
+  const [reviewsExpanded, setReviewsExpanded] = useState(false);
+  const [reviewsPage, setReviewsPage] = useState(0);
 
   useEffect(() => {
     fetch(`/api/stores/${params.id}`).then((r) => r.ok && r.json()).then((s) => s && setStore(s));
@@ -195,18 +203,64 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-2 font-display text-[15px] font-medium text-ink">{t("Reviews")}</h2>
-        {reviews.length === 0 && <p className="text-sm text-ash">{t("No reviews yet.")}</p>}
-        {reviews.map((r) => (
-          <div key={r.id} className="border-b border-line py-3">
-            <EmojiRating rating={r.rating} showValue={false} size={18} />
-            {r.comment && <p className="mt-1 text-sm text-ink">{r.comment}</p>}
-            <p className="mt-1 font-mono text-[11px] text-ash">
-              {/* Reviewer identity is never shown — only ever a generic label. */}
-              {t("Shopper")} · {new Date(r.created_at).toLocaleDateString()}
-            </p>
+        {/* Collapsed by default to just the average rating — the actual
+            review text (and who left what) is a click away, not shown up
+            front. Clicking it again, or the X once open, closes it. */}
+        <button
+          type="button"
+          onClick={() => {
+            if (reviews.length === 0) return;
+            setReviewsExpanded((e) => !e);
+            setReviewsPage(0);
+          }}
+          disabled={reviews.length === 0}
+          aria-expanded={reviewsExpanded}
+          className={
+            "flex w-full items-center justify-between gap-2 rounded border border-line bg-field px-4 py-3 text-left transition-colors " +
+            (reviewsExpanded ? "rounded-b-none border-b-0" : "") +
+            (reviews.length > 0 ? " hover:border-value" : " cursor-default")
+          }
+        >
+          <span className="font-display text-[15px] font-medium text-ink">{t("Reviews")}</span>
+          <span className="flex items-center gap-2">
+            <EmojiRating rating={reviewStats.count > 0 ? reviewStats.average : null} count={reviewStats.count} size={20} />
+            {reviews.length > 0 && (
+              <ChevronDown
+                size={16}
+                strokeWidth={2}
+                className={"text-ash transition-transform " + (reviewsExpanded ? "rotate-180" : "")}
+              />
+            )}
+          </span>
+        </button>
+
+        {reviews.length === 0 && <p className="mt-2 text-sm text-ash">{t("No reviews yet.")}</p>}
+
+        {reviewsExpanded && reviews.length > 0 && (
+          <div className="rounded rounded-t-none border border-t-0 border-line bg-field-raised p-3">
+            <div className="mb-1 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setReviewsExpanded(false)}
+                aria-label={t("Close")}
+                className="rounded-full p-1 text-ash hover:bg-field hover:text-ink"
+              >
+                <X size={16} strokeWidth={2} />
+              </button>
+            </div>
+            {paginate(reviews, reviewsPage, REVIEWS_PAGE_SIZE).map((r) => (
+              <div key={r.id} className="border-b border-line px-1 py-3 last:border-b-0">
+                <EmojiRating rating={r.rating} showValue={false} size={18} />
+                {r.comment && <p className="mt-1 text-sm text-ink">{r.comment}</p>}
+                <p className="mt-1 font-mono text-[11px] text-ash">
+                  {/* Reviewer identity is never shown — only ever a generic label. */}
+                  {t("Shopper")} · {new Date(r.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+            <Pagination page={reviewsPage} totalItems={reviews.length} onPageChange={setReviewsPage} pageSize={REVIEWS_PAGE_SIZE} />
           </div>
-        ))}
+        )}
       </section>
     </AppPage>
   );

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown, X } from "lucide-react";
 import { AppPage } from "@/components/shared/AppPage";
 import { useAccount } from "@/lib/AccountProvider";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -10,6 +11,7 @@ import { Pagination, paginate } from "@/components/admin/Pagination";
 import { EmojiRating } from "@/components/shared/EmojiRating";
 
 const APP_PAGE_SIZE = 5;
+const REVIEWS_PAGE_SIZE = 5;
 
 type ProductPosition = { product_id: string; product_name: string; price: number; currency: string; percentile: number };
 type Review = { id: string; rating: number; comment: string | null; created_at: string };
@@ -37,6 +39,12 @@ export default function StoreOverviewPage() {
   const [data, setData] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [productsPage, setProductsPage] = useState(0);
+  // The individual review text stays collapsed behind the average-rating
+  // summary by default (just the count/positive/negative/average line) —
+  // only the actual list of reviews is a click away, and closes again via
+  // the X rather than staying expanded forever.
+  const [reviewsExpanded, setReviewsExpanded] = useState(false);
+  const [reviewsPage, setReviewsPage] = useState(0);
 
   function positionLabel(percentile: number): string {
     // percent_rank: 0 = cheapest in town, 100 = most expensive. Flip it to a
@@ -132,10 +140,26 @@ export default function StoreOverviewPage() {
           </div>
 
           {/* Reviews — same counts/average as the public store page, but
-              private to the merchant here, plus the actual review text so
-              they can read their customers' feedback without leaving the
-              dashboard. Reviewer identity stays hidden either way. */}
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded border border-line bg-field px-4 py-3 text-sm">
+              private to the merchant here. The summary line (counts +
+              average) is always visible; the actual review text only shows
+              once this is clicked open, so the dashboard reads as a quick
+              glance by default rather than a wall of comments. Reviewer
+              identity stays hidden either way. */}
+          <button
+            type="button"
+            onClick={() => {
+              if (data.reviews.length === 0) return;
+              setReviewsExpanded((e) => !e);
+              setReviewsPage(0);
+            }}
+            disabled={data.reviews.length === 0}
+            aria-expanded={reviewsExpanded}
+            className={
+              "flex w-full flex-wrap items-center justify-between gap-2 rounded border border-line bg-field px-4 py-3 text-left text-sm transition-colors " +
+              (reviewsExpanded ? "rounded-b-none border-b-0" : "mb-6") +
+              (data.reviews.length > 0 ? " hover:border-value" : " cursor-default")
+            }
+          >
             <div className="flex flex-wrap items-center gap-4">
               <span className="text-ink">
                 <strong>{data.review_count}</strong> {t("reviews")}
@@ -147,13 +171,32 @@ export default function StoreOverviewPage() {
                 <strong>{data.negative_reviews}</strong> {t("negative (1-2★)")}
               </span>
             </div>
-            <EmojiRating rating={data.average_rating} count={data.review_count} size={22} />
-          </div>
+            <span className="flex items-center gap-2">
+              <EmojiRating rating={data.average_rating} count={data.review_count} size={22} />
+              {data.reviews.length > 0 && (
+                <ChevronDown
+                  size={16}
+                  strokeWidth={2}
+                  className={"text-ash transition-transform " + (reviewsExpanded ? "rotate-180" : "")}
+                />
+              )}
+            </span>
+          </button>
 
-          {data.reviews.length > 0 && (
-            <div className="mb-6 rounded border border-line bg-field-raised">
-              {data.reviews.map((r) => (
-                <div key={r.id} className="border-b border-line px-4 py-3 last:border-b-0">
+          {reviewsExpanded && data.reviews.length > 0 && (
+            <div className="mb-6 rounded rounded-t-none border border-t-0 border-line bg-field-raised p-3">
+              <div className="mb-1 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => setReviewsExpanded(false)}
+                  aria-label={t("Close")}
+                  className="rounded-full p-1 text-ash hover:bg-field hover:text-ink"
+                >
+                  <X size={16} strokeWidth={2} />
+                </button>
+              </div>
+              {paginate(data.reviews, reviewsPage, REVIEWS_PAGE_SIZE).map((r) => (
+                <div key={r.id} className="border-b border-line px-1 py-3 last:border-b-0">
                   <EmojiRating rating={r.rating} showValue={false} size={18} />
                   {r.comment && <p className="mt-1 text-sm text-ink">{r.comment}</p>}
                   <p className="mt-1 font-mono text-[11px] text-ash">
@@ -161,6 +204,12 @@ export default function StoreOverviewPage() {
                   </p>
                 </div>
               ))}
+              <Pagination
+                page={reviewsPage}
+                totalItems={data.reviews.length}
+                onPageChange={setReviewsPage}
+                pageSize={REVIEWS_PAGE_SIZE}
+              />
             </div>
           )}
 
