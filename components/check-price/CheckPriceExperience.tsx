@@ -583,12 +583,12 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     result?.city_best && (!result.near_best || result.city_best.store_id !== result.near_best.store_id);
 
   // Scan / Snap / Enter details are the secondary actions on this screen —
-  // light green at rest (bg-value-soft), darkening to full brand green on
+  // neutral at rest (border-line/bg-field-raised), darkening to solid ink on
   // hover/press — matching Manage Inventory's buttons, on both the website
   // and the app.
   const outlineButton = isNativeApp
-    ? "flex-1 rounded-xl border border-value/30 bg-value-soft px-4 py-3.5 font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:border-value active:bg-value active:text-white"
-    : "flex-1 rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white";
+    ? "flex-1 rounded-xl border border-line bg-field-raised px-4 py-3.5 font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:border-ink active:bg-ink-dark active:text-white"
+    : "flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-ink hover:bg-ink-soft hover:text-white active:border-ink active:bg-ink-dark active:text-white";
 
   return (
     <AppPage>
@@ -601,8 +601,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           onClick={() => setCheckPriceRevealed(true)}
           className={
             isNativeApp
-              ? "btn-shine mb-6 w-full rounded-xl bg-value px-4 py-6 font-display text-[20px] font-bold text-white shadow-md transition active:scale-[0.98]"
-              : "btn-shine mb-6 w-full rounded border border-value/30 bg-value-soft px-4 py-6 font-display text-[20px] font-bold text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
+              ? "btn-shine mb-6 w-full rounded-xl bg-ink px-4 py-6 font-display text-[20px] font-bold text-white shadow-md transition active:scale-[0.98]"
+              : "btn-shine mb-6 w-full rounded border border-line bg-field-raised px-4 py-6 font-display text-[20px] font-bold text-ink transition-colors hover:border-ink hover:bg-ink-soft hover:text-white active:border-ink active:bg-ink-dark active:text-white"
           }
         >
           {t("Check Price & Compare")}
@@ -760,7 +760,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               <button
                 type="button"
                 onClick={startNewCheck}
-                className="whitespace-nowrap rounded border border-value/30 bg-value-soft px-3 py-1.5 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
+                className="whitespace-nowrap rounded border border-line bg-field-raised px-3 py-1.5 font-display text-sm text-ink transition-colors hover:border-ink hover:bg-ink-soft hover:text-white active:border-ink active:bg-ink-dark active:text-white"
               >
                 {t("Start new check")}
               </button>
@@ -957,7 +957,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               <button
                 onClick={() => setSortMode("price")}
                 className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
-                  sortMode === "price" ? "bg-value text-white" : "border border-line text-ink hover:border-value"
+                  sortMode === "price" ? "bg-ink text-white" : "border border-line text-ink hover:border-ink"
                 }`}
               >
                 {t("Best price")}
@@ -965,7 +965,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               <button
                 onClick={() => setSortMode("distance")}
                 className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
-                  sortMode === "distance" ? "bg-value text-white" : "border border-line text-ink hover:border-value"
+                  sortMode === "distance" ? "bg-ink text-white" : "border border-line text-ink hover:border-ink"
                 }`}
               >
                 {t("Nearest")}

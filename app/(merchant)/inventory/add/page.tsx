@@ -243,21 +243,21 @@ export default function AddItemPage() {
               <button
                 type="button"
                 onClick={() => setShowScanner(true)}
-                className="flex-1 rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
+                className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-ink hover:bg-ink-soft hover:text-white active:border-ink active:bg-ink-dark active:text-white"
               >
                 {t("Scan Barcode")}
               </button>
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="flex-1 rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
+                className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-ink hover:bg-ink-soft hover:text-white active:border-ink active:bg-ink-dark active:text-white"
               >
                 {t("Snap")}
               </button>
               <button
                 type="button"
                 onClick={() => setMode("text")}
-                className="flex-1 rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
+                className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-ink hover:bg-ink-soft hover:text-white active:border-ink active:bg-ink-dark active:text-white"
               >
                 {t("Enter item details")}
               </button>
@@ -296,7 +296,7 @@ export default function AddItemPage() {
                 disabled={extracting || !textQuery.trim()}
                 className={`rounded-sm px-4 py-1.5 font-display text-sm font-medium transition-colors disabled:opacity-40 ${
                   textQuery.trim()
-                    ? "bg-value text-white hover:bg-value/90 active:bg-value/90"
+                    ? "bg-ink text-white hover:bg-ink-soft active:bg-ink-dark"
                     : "bg-ink text-field hover:bg-ink-soft hover:text-white active:bg-ink-dark active:text-white"
                 }`}
               >

@@ -133,7 +133,12 @@ export function AccountMenu() {
               Being a true vector, it has no resolution ceiling and renders
               pixel-sharp at any size on any background, which a raster
               export of the original artwork could never guarantee here. */}
-          <img src="/pricebook-logo.svg" alt="PriceBook" className="h-auto w-28" />
+          <img src="/pricebook-logo.svg" alt="" className="h-auto w-32" />
+          <p className="mt-2 font-display text-xl font-bold leading-none">
+            <span className="text-white">Price</span>
+            <span className="text-value">Book</span>
+          </p>
+          <p className="mt-1 font-mono text-[9px] uppercase tracking-widest text-field/60">{t("Track Best Prices")}</p>
         </Link>
 
         <div className="mt-4 flex flex-col items-center">
@@ -246,7 +251,7 @@ export function AccountMenu() {
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setConfirmingLogout(false)}
-                className="rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 active:bg-value/90"
+                className="rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-white hover:bg-ink-soft active:bg-ink-dark"
               >
                 {t("Discard")}
               </button>

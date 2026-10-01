@@ -87,7 +87,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={busy}
-          className="mt-1 rounded-sm bg-value px-4 py-2.5 font-display text-sm font-medium text-white transition-colors hover:bg-value/90 active:bg-value/90 disabled:opacity-40"
+          className="mt-1 rounded-sm bg-ink px-4 py-2.5 font-display text-sm font-medium text-white transition-colors hover:bg-ink-soft active:bg-ink-dark disabled:opacity-40"
         >
           {busy ? t("Logging in…") : t("Log in")}
         </button>

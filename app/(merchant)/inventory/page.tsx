@@ -42,17 +42,18 @@ export default function InventoryPage() {
     });
   }, [router]);
 
-  // On the app, the main "Add Item" action gets a solid green treatment so
-  // it stands out from the two secondary (light green) actions next to it —
+  // On the app, the main "Add Item" action gets a solid ink treatment so
+  // it stands out from the two secondary (outline) actions next to it —
   // the same primary/secondary pattern used on the Check Price screen. The
-  // website's secondary buttons now match the app's light-green resting
-  // state (bg-value-soft) instead of plain white, and darken to the full
-  // brand green on hover/press, so both surfaces read the same way.
+  // website's secondary buttons match the app's neutral resting state
+  // (border-line/bg-field-raised), and darken to solid ink on hover/press,
+  // so both surfaces read the same way. Orange is reserved for highlighting
+  // actual cheaper prices, not generic buttons.
   const buttonClass = isNativeApp
-    ? "flex-1 rounded-xl border border-value/30 bg-value-soft px-4 py-3.5 text-center font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:border-value active:bg-value active:text-white"
-    : "flex-1 rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white";
+    ? "flex-1 rounded-xl border border-line bg-field-raised px-4 py-3.5 text-center font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:border-ink active:bg-ink-dark active:text-white"
+    : "flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-ink hover:bg-ink-soft hover:text-white active:border-ink active:bg-ink-dark active:text-white";
   const primaryButtonClass = isNativeApp
-    ? "flex-1 rounded-xl bg-value px-4 py-3.5 text-center font-display text-[14px] font-semibold text-white shadow-md transition active:scale-[0.98] active:bg-value/90"
+    ? "flex-1 rounded-xl bg-ink px-4 py-3.5 text-center font-display text-[14px] font-semibold text-white shadow-md transition active:scale-[0.98] active:bg-ink-dark"
     : buttonClass;
 
   return (

@@ -231,7 +231,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
         href={`https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lng}`}
         target="_blank"
         rel="noreferrer"
-        className="mt-4 inline-block rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white hover:bg-value/90 active:bg-value/90"
+        className="mt-4 inline-block rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-white hover:bg-ink-soft active:bg-ink-dark"
       >
         {t("Get directions")}
       </a>

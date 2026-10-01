@@ -3,6 +3,7 @@
 // English is the key itself, so English never needs a lookup.
 export const UI_STRINGS = [
   // Nav / account
+  "Track Best Prices",
   "Log in",
   "Sign up",
   "Sell on PriceBook",

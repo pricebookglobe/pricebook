@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 const TONE_STYLES = {
   danger: "bg-red-600 hover:bg-red-700",
   warning: "bg-amber-500 hover:bg-amber-600",
-  positive: "bg-value hover:bg-value/90 active:bg-value/90"
+  positive: "bg-ink hover:bg-ink-soft active:bg-ink-dark"
 } as const;
 
 export function ConfirmDialog({
@@ -43,7 +43,7 @@ export function ConfirmDialog({
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onCancel}
-            className="rounded-sm bg-value px-4 py-2 font-display text-sm font-medium text-white transition-colors hover:bg-value/90 active:bg-value/90"
+            className="rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-white transition-colors hover:bg-ink-soft active:bg-ink-dark"
           >
             Cancel
           </button>
