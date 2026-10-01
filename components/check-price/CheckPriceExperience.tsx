@@ -601,7 +601,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           onClick={() => setCheckPriceRevealed(true)}
           className={
             isNativeApp
-              ? "btn-shine mb-6 w-full rounded-xl bg-field px-4 py-6 font-display text-[20px] font-bold text-ink shadow-md transition active:scale-[0.98] active:bg-ink-dark active:text-white"
+              ? "btn-shine mb-6 w-full rounded-xl bg-ink px-4 py-6 font-display text-[20px] font-bold text-white shadow-md transition active:scale-[0.98] active:bg-ink-dark"
               : "btn-shine mb-6 w-full rounded border border-line bg-field px-4 py-6 font-display text-[20px] font-bold text-ink transition-colors hover:border-ink hover:bg-ink hover:text-white active:border-ink active:bg-ink-dark active:text-white"
           }
         >
