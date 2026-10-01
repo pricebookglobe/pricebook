@@ -235,25 +235,29 @@ export default function AddItemPage() {
       {!product && (
         <div className="flex flex-col gap-3">
           {mode === "menu" && !extracting && !scanningBarcode && (
+            // Light green at rest (bg-value-soft), full brand green on
+            // hover/press — matches the Manage Inventory action buttons
+            // above, on both the website and the app (this page isn't
+            // split by isNativeApp, so one style covers both).
             <div className="flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
                 onClick={() => setShowScanner(true)}
-                className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
+                className="flex-1 rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
               >
                 {t("Scan Barcode")}
               </button>
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
+                className="flex-1 rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
               >
                 {t("Snap")}
               </button>
               <button
                 type="button"
                 onClick={() => setMode("text")}
-                className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
+                className="flex-1 rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
               >
                 {t("Enter item details")}
               </button>
