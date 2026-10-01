@@ -506,18 +506,20 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     result?.city_best && (!result.near_best || result.city_best.store_id !== result.near_best.store_id);
 
   // Scan / Snap / Enter details are the secondary actions on this screen —
-  // a light green outline reads as "available action" without competing
-  // with the solid green primary button above. Website unchanged.
+  // light green at rest (bg-value-soft), darkening to full brand green on
+  // hover/press — matching Manage Inventory's buttons, on both the website
+  // and the app.
   const outlineButton = isNativeApp
-    ? "flex-1 rounded-xl border border-value/30 bg-value-soft px-4 py-3.5 font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:bg-value-soft/70"
-    : "flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white";
+    ? "flex-1 rounded-xl border border-value/30 bg-value-soft px-4 py-3.5 font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:border-value active:bg-value active:text-white"
+    : "flex-1 rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white";
 
   // The app gives its main calls-to-action a solid, high-contrast treatment
   // so the primary action is obvious at a glance, matching native-app
-  // conventions. The website's outlined buttons are untouched.
+  // conventions. The website's version now matches the same light-green
+  // resting state as every other secondary button, darkening on hover/press.
   const primaryButton = isNativeApp
     ? "mb-3 w-full rounded-xl bg-value px-4 py-3.5 font-display text-[15px] font-semibold text-white shadow-md transition active:scale-[0.98] active:bg-value/90 disabled:opacity-40"
-    : "mb-3 w-full rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white disabled:opacity-40";
+    : "mb-3 w-full rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white disabled:opacity-40";
 
   return (
     <AppPage>
@@ -533,7 +535,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           className={
             isNativeApp
               ? "mb-6 w-full rounded-xl bg-value px-4 py-3.5 font-display text-[15px] font-semibold text-white shadow-md transition active:scale-[0.98]"
-              : "mb-6 w-full rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
+              : "mb-6 w-full rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
           }
         >
           {t("Check Price")}
@@ -546,7 +548,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             <div>
               <p className="text-sm text-ink">
                 {t("You're at")} <strong>{locationCheck.store.store_name}</strong>{" "}
-                <span className="text-ash">({t("matched within 10 meters")})</span>.
+                <span className="text-ash">({t("matched within 150 meters")})</span>.
               </p>
               <button
                 type="button"
