@@ -73,3 +73,35 @@ body {
 .app-gradient {
   background: linear-gradient(135deg, #E4F0FB 0%, #BFDCF5 40%, #7FB3E0 100%);
 }
+
+/* Glossy "shine" sweep for the main green action buttons — a soft diagonal
+   band of light drifting left-to-right on a loop, on top of whatever
+   background color the button already has, so it reads as a polished,
+   glossy surface rather than a flat fill. Needs position:relative and
+   overflow:hidden on the button itself, which this class also provides. */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 55%;
+  background: linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.55) 50%, transparent 80%);
+  transform: translateX(-160%) skewX(-20deg);
+  animation: btn-shine-sweep 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes btn-shine-sweep {
+  0%, 15% {
+    transform: translateX(-160%) skewX(-20deg);
+  }
+  55%, 100% {
+    transform: translateX(220%) skewX(-20deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-shine::after { animation: none; }
+}

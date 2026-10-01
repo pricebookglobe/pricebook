@@ -375,6 +375,17 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     }
   }
 
+  // Runs the location check automatically as soon as a fix is available —
+  // only on the Check Price tab (the Search items tab has no "what store am
+  // I at" concept at all) and only once per result, so it doesn't refire on
+  // every subsequent position update from watchPosition.
+  useEffect(() => {
+    if (initialMode !== "menu") return;
+    if (!coords || locationCheck || locating) return;
+    handleFindMyLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coords, initialMode, locationCheck, locating]);
+
   // Explicit reset for "Start a new check": clears the result and every bit
   // of state tied to the last one, and drops back to the Check Price menu
   // (scan/snap/enter details) rather than leaving the old answer showing
@@ -510,63 +521,64 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     ? "flex-1 rounded-xl border border-value/30 bg-value-soft px-4 py-3.5 font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:border-value active:bg-value active:text-white"
     : "flex-1 rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white";
 
-  // The app gives its main calls-to-action a solid, high-contrast treatment
-  // so the primary action is obvious at a glance, matching native-app
-  // conventions. The website's version now matches the same light-green
-  // resting state as every other secondary button, darkening on hover/press.
-  const primaryButton = isNativeApp
-    ? "mb-3 w-full rounded-xl bg-value px-4 py-3.5 font-display text-[15px] font-semibold text-white shadow-md transition active:scale-[0.98] active:bg-value/90 disabled:opacity-40"
-    : "mb-3 w-full rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white disabled:opacity-40";
-
   return (
     <AppPage>
       <p className="mb-4 text-sm text-ash">{t("Track best prices, near you first.")}</p>
 
-      <button onClick={handleFindMyLocation} disabled={locating} className={primaryButton}>
-        {locating ? t("Finding your location…") : t("What store am I at?")}
-      </button>
-
       {mode === "menu" && !checkPriceRevealed && (
-        // Bigger than "What store am I at?" above (more padding, larger
-        // text) — this is the main thing most shoppers open the app to do,
-        // so it should read as the more prominent of the two actions.
+        // The main action on this screen — clicking it hides the automatic
+        // location panel below and reveals Scan/Snap/Enter details.
         <button
           onClick={() => setCheckPriceRevealed(true)}
           className={
             isNativeApp
-              ? "mb-6 w-full rounded-xl bg-value px-4 py-6 font-display text-[20px] font-bold text-white shadow-md transition active:scale-[0.98]"
-              : "mb-6 w-full rounded border border-value/30 bg-value-soft px-4 py-6 font-display text-[20px] font-bold text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
+              ? "btn-shine mb-6 w-full rounded-xl bg-value px-4 py-6 font-display text-[20px] font-bold text-white shadow-md transition active:scale-[0.98]"
+              : "btn-shine mb-6 w-full rounded border border-value/30 bg-value-soft px-4 py-6 font-display text-[20px] font-bold text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
           }
         >
           {t("Check Price & Compare")}
         </button>
       )}
 
-      {locationCheck && (
+      {/* Automatic location panel — Check Price tab only, and hidden the
+          moment "Check Price & Compare" is pressed (checkPriceRevealed). No
+          button to trigger this anymore: it runs on its own as soon as a
+          location fix is available. */}
+      {initialMode === "menu" && !checkPriceRevealed && (
         <div className="-mt-3 mb-6">
-          {coords && (
-            <div className="overflow-hidden rounded border border-line">
-              <iframe
-                title={t("Your location")}
-                width="100%"
-                height="220"
-                style={{ border: 0 }}
-                loading="lazy"
-                src={`https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&t=k&output=embed`}
-              />
-            </div>
+          {status === "denied" ? (
+            <p className="rounded border border-flag/30 bg-flag/10 px-3 py-2 text-sm text-flag">
+              {t("Turn on location services so the app can find the store you are at and help you compare prices")}
+            </p>
+          ) : locationCheck ? (
+            <>
+              {coords && (
+                <div className="overflow-hidden rounded border border-line">
+                  <iframe
+                    title={t("Your location")}
+                    width="100%"
+                    height="220"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    src={`https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&t=k&output=embed`}
+                  />
+                </div>
+              )}
+              <p className={`text-sm text-ink ${coords ? "bg-field-raised px-3 py-2" : ""}`}>
+                {locationCheck.store ? (
+                  <>
+                    {t("You are at")} <strong>{locationCheck.store.store_name}</strong>
+                  </>
+                ) : coords ? (
+                  t("You are at an unregistered location")
+                ) : (
+                  t("Couldn't determine your location.")
+                )}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-ash">{t("Finding your location…")}</p>
           )}
-          <p className={`text-sm text-ink ${coords ? "bg-field-raised px-3 py-2" : ""}`}>
-            {locationCheck.store ? (
-              <>
-                {t("You are at")} <strong>{locationCheck.store.store_name}</strong>
-              </>
-            ) : coords ? (
-              t("You are at an unregistered location")
-            ) : (
-              t("Couldn't determine your location.")
-            )}
-          </p>
         </div>
       )}
 
@@ -877,16 +889,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </table>
           )}
         </section>
-      )}
-
-      {status === "denied" && (
-        <div
-          className={`fixed inset-x-0 z-40 bg-flag px-4 py-3 text-center text-sm font-medium text-white shadow-lg ${
-            isNativeApp ? "bottom-16" : "bottom-0"
-          }`}
-        >
-          {t("Turn on location services so the app can find the store you are at and help you compare your prices.")}
-        </div>
       )}
     </AppPage>
   );
