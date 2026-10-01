@@ -4,8 +4,8 @@ import { X } from "lucide-react";
 
 const TONE_STYLES = {
   danger: "bg-red-600 text-white hover:bg-red-700",
-  warning: "btn-shine border border-value bg-value text-white hover:border-value-soft active:border-value-dark active:bg-value-dark transition-all duration-200 hover:scale-110",
-  positive: "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white transition-all duration-200 hover:scale-110"
+  warning: "btn-shine border border-value bg-value text-white hover:border-value-soft active:border-value-dark active:bg-value-dark transition-all duration-200 hover:scale-105",
+  positive: "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white transition-all duration-200 hover:scale-105"
 } as const;
 
 export function ConfirmDialog({
@@ -43,7 +43,7 @@ export function ConfirmDialog({
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onCancel}
-            className="btn-shine rounded-sm border border-value bg-value px-4 py-2 font-display text-sm font-medium text-white transition-all active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white duration-200 hover:scale-110"
+            className="btn-shine rounded-sm border border-value bg-value px-4 py-2 font-display text-sm font-medium text-white transition-all active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white duration-200 hover:scale-105"
           >
             Cancel
           </button>

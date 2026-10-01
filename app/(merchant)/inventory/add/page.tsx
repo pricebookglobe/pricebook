@@ -224,7 +224,7 @@ export default function AddItemPage() {
 
   return (
     <AppPage>
-      <Link href="/inventory" className="btn-shine mb-4 inline-flex items-center gap-1 rounded border border-value bg-value px-3 py-1.5 font-display text-sm text-white transition-all hover:border-value-soft active:border-value-dark active:bg-value-dark hover:text-white active:text-white duration-200 hover:scale-110">
+      <Link href="/inventory" className="btn-shine mb-4 inline-flex items-center gap-1 rounded border border-value bg-value px-3 py-1.5 font-display text-sm text-white transition-all hover:border-value-soft active:border-value-dark active:bg-value-dark hover:text-white active:text-white duration-200 hover:scale-105">
         ← {t("Back to Manage Inventory")}
       </Link>
       <header className="mb-6">
@@ -243,21 +243,21 @@ export default function AddItemPage() {
               <button
                 type="button"
                 onClick={() => setShowScanner(true)}
-                className="btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-110"
+                className="btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
               >
                 {t("Scan Barcode")}
               </button>
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-110"
+                className="btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
               >
                 {t("Snap")}
               </button>
               <button
                 type="button"
                 onClick={() => setMode("text")}
-                className="btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-110"
+                className="btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
               >
                 {t("Enter item details")}
               </button>
@@ -296,8 +296,8 @@ export default function AddItemPage() {
                 disabled={extracting || !textQuery.trim()}
                 className={`rounded-sm px-4 py-1.5 font-display text-sm font-medium transition-colors disabled:opacity-40 ${
                   textQuery.trim()
-                    ? "btn-shine border border-value bg-value text-white active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-110"
-                    : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white transition-all duration-200 hover:scale-110"
+                    ? "btn-shine border border-value bg-value text-white active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-105"
+                    : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white transition-all duration-200 hover:scale-105"
                 }`}
               >
                 {extracting ? t("Reading…") : t("Identify")}
@@ -504,7 +504,7 @@ export default function AddItemPage() {
             <button
               onClick={handleSave}
               disabled={saving || !price}
-              className="btn-shine rounded-sm border border-value bg-value px-4 py-2 font-display text-sm font-medium text-white transition-all hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white disabled:opacity-40 duration-200 hover:scale-110"
+              className="btn-shine rounded-sm border border-value bg-value px-4 py-2 font-display text-sm font-medium text-white transition-all hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white disabled:opacity-40 duration-200 hover:scale-105"
             >
               {saving ? t("Saving…") : t("Save item")}
             </button>

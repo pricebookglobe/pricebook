@@ -49,7 +49,7 @@ export default function InventoryPage() {
   // lightening on hover/press, so both surfaces read as clearly actionable.
   const buttonClass = isNativeApp
     ? "flex-1 rounded-xl border border-line bg-field px-4 py-3.5 text-center font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:border-ink active:bg-ink-dark active:text-white"
-    : "btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-110";
+    : "btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105";
   const primaryButtonClass = isNativeApp
     ? "flex-1 rounded-xl bg-field px-4 py-3.5 text-center font-display text-[14px] font-semibold text-ink shadow-md transition active:scale-[0.98] active:bg-ink-dark active:text-white"
     : buttonClass;

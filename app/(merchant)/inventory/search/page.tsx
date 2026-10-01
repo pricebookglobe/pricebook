@@ -53,7 +53,7 @@ export default function InventorySearchPage() {
 
   return (
     <AppPage>
-      <Link href="/inventory" className="btn-shine mb-4 inline-flex items-center gap-1 rounded border border-value bg-value px-3 py-1.5 font-display text-sm text-white transition-all hover:border-value-soft active:border-value-dark active:bg-value-dark hover:text-white active:text-white duration-200 hover:scale-110">
+      <Link href="/inventory" className="btn-shine mb-4 inline-flex items-center gap-1 rounded border border-value bg-value px-3 py-1.5 font-display text-sm text-white transition-all hover:border-value-soft active:border-value-dark active:bg-value-dark hover:text-white active:text-white duration-200 hover:scale-105">
         ← {t("Back to Manage Inventory")}
       </Link>
       <h1 className="mb-4 font-display text-xl font-semibold text-ink">{t("Search Items")}</h1>

@@ -348,7 +348,7 @@ export function InventoryTable({
                     type="button"
                     onClick={lookupNutritionForEdit}
                     disabled={loadingNutrition}
-                    className="btn-shine rounded-sm border border-value bg-value px-2 py-1 font-display text-xs text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white disabled:opacity-40 duration-200 hover:scale-110"
+                    className="btn-shine rounded-sm border border-value bg-value px-2 py-1 font-display text-xs text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white disabled:opacity-40 duration-200 hover:scale-105"
                   >
                     {loadingNutrition ? t("Estimating…") : t("Look up nutrition facts")}
                   </button>
@@ -437,14 +437,14 @@ export function InventoryTable({
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setEditing(null)}
-                className="btn-shine rounded-sm border border-value bg-value px-4 py-2 font-display text-sm font-medium text-white transition-all active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white duration-200 hover:scale-110"
+                className="btn-shine rounded-sm border border-value bg-value px-4 py-2 font-display text-sm font-medium text-white transition-all active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white duration-200 hover:scale-105"
               >
                 {t("Cancel")}
               </button>
               <button
                 onClick={saveEdit}
                 disabled={savingEdit || !editName.trim()}
-                className="btn-shine rounded-sm border border-value bg-value px-4 py-2 font-display text-sm font-medium text-white active:bg-value-dark disabled:opacity-40 hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-110"
+                className="btn-shine rounded-sm border border-value bg-value px-4 py-2 font-display text-sm font-medium text-white active:bg-value-dark disabled:opacity-40 hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-105"
               >
                 {savingEdit ? t("Saving…") : t("Save")}
               </button>
@@ -557,7 +557,7 @@ export function InventoryTable({
             </div>
             <button
               onClick={() => setViewingNutrition(null)}
-              className="btn-shine mt-4 w-full rounded-sm border border-value bg-value px-4 py-2 font-display text-sm text-white transition-all hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white duration-200 hover:scale-110"
+              className="btn-shine mt-4 w-full rounded-sm border border-value bg-value px-4 py-2 font-display text-sm text-white transition-all hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white duration-200 hover:scale-105"
             >
               {t("Close")}
             </button>

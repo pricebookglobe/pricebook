@@ -18,14 +18,14 @@ export default function SignupChooser() {
       <div className="mt-6 flex flex-col gap-3">
         <Link
           href="/signup/customer"
-          className="btn-shine rounded border border-value-light bg-value-light px-4 py-4 text-left transition-all duration-200 hover:scale-110 hover:border-value hover:bg-value active:border-value-dark active:bg-value-dark"
+          className="btn-shine rounded border border-value-light bg-value-light px-4 py-4 text-left transition-all duration-200 hover:scale-105 hover:border-value hover:bg-value active:border-value-dark active:bg-value-dark"
         >
           <p className="font-display text-[15px] font-medium text-white">{t("I'm shopping")}</p>
           <p className="mt-0.5 text-sm text-white/80">{t("Find the best local prices near me.")}</p>
         </Link>
         <Link
           href="/signup/merchant"
-          className="btn-shine rounded border border-value-light bg-value-light px-4 py-4 text-left transition-all duration-200 hover:scale-110 hover:border-value hover:bg-value active:border-value-dark active:bg-value-dark"
+          className="btn-shine rounded border border-value-light bg-value-light px-4 py-4 text-left transition-all duration-200 hover:scale-105 hover:border-value hover:bg-value active:border-value-dark active:bg-value-dark"
         >
           <p className="font-display text-[15px] font-medium text-white">{t("I own a store")}</p>
           <p className="mt-0.5 text-sm text-white/80">{t("List my prices and reach nearby shoppers.")}</p>

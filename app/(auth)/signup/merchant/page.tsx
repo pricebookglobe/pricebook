@@ -180,7 +180,7 @@ export default function MerchantSignup() {
         </p>
         <Link
           href="/login?justSignedUp=1"
-          className="btn-shine mt-6 block rounded-sm border border-value bg-value px-4 py-2 text-center font-display text-sm font-medium text-white active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-110"
+          className="btn-shine mt-6 block rounded-sm border border-value bg-value px-4 py-2 text-center font-display text-sm font-medium text-white active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-105"
         >
           {t("Go to log in")}
         </Link>
@@ -254,7 +254,7 @@ export default function MerchantSignup() {
           <div className="flex items-center justify-between">
             <span className="text-sm text-ash">{t("Store location")} <span className="text-red-600">*</span></span>
             <button type="button" onClick={captureLocation}
-              className="btn-shine rounded-sm border border-value bg-value px-2 py-1 font-display text-xs font-medium text-white transition-all hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white duration-200 hover:scale-110">
+              className="btn-shine rounded-sm border border-value bg-value px-2 py-1 font-display text-xs font-medium text-white transition-all hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white duration-200 hover:scale-105">
               {locating ? "…" : coords ? t("Update") : t("Use my location")}
             </button>
           </div>
@@ -314,7 +314,7 @@ export default function MerchantSignup() {
         </label>
 
         <button type="submit" disabled={busy || !agreedToTerms}
-          className="btn-shine mt-2 rounded-sm border border-value bg-value px-4 py-2 font-display text-sm font-medium text-white active:bg-value-dark disabled:opacity-40 hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-110">
+          className="btn-shine mt-2 rounded-sm border border-value bg-value px-4 py-2 font-display text-sm font-medium text-white active:bg-value-dark disabled:opacity-40 hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-105">
           {busy ? t("Setting up…") : t("Register your store")}
         </button>
       </form>

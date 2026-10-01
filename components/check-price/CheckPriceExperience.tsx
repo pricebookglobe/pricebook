@@ -588,7 +588,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // and the app.
   const outlineButton = isNativeApp
     ? "flex-1 rounded-xl border border-line bg-field px-4 py-3.5 font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:border-ink active:bg-ink-dark active:text-white"
-    : "btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-110";
+    : "btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105";
 
   return (
     <AppPage>
@@ -602,7 +602,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           className={
             isNativeApp
               ? "btn-shine mb-6 w-full rounded-xl bg-ink px-4 py-6 font-display text-[20px] font-bold text-white shadow-md transition active:scale-[0.98] active:bg-ink-dark"
-              : "btn-shine mb-6 w-full rounded border border-value bg-value px-4 py-6 font-display text-[20px] font-bold text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-110"
+              : "btn-shine mb-6 w-full rounded border border-value bg-value px-4 py-6 font-display text-[20px] font-bold text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
           }
         >
           {t("Check Price & Compare")}
@@ -760,7 +760,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               <button
                 type="button"
                 onClick={startNewCheck}
-                className="btn-shine whitespace-nowrap rounded border border-value bg-value px-3 py-1.5 font-display text-sm text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-110"
+                className="btn-shine whitespace-nowrap rounded border border-value bg-value px-3 py-1.5 font-display text-sm text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
               >
                 {t("Start new check")}
               </button>
@@ -957,7 +957,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               <button
                 onClick={() => setSortMode("price")}
                 className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
-                  sortMode === "price" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-110"
+                  sortMode === "price" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-105"
                 }`}
               >
                 {t("Best price")}
@@ -965,7 +965,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               <button
                 onClick={() => setSortMode("distance")}
                 className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
-                  sortMode === "distance" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-110"
+                  sortMode === "distance" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-105"
                 }`}
               >
                 {t("Nearest")}

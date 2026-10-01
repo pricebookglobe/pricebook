@@ -39,7 +39,7 @@ export function FreeTextSearch({
       <button
         disabled={busy || !value.trim()}
         onClick={submit}
-        className="btn-shine rounded-sm border border-value bg-value px-5 py-2 font-display text-sm font-bold tracking-wide text-white transition-all active:bg-value-dark disabled:opacity-40 hover:border-value-soft hover:text-white active:border-value-dark active:text-white duration-200 hover:scale-110"
+        className="btn-shine rounded-sm border border-value bg-value px-5 py-2 font-display text-sm font-bold tracking-wide text-white transition-all active:bg-value-dark disabled:opacity-40 hover:border-value-soft hover:text-white active:border-value-dark active:text-white duration-200 hover:scale-105"
       >
         {t("Search Items")}
       </button>
