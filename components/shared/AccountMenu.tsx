@@ -103,11 +103,11 @@ export function AccountMenu() {
   // Only the very first load (before the root-level AccountProvider has
   // resolved) shows this placeholder — navigating between pages afterward
   // never hits this state again, since the context isn't re-fetched.
-  if (loading) return <div className="h-52 w-32" />;
+  if (loading) return <div className="h-52 w-32 p-6" />;
 
   if (!profile) {
     return (
-      <div className="flex gap-3 font-mono text-xs text-field/70">
+      <div className="flex gap-3 p-6 font-mono text-xs text-field/70">
         <Link href="/login" className="underline hover:text-field">{t("Log in")}</Link>
         <Link href="/signup" className="underline hover:text-field">{t("Sign up")}</Link>
         <Link href="/signup/merchant" className="underline hover:text-field">{t("Sell on PriceBook")}</Link>
@@ -120,18 +120,27 @@ export function AccountMenu() {
 
   return (
     <div className="flex h-full flex-col items-center text-center">
-      <Link href="/" className="flex flex-col items-center">
-        {/* public/pricebook-logo.svg — the shield outline is traced
-            exactly from the supplied reference artwork (not redrawn), a
-            solid dark-teal fill with a white double-line inset border,
-            bold white "PB", and an orange price-drop arrow underneath.
-            Being a true vector, it has no resolution ceiling and renders
-            pixel-sharp at any size on any background, which a raster
-            export of the original artwork could never guarantee here. */}
-        <img src="/pricebook-logo.svg" alt="PriceBook" className="h-auto w-28" />
-      </Link>
+      {/* Logo band: the same ink color as the rest of the sidebar, just a
+          lighter shade (ink-soft), separated from the account/nav band
+          below by a light hairline — rather than a different, unrelated
+          color — so the two bands read as one family. */}
+      <div className="flex w-full flex-col items-center bg-ink-soft px-6 py-8">
+        <Link href="/" className="flex flex-col items-center">
+          {/* public/pricebook-logo.svg — the shield outline is traced
+              exactly from the supplied reference artwork (not redrawn), a
+              solid dark-teal fill with a white double-line inset border,
+              bold white "PB", and an orange price-drop arrow underneath.
+              Being a true vector, it has no resolution ceiling and renders
+              pixel-sharp at any size on any background, which a raster
+              export of the original artwork could never guarantee here. */}
+          <img src="/pricebook-logo.svg" alt="PriceBook" className="h-auto w-28" />
+        </Link>
+      </div>
 
-      <div className="mt-4 flex flex-col items-center">
+      <div className="h-px w-full bg-white/25" />
+
+      <div className="flex w-full flex-1 flex-col items-center px-6 py-6">
+      <div className="flex flex-col items-center">
         {storeLogoUrl ? (
           <img src={storeLogoUrl} alt="" className="h-9 w-9 rounded-full object-cover" />
         ) : (
@@ -219,6 +228,7 @@ export function AccountMenu() {
       >
         <LogOut size={14} strokeWidth={2} /> {t("Log out")}
       </button>
+      </div>
 
       {confirmingLogout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
