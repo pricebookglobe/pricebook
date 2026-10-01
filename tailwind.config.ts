@@ -1,10 +1,10 @@
 import type { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 
-// Design tokens, grounded in the PriceBook brand (navy shield + green value marks):
+// Design tokens, grounded in the PriceBook brand (navy shield + teal value marks):
 // - ink:    the deep navy from the logo, used for chrome, headings, primary actions
 // - field:  a warm paper background, not stark white — a receipt/ledger feel
-// - value:  the green that means "cheaper" throughout the product
+// - value:  the teal that means "cheaper" throughout the product
 // - flag:   a warm amber used ONLY for the single cheapest result in a list
 // - line:   hairline dividers for the price-ledger rows
 const config: Config = {
@@ -21,8 +21,8 @@ const config: Config = {
           raised: "#FFFFFF"
         },
         value: {
-          DEFAULT: "#1F8A5F",
-          soft: "#DCEEE3"
+          DEFAULT: "#0E8C85",
+          soft: "#D7F1EE"
         },
         flag: "#D98A2B",
         line: "#E4E2DA",
