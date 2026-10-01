@@ -45,13 +45,11 @@ export default function InventoryPage() {
   // On the app, the main "Add Item" action gets a solid ink treatment so
   // it stands out from the two secondary (outline) actions next to it —
   // the same primary/secondary pattern used on the Check Price screen. The
-  // website's secondary buttons match the app's neutral resting state
-  // (border-line/bg-field-raised), and darken to solid ink on hover/press,
-  // so both surfaces read the same way. The brand green is reserved for
-  // highlighting actual cheaper prices, not generic buttons.
+  // website's buttons use the brand's dark green at rest, with the frame
+  // lightening on hover/press, so both surfaces read as clearly actionable.
   const buttonClass = isNativeApp
     ? "flex-1 rounded-xl border border-line bg-field px-4 py-3.5 text-center font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:border-ink active:bg-ink-dark active:text-white"
-    : "flex-1 rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-value transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value-dark active:text-white";
+    : "flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-colors hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white";
   const primaryButtonClass = isNativeApp
     ? "flex-1 rounded-xl bg-field px-4 py-3.5 text-center font-display text-[14px] font-semibold text-ink shadow-md transition active:scale-[0.98] active:bg-ink-dark active:text-white"
     : buttonClass;

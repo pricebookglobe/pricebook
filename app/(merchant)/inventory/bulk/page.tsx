@@ -108,7 +108,7 @@ export default function BulkUploadPage() {
 
   return (
     <AppPage>
-      <Link href="/inventory" className="mb-4 inline-flex items-center gap-1 rounded border border-value/30 bg-value-soft px-3 py-1.5 font-display text-sm text-value transition-colors hover:border-value hover:bg-value active:border-value active:bg-value-dark hover:text-white active:text-white">
+      <Link href="/inventory" className="mb-4 inline-flex items-center gap-1 rounded border border-value bg-value px-3 py-1.5 font-display text-sm text-white transition-colors hover:border-value-soft active:border-value-dark active:bg-value-dark hover:text-white active:text-white">
         ← {t("Back to Manage Inventory")}
       </Link>
 
@@ -130,7 +130,7 @@ export default function BulkUploadPage() {
             </p>
             <button
               onClick={downloadTemplate}
-              className="mt-3 rounded-sm border border-value/30 bg-value-soft px-4 py-2 font-display text-sm text-value transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value-dark active:text-white"
+              className="mt-3 rounded-sm border border-value bg-value px-4 py-2 font-display text-sm text-white transition-colors hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white"
             >
               {t("Download template (CSV)")}
             </button>
@@ -144,7 +144,7 @@ export default function BulkUploadPage() {
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-sm border border-value/30 bg-value-soft px-4 py-2 font-display text-sm text-value transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value-dark active:text-white"
+                className="rounded-sm border border-value bg-value px-4 py-2 font-display text-sm text-white transition-colors hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white"
               >
                 {t("Choose CSV file")}
               </button>
@@ -156,7 +156,7 @@ export default function BulkUploadPage() {
               <button
                 onClick={handleUpload}
                 disabled={uploading}
-                className="mt-3 rounded-sm bg-value-soft px-4 py-2 font-display text-sm font-medium text-value transition-colors hover:bg-value active:bg-value-dark disabled:opacity-40 hover:text-white active:text-white"
+                className="mt-3 rounded-sm border border-value bg-value px-4 py-2 font-display text-sm font-medium text-white transition-colors active:bg-value-dark disabled:opacity-40 hover:border-value-soft hover:text-white active:border-value-dark active:text-white"
               >
                 {uploading ? t("Uploading…") : t("Upload and process")}
               </button>

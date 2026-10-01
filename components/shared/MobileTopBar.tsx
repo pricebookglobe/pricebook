@@ -119,7 +119,7 @@ export function MobileTopBar() {
               <button
                 onClick={() => setConfirmingLogout(false)}
                 disabled={loggingOut}
-                className="rounded-sm bg-value-soft px-4 py-2 font-display text-sm font-medium text-value hover:bg-value active:bg-value-dark disabled:opacity-40 hover:text-white active:text-white"
+                className="rounded-sm border border-value bg-value px-4 py-2 font-display text-sm font-medium text-white active:bg-value-dark disabled:opacity-40 hover:border-value-soft hover:text-white active:border-value-dark active:text-white"
               >
                 {t("Discard")}
               </button>
