@@ -530,12 +530,15 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       </button>
 
       {mode === "menu" && !checkPriceRevealed && (
+        // Bigger than "What store am I at?" above (more padding, larger
+        // text) — this is the main thing most shoppers open the app to do,
+        // so it should read as the more prominent of the two actions.
         <button
           onClick={() => setCheckPriceRevealed(true)}
           className={
             isNativeApp
-              ? "mb-6 w-full rounded-xl bg-value px-4 py-3.5 font-display text-[15px] font-semibold text-white shadow-md transition active:scale-[0.98]"
-              : "mb-6 w-full rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
+              ? "mb-6 w-full rounded-xl bg-value px-4 py-5 font-display text-[18px] font-bold text-white shadow-md transition active:scale-[0.98]"
+              : "mb-6 w-full rounded border border-value/30 bg-value-soft px-4 py-5 font-display text-[18px] font-bold text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
           }
         >
           {t("Check Price")}
