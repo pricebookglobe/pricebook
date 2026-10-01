@@ -51,11 +51,51 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     .select("product_id, report_type")
     .eq("store_id", params.id);
 
+  // How this store's price compares to every OTHER store selling the same
+  // product — backs the "X% cheaper/pricier than other stores" badge on
+  // the public store page. One query covering every product this store
+  // carries, grouped in JS, rather than a per-item request; excludes this
+  // store's own listing (comparing a price to itself is meaningless) and
+  // any other store's out-of-stock/hidden listing (not a real price a
+  // shopper could actually pay elsewhere right now).
+  const productIds = Array.from(new Set(data.map((row: any) => row.products.id)));
+  const marketAvgByProduct = new Map<string, number>();
+  if (productIds.length > 0) {
+    const { data: marketRows } = await supabase
+      .from("store_inventory")
+      .select("product_id, price")
+      .in("product_id", productIds)
+      .neq("store_id", params.id)
+      .eq("in_stock", true)
+      .eq("is_hidden", false);
+    const byProduct = new Map<string, number[]>();
+    for (const row of marketRows ?? []) {
+      const list = byProduct.get(row.product_id) ?? [];
+      list.push(row.price);
+      byProduct.set(row.product_id, list);
+    }
+    for (const [productId, prices] of byProduct) {
+      marketAvgByProduct.set(productId, prices.reduce((a, b) => a + b, 0) / prices.length);
+    }
+  }
+
   const withReports = data.map((row: any) => {
     const rows = (reports ?? []).filter((r) => r.product_id === row.products.id);
     const positive = rows.filter((r) => r.report_type === "correct_price").length;
     const negative = rows.filter((r) => r.report_type === "wrong_price").length;
-    return { ...row, report_positive: positive, report_negative: negative };
+    const marketAvg = marketAvgByProduct.get(row.products.id) ?? null;
+    // Positive = this store is cheaper than the market average by that many
+    // percent; negative = pricier. Null when no other store carries it, so
+    // the frontend can skip the badge entirely rather than show a
+    // meaningless 0%/100%.
+    const percentVsMarket = marketAvg ? Math.round(((marketAvg - row.price) / marketAvg) * 1000) / 10 : null;
+    return {
+      ...row,
+      report_positive: positive,
+      report_negative: negative,
+      market_avg_price: marketAvg,
+      percent_vs_market: percentVsMarket
+    };
   });
 
   return NextResponse.json(withReports);
