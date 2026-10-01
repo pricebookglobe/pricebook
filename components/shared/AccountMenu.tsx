@@ -121,13 +121,13 @@ export function AccountMenu() {
   return (
     <div className="flex h-full flex-col items-center text-center">
       <Link href="/" className="flex flex-col items-center">
-        {/* public/pricebook-logo.svg — shield + price tag + magnifying
-            glass + checkmark: finding and verifying the best price (flat
-            navy outline, gradient-teal tag/check, no bevel highlight or
-            drop shadow baked in anywhere). Being a true vector, it has no
-            resolution ceiling and renders pixel-sharp at any size on any
-            background, which a raster export of the original artwork
-            could never guarantee here. */}
+        {/* public/pricebook-logo.svg — the shield outline is traced
+            exactly from the supplied reference artwork (not redrawn), a
+            solid dark-teal fill with a white double-line inset border,
+            bold white "PB", and an orange price-drop arrow underneath.
+            Being a true vector, it has no resolution ceiling and renders
+            pixel-sharp at any size on any background, which a raster
+            export of the original artwork could never guarantee here. */}
         <img src="/pricebook-logo.svg" alt="PriceBook" className="h-auto w-28" />
       </Link>
 
