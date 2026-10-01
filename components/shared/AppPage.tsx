@@ -48,8 +48,10 @@ export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.
   return (
     <div className="app-gradient flex min-h-screen flex-col md:flex-row">
       {/* Dark sidebar on a light blue gradient page — logo, name, nav, and
-          logout all in one column, matching the reference layout. */}
-      <aside className="flex shrink-0 flex-col bg-ink px-6 py-8 md:w-64">
+          logout all in one column, matching the reference layout. Uses the
+          dedicated bg-sidebar slate rather than bg-ink so this chrome reads
+          as distinct from the logo's own shield color, not a wash of it. */}
+      <aside className="flex shrink-0 flex-col bg-sidebar px-6 py-8 md:w-64">
         <AccountMenu />
       </aside>
 

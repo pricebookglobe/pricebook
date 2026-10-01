@@ -2,11 +2,14 @@ import type { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 
 // Design tokens, grounded in the PriceBook brand (dark-teal shield + orange value marks):
-// - ink:    the deep teal from the logo shield, used for chrome, headings, primary actions
-// - field:  a warm paper background, not stark white — a receipt/ledger feel
-// - value:  the orange that means "cheaper"/price-drop throughout the product
-// - flag:   a warm amber used ONLY for the single cheapest result in a list
-// - line:   hairline dividers for the price-ledger rows
+// - ink:     the deep teal from the logo shield, used for chrome, headings, primary actions
+// - sidebar: a separate dark neutral slate for the app's own nav chrome (desktop
+//            sidebar) — deliberately NOT the same color as the logo's shield, so
+//            the logo reads as its own mark against it rather than blending in
+// - field:   a warm paper background, not stark white — a receipt/ledger feel
+// - value:   the orange that means "cheaper"/price-drop throughout the product
+// - flag:    a warm amber used ONLY for the single cheapest result in a list
+// - line:    hairline dividers for the price-ledger rows
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
@@ -16,6 +19,7 @@ const config: Config = {
           DEFAULT: "#00333E",
           soft: "#0B4D5C"
         },
+        sidebar: "#121D26",
         field: {
           DEFAULT: "#F6F5F1",
           raised: "#FFFFFF"
