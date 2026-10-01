@@ -121,7 +121,11 @@ export function AccountMenu() {
   return (
     <div className="flex h-full flex-col items-center text-center">
       <Link href="/" className="flex flex-col items-center">
-        <img src="/pricebook-icon-dark.png" alt="PriceBook" className="h-auto w-28" />
+        {/* The original, unprocessed app/icon.png master — per explicit
+            instruction, this is not to be swapped for a derived/re-exported
+            asset again. If it ever needs to change, that has to be a new
+            master file, not another crop/resize/threshold pass on this one. */}
+        <img src="/icon.png" alt="PriceBook" className="h-auto w-28" />
       </Link>
 
       <div className="mt-4 flex flex-col items-center">
