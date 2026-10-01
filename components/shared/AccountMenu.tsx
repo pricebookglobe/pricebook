@@ -129,7 +129,7 @@ export function AccountMenu() {
           {/* public/pricebook-logo.svg — the shield outline is traced
               exactly from the supplied reference artwork (not redrawn), a
               solid dark-teal fill with a white double-line inset border,
-              bold white "PB", and an orange price-drop arrow underneath.
+              bold white "PB", and a green barcode + price-drop arrow underneath.
               Being a true vector, it has no resolution ceiling and renders
               pixel-sharp at any size on any background, which a raster
               export of the original artwork could never guarantee here. */}
@@ -182,7 +182,7 @@ export function AccountMenu() {
             <Link href="/admin/pending-stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
               <ClipboardList size={16} strokeWidth={1.75} /> Store requests
               {pendingStoreCount > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-400 px-1.5 font-mono text-[11px] font-bold text-ink">
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-value px-1.5 font-mono text-[11px] font-bold text-white">
                   {pendingStoreCount}
                 </span>
               )}

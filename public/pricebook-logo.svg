@@ -20,39 +20,39 @@
 
   <!-- Barcode: decorative, under the PB mark -->
   <g>
-    <rect x="187" y="296" width="3" height="40" fill="#FFFFFF"/>
-    <rect x="192" y="296" width="3" height="40" fill="#FFFFFF"/>
-    <rect x="198" y="296" width="2" height="40" fill="#FFFFFF"/>
-    <rect x="202" y="296" width="6" height="40" fill="#FFFFFF"/>
-    <rect x="211" y="296" width="2" height="40" fill="#FFFFFF"/>
-    <rect x="215" y="296" width="4" height="40" fill="#FFFFFF"/>
-    <rect x="221" y="296" width="4" height="40" fill="#FFFFFF"/>
-    <rect x="227" y="296" width="2" height="40" fill="#FFFFFF"/>
-    <rect x="231" y="296" width="3" height="40" fill="#FFFFFF"/>
-    <rect x="236" y="296" width="2" height="40" fill="#FFFFFF"/>
-    <rect x="240" y="296" width="2" height="40" fill="#FFFFFF"/>
-    <rect x="245" y="296" width="3" height="40" fill="#FFFFFF"/>
-    <rect x="250" y="296" width="6" height="40" fill="#FFFFFF"/>
-    <rect x="259" y="296" width="2" height="40" fill="#FFFFFF"/>
-    <rect x="263" y="296" width="5" height="40" fill="#FFFFFF"/>
-    <rect x="271" y="296" width="4" height="40" fill="#FFFFFF"/>
-    <rect x="277" y="296" width="4" height="40" fill="#FFFFFF"/>
-    <rect x="284" y="296" width="3" height="40" fill="#FFFFFF"/>
-    <rect x="289" y="296" width="2" height="40" fill="#FFFFFF"/>
-    <rect x="293" y="296" width="4" height="40" fill="#FFFFFF"/>
-    <rect x="299" y="296" width="3" height="40" fill="#FFFFFF"/>
-    <rect x="304" y="296" width="2" height="40" fill="#FFFFFF"/>
-    <rect x="309" y="296" width="2" height="40" fill="#FFFFFF"/>
-    <rect x="314" y="296" width="3" height="40" fill="#FFFFFF"/>
-    <rect x="320" y="296" width="6" height="40" fill="#FFFFFF"/>
-    <rect x="329" y="296" width="2" height="40" fill="#FFFFFF"/>
-    <rect x="333" y="296" width="4" height="40" fill="#FFFFFF"/>
-    <rect x="340" y="296" width="5" height="40" fill="#FFFFFF"/>
+    <rect x="187" y="296" width="3" height="40" fill="#13BDC4"/>
+    <rect x="192" y="296" width="3" height="40" fill="#13BDC4"/>
+    <rect x="198" y="296" width="2" height="40" fill="#13BDC4"/>
+    <rect x="202" y="296" width="6" height="40" fill="#13BDC4"/>
+    <rect x="211" y="296" width="2" height="40" fill="#13BDC4"/>
+    <rect x="215" y="296" width="4" height="40" fill="#13BDC4"/>
+    <rect x="221" y="296" width="4" height="40" fill="#13BDC4"/>
+    <rect x="227" y="296" width="2" height="40" fill="#13BDC4"/>
+    <rect x="231" y="296" width="3" height="40" fill="#13BDC4"/>
+    <rect x="236" y="296" width="2" height="40" fill="#13BDC4"/>
+    <rect x="240" y="296" width="2" height="40" fill="#13BDC4"/>
+    <rect x="245" y="296" width="3" height="40" fill="#13BDC4"/>
+    <rect x="250" y="296" width="6" height="40" fill="#13BDC4"/>
+    <rect x="259" y="296" width="2" height="40" fill="#13BDC4"/>
+    <rect x="263" y="296" width="5" height="40" fill="#13BDC4"/>
+    <rect x="271" y="296" width="4" height="40" fill="#13BDC4"/>
+    <rect x="277" y="296" width="4" height="40" fill="#13BDC4"/>
+    <rect x="284" y="296" width="3" height="40" fill="#13BDC4"/>
+    <rect x="289" y="296" width="2" height="40" fill="#13BDC4"/>
+    <rect x="293" y="296" width="4" height="40" fill="#13BDC4"/>
+    <rect x="299" y="296" width="3" height="40" fill="#13BDC4"/>
+    <rect x="304" y="296" width="2" height="40" fill="#13BDC4"/>
+    <rect x="309" y="296" width="2" height="40" fill="#13BDC4"/>
+    <rect x="314" y="296" width="3" height="40" fill="#13BDC4"/>
+    <rect x="320" y="296" width="6" height="40" fill="#13BDC4"/>
+    <rect x="329" y="296" width="2" height="40" fill="#13BDC4"/>
+    <rect x="333" y="296" width="4" height="40" fill="#13BDC4"/>
+    <rect x="340" y="296" width="5" height="40" fill="#13BDC4"/>
   </g>
 
   <!-- Price-drop arrow: small, sits below the barcode, clear of the border -->
   <g>
-    <rect x="257.0" y="344.0" width="20.0" height="16" fill="#FF5700"/>
-    <path d="M247.0,360.0 L287.0,360.0 L267,376.0 Z" fill="#FF5700"/>
+    <rect x="257.0" y="344.0" width="20.0" height="16" fill="#13BDC4"/>
+    <path d="M247.0,360.0 L287.0,360.0 L267,376.0 Z" fill="#13BDC4"/>
   </g>
 </svg>

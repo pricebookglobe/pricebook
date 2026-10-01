@@ -43,7 +43,7 @@ export function IntroAnimation({ onFinished }: { onFinished: () => void }) {
 
   return (
     <div
-      className={`fixed inset-0 z-[100] overflow-hidden bg-[#FFE4D6] transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[100] overflow-hidden bg-value-soft transition-opacity duration-500 ${
         dismissing ? "pointer-events-none opacity-0" : "opacity-100"
       }`}
       onClick={skip}

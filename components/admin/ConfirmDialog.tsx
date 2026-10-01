@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 
 const TONE_STYLES = {
   danger: "bg-red-600 text-white hover:bg-red-700",
-  warning: "bg-amber-500 text-white hover:bg-amber-600",
+  warning: "bg-value text-white hover:bg-ink-dark",
   positive: "bg-field text-ink hover:bg-ink-soft hover:text-white active:bg-ink-dark active:text-white"
 } as const;
 

@@ -297,7 +297,7 @@ export default function SettingsPage() {
           </div>
         </label>
         {!currentPassword && (
-          <p className="text-sm text-amber-600">{t("Enter current password to save changes.")}</p>
+          <p className="text-sm text-flag">{t("Enter current password to save changes.")}</p>
         )}
 
         {error && <p className="text-sm text-flag">{error}</p>}

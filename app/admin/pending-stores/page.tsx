@@ -174,7 +174,7 @@ export default function PendingStoresPage() {
                 <td>{s.city}</td>
                 <td className="font-mono text-xs">{s.commercial_registration}</td>
                 <td>
-                  <span className="rounded-sm bg-amber-100 px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wide text-amber-700">
+                  <span className="rounded-sm bg-field px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wide text-flag">
                     Pending
                   </span>
                 </td>
