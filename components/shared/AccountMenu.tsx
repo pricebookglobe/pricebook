@@ -170,16 +170,16 @@ export function AccountMenu() {
       <nav className="flex w-full flex-col gap-0.5 text-sm">
         {profile.role === "admin" ? (
           <>
-            <Link href="/admin" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+            <Link href="/admin" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
               <LayoutDashboard size={16} strokeWidth={1.75} /> Admin dashboard
             </Link>
-            <Link href="/admin/users" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+            <Link href="/admin/users" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
               <Users size={16} strokeWidth={1.75} /> Customers
             </Link>
-            <Link href="/admin/stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+            <Link href="/admin/stores" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
               <ShieldCheck size={16} strokeWidth={1.75} /> Stores and Shops
             </Link>
-            <Link href="/admin/pending-stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+            <Link href="/admin/pending-stores" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
               <ClipboardList size={16} strokeWidth={1.75} /> Store requests
               {pendingStoreCount > 0 && (
                 <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-value px-1.5 font-mono text-[11px] font-bold text-white">
@@ -187,42 +187,42 @@ export function AccountMenu() {
                 </span>
               )}
             </Link>
-            <Link href="/admin/items" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+            <Link href="/admin/items" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
               <Boxes size={16} strokeWidth={1.75} /> Registered items
             </Link>
-            <Link href="/admin/notifications" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+            <Link href="/admin/notifications" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
               <Bell size={16} strokeWidth={1.75} /> Notifications
             </Link>
           </>
         ) : profile.role === "merchant" ? (
           <>
-            <Link href="/overview" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+            <Link href="/overview" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
               <LayoutDashboard size={16} strokeWidth={1.75} /> {t("Overview")}
             </Link>
-            <Link href="/inventory" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+            <Link href="/inventory" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
               <Package size={16} strokeWidth={1.75} /> {t("Manage inventory")}
             </Link>
-            <Link href="/registered-items" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+            <Link href="/registered-items" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
               <Boxes size={16} strokeWidth={1.75} /> {t("Registered items")}
             </Link>
-            <Link href="/notifications" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+            <Link href="/notifications" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
               <Bell size={16} strokeWidth={1.75} /> {t("Notifications")}
             </Link>
           </>
         ) : (
           <>
-            <Link href="/check-price" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+            <Link href="/check-price" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
               <Camera size={16} strokeWidth={1.75} /> {t("Check price")}
             </Link>
-            <Link href="/search-items" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+            <Link href="/search-items" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
               <Search size={16} strokeWidth={1.75} /> {t("Search items")}
             </Link>
-            <Link href="/history" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+            <Link href="/history" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
               <Clock size={16} strokeWidth={1.75} /> {t("Search history")}
             </Link>
           </>
         )}
-        <Link href="/settings" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/80 bg-ink-soft/25 hover:bg-ink-soft hover:text-white">
+        <Link href="/settings" className="flex items-center justify-start gap-2 rounded-sm bg-ink-soft px-3 py-2 text-field/80 hover:text-white">
           <SettingsIcon size={16} strokeWidth={1.75} /> {t("Settings")}
         </Link>
       </nav>
