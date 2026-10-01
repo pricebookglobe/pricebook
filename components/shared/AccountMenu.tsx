@@ -30,6 +30,10 @@ export function AccountMenu() {
   // not just the Overview dashboard.
   const [reviewStats, setReviewStats] = useState<{ average: number | null; count: number } | null>(null);
   const [positivePct, setPositivePct] = useState<number | null>(null);
+  // Pending store signups awaiting approval — surfaced as a small badge
+  // next to "Store requests" so an admin can see at a glance, from any
+  // admin page, whether anything needs their attention.
+  const [pendingStoreCount, setPendingStoreCount] = useState(0);
 
   useEffect(() => {
     if (!storeId || profile?.role !== "merchant") return;
@@ -50,6 +54,20 @@ export function AccountMenu() {
       cancelled = true;
     };
   }, [storeId, profile?.role]);
+
+  useEffect(() => {
+    if (profile?.role !== "admin" || !token) return;
+    let cancelled = false;
+    fetch("/api/admin/stats", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d) setPendingStoreCount(d.pending_store_count ?? 0);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.role, token]);
 
   async function confirmLogout() {
     const supabase = createBrowserSupabase();
@@ -131,6 +149,11 @@ export function AccountMenu() {
             </Link>
             <Link href="/admin/pending-stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
               <ClipboardList size={16} strokeWidth={1.75} /> Store requests
+              {pendingStoreCount > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-400 px-1.5 font-mono text-[11px] font-bold text-ink">
+                  {pendingStoreCount}
+                </span>
+              )}
             </Link>
             <Link href="/admin/items" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
               <Boxes size={16} strokeWidth={1.75} /> Registered items
