@@ -19,7 +19,7 @@ const config: Config = {
       colors: {
         ink: {
           DEFAULT: "#00333E",
-          soft: "#1C84A4"
+          soft: "#187596"
         },
         sidebar: {
           DEFAULT: "#121D26",
