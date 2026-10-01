@@ -88,7 +88,14 @@ export async function getStoreRanking(storeId: string): Promise<RankingRow[]> {
 export async function findNearestStore(
   lat: number,
   lng: number
-): Promise<{ store_id: string; store_name: string; store_photo_url: string | null; distance_m: number } | null> {
+): Promise<{
+  store_id: string;
+  store_name: string;
+  store_photo_url: string | null;
+  store_lat: number;
+  store_lng: number;
+  distance_m: number;
+} | null> {
   const res = await fetch("/api/stores/nearby-check", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

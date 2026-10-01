@@ -318,7 +318,16 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [error, setError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationCheck, setLocationCheck] = useState<
-    { store: { store_id: string; store_name: string; store_photo_url: string | null; distance_m: number } | null } | null
+    {
+      store: {
+        store_id: string;
+        store_name: string;
+        store_photo_url: string | null;
+        store_lat: number;
+        store_lng: number;
+        distance_m: number;
+      } | null;
+    } | null
   >(null);
   const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
   const [scanningBarcode, setScanningBarcode] = useState(false);
@@ -412,14 +421,15 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
   // Keeps "you are at [store]" current while the panel is on screen —
   // someone can easily walk from an unregistered spot into a store (or the
-  // other way round) over the course of a minute without ever tapping
-  // anything, so this re-checks on its own rather than requiring a manual
-  // refresh.
+  // other way round) without ever tapping anything, so this re-checks on
+  // its own rather than requiring a manual refresh. Every 60s: frequent
+  // enough to catch a shopper walking into a store, not so frequent it
+  // hammers the lookup while they're just standing around reading prices.
   useEffect(() => {
     if (initialMode !== "menu" || checkPriceRevealed) return;
     const id = setInterval(() => {
       if (coords) handleFindMyLocation(true);
-    }, 30000);
+    }, 60000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialMode, checkPriceRevealed, coords]);
@@ -621,16 +631,36 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </p>
           ) : locationCheck ? (
             <>
-              {locationCheck.store?.store_photo_url ? (
-                // The store's own front photo — the more recognizable,
-                // "yes, that's the shop I'm standing in front of" signal —
-                // takes priority over the map whenever the store has one.
-                <div className="overflow-hidden rounded border border-line">
-                  <img
-                    src={locationCheck.store.store_photo_url}
-                    alt={locationCheck.store.store_name}
-                    className="h-[220px] w-full object-cover"
-                  />
+              {locationCheck.store ? (
+                // Registered store: show both the map (centered on the
+                // STORE's own location, not just wherever the shopper is
+                // currently standing) and the store's own front photo —
+                // together, so "yes, that's the shop" and "yes, that's
+                // where it is" are both confirmed at a glance.
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="overflow-hidden rounded border border-line">
+                    <iframe
+                      title={t("Store location")}
+                      width="100%"
+                      height="220"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      src={`https://www.google.com/maps?q=${locationCheck.store.store_lat},${locationCheck.store.store_lng}&z=17&t=k&output=embed`}
+                    />
+                  </div>
+                  {locationCheck.store.store_photo_url ? (
+                    <div className="overflow-hidden rounded border border-line">
+                      <img
+                        src={locationCheck.store.store_photo_url}
+                        alt={locationCheck.store.store_name}
+                        className="h-[220px] w-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-[220px] items-center justify-center rounded border border-dashed border-line px-3 text-center text-xs text-ash">
+                      {t("This store hasn't added a storefront photo yet.")}
+                    </div>
+                  )}
                 </div>
               ) : (
                 coords && (
