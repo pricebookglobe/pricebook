@@ -51,7 +51,7 @@ export default function InventoryPage() {
   // actual cheaper prices, not generic buttons.
   const buttonClass = isNativeApp
     ? "flex-1 rounded-xl border border-line bg-field px-4 py-3.5 text-center font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:border-ink active:bg-ink-dark active:text-white"
-    : "flex-1 rounded border border-line bg-ink-soft px-4 py-3 font-display text-[15px] text-white transition-colors hover:border-ink hover:bg-ink hover:text-white active:border-ink active:bg-ink-dark active:text-white";
+    : "flex-1 rounded border border-line bg-field px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-ink hover:bg-ink-soft hover:text-white active:border-ink active:bg-ink-dark active:text-white";
   const primaryButtonClass = isNativeApp
     ? "flex-1 rounded-xl bg-field px-4 py-3.5 text-center font-display text-[14px] font-semibold text-ink shadow-md transition active:scale-[0.98] active:bg-ink-dark active:text-white"
     : buttonClass;

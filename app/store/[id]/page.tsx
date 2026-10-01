@@ -231,7 +231,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
         href={`https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lng}`}
         target="_blank"
         rel="noreferrer"
-        className="mt-4 inline-block rounded-sm bg-ink-soft px-4 py-2 font-display text-sm font-medium text-white hover:bg-ink active:bg-ink-dark hover:text-white active:text-white"
+        className="mt-4 inline-block rounded-sm bg-field px-4 py-2 font-display text-sm font-medium text-ink hover:bg-ink-soft active:bg-ink-dark hover:text-white active:text-white"
       >
         {t("Get directions")}
       </a>
@@ -350,7 +350,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
         <button
           onClick={submitReview}
           disabled={!myRating || submitting}
-          className="mt-2 rounded-sm bg-ink-soft px-4 py-1.5 font-display text-sm text-white transition-colors hover:bg-ink hover:text-white active:bg-ink-dark active:text-white disabled:opacity-40"
+          className="mt-2 rounded-sm bg-field px-4 py-1.5 font-display text-sm text-ink transition-colors hover:bg-ink-soft hover:text-white active:bg-ink-dark active:text-white disabled:opacity-40"
         >
           {submitting ? t("Saving…") : myReview ? t("Update review") : t("Submit review")}
         </button>
