@@ -192,7 +192,7 @@ function PriceCallout({
   }
 
   return (
-    <div className="mb-3 rounded border border-value bg-value-soft px-4 py-3">
+    <div className="mb-3 rounded border border-ink/25 bg-ink/[0.07] px-4 py-3">
       <p className="flex flex-wrap items-center gap-1.5 text-sm text-ink">
         <span>
           <strong>{result.product_name}</strong> — {label}: <strong>{result.price.toFixed(2)} {result.currency}</strong> at{" "}
@@ -237,7 +237,7 @@ function PriceCallout({
         )}
       </div>
       {showNutrition && result.nutrition_facts && (
-        <div className="mt-2 rounded border border-value/40 bg-white/60 px-3 py-2">
+        <div className="mt-2 rounded border border-ink/20 bg-white/60 px-3 py-2">
           <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-ash">
             {t("AI estimate — check the actual package")}
           </p>
@@ -859,7 +859,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           )}
 
           {atStore && !isNativeApp && (
-            <div className="mb-4 rounded border border-value bg-value-soft px-4 py-3">
+            <div className="mb-4 rounded border border-ink/25 bg-ink/[0.07] px-4 py-3">
               <p className="flex flex-wrap items-center gap-1.5 text-sm text-ink">
                 <span>
                   <strong>{atStore.product_name}</strong> — You are at <strong>{atStore.store_name}</strong> — the price here is{" "}
@@ -888,7 +888,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 )}
               </div>
               {showAtStoreNutrition && atStore.nutrition_facts && (
-                <div className="mt-2 rounded border border-value/40 bg-white/60 px-3 py-2">
+                <div className="mt-2 rounded border border-ink/20 bg-white/60 px-3 py-2">
                   <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-ash">
                     {t("AI estimate — check the actual package")}
                   </p>
