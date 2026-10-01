@@ -7,6 +7,7 @@ import { Package, Clock, Settings as SettingsIcon, LogOut, LayoutDashboard, Clip
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useAccount } from "@/lib/AccountProvider";
+import { onPendingStoresChanged } from "@/lib/pendingStoresEvents";
 import { EmojiRating } from "./EmojiRating";
 
 // Same price-report-trust coloring as the public store page: green above
@@ -58,14 +59,24 @@ export function AccountMenu() {
   useEffect(() => {
     if (profile?.role !== "admin" || !token) return;
     let cancelled = false;
-    fetch("/api/admin/stats", { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!cancelled && d) setPendingStoreCount(d.pending_store_count ?? 0);
-      })
-      .catch(() => {});
+
+    function loadPendingCount() {
+      fetch("/api/admin/stats", { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (!cancelled && d) setPendingStoreCount(d.pending_store_count ?? 0);
+        })
+        .catch(() => {});
+    }
+
+    loadPendingCount();
+    // Re-fetch the moment an admin approves/rejects/deletes a pending store
+    // elsewhere on the site, so the badge never sits stale until the next
+    // full page load.
+    const unsubscribe = onPendingStoresChanged(loadPendingCount);
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, [profile?.role, token]);
 

@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { StoreDetailsDialog } from "@/components/admin/StoreDetailsDialog";
 import { TrustDot } from "@/components/shared/TrustDot";
 import { Pagination, paginate } from "@/components/admin/Pagination";
+import { notifyPendingStoresChanged } from "@/lib/pendingStoresEvents";
 
 type StoreRow = {
   id: string;
@@ -81,6 +82,7 @@ export default function PendingStoresPage() {
     setStores((r) => r.filter((x) => x.id !== s.id));
     setNotice(`${s.name} approved and notified by email.`);
     setBusyId(null);
+    notifyPendingStoresChanged();
   }
 
   async function reject(s: StoreRow) {
@@ -94,6 +96,7 @@ export default function PendingStoresPage() {
     setStores((r) => r.filter((x) => x.id !== s.id));
     setNotice(`${s.name} rejected and notified by email.`);
     setBusyId(null);
+    notifyPendingStoresChanged();
   }
 
   async function deleteStore(s: StoreRow) {
@@ -106,6 +109,7 @@ export default function PendingStoresPage() {
     if (res.ok) {
       setStores((r) => r.filter((x) => x.id !== s.id));
       setNotice(`${s.name} deleted.`);
+      notifyPendingStoresChanged();
     } else {
       setNotice((await res.json()).error ?? "Could not delete this request.");
     }
