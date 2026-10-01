@@ -21,6 +21,11 @@ type InventoryItem = {
   currency: string;
   in_stock: boolean;
   is_hidden: boolean;
+  market_avg_price: number | null;
+  // Positive = this store is cheaper than the average of every other store
+  // carrying the same product; negative = pricier; null = no other store
+  // carries it, so there's nothing to compare against.
+  percent_vs_market: number | null;
   products: {
     id: string;
     canonical_name: string;
@@ -28,6 +33,7 @@ type InventoryItem = {
     size: number | null;
     unit: string | null;
     category: string | null;
+    image_url: string | null;
   };
 };
 type PriceReportStats = {
@@ -259,32 +265,60 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
                   </button>
                   {expanded && (
                     <div className="border-t border-line">
-                      {categoryItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5 last:border-b-0"
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate text-sm text-ink">
-                              {item.products.brand ? `${item.products.brand} ` : ""}
-                              {item.products.canonical_name}
-                            </p>
-                            {(item.products.size || item.products.unit) && (
-                              <p className="font-mono text-[11px] text-ash">
-                                {item.products.size ?? ""} {item.products.unit ?? ""}
+                      {categoryItems.map((item) => {
+                        // Round toward zero so a tiny rounding artifact
+                        // (0.0%) never gets shown as a claim either way —
+                        // only a genuine, non-zero difference earns a badge.
+                        const percent = item.percent_vs_market;
+                        const cheaper = percent !== null && percent > 0;
+                        const pricier = percent !== null && percent < 0;
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5 last:border-b-0"
+                          >
+                            <div className="flex min-w-0 items-center gap-3">
+                              {item.products.image_url ? (
+                                <img
+                                  src={item.products.image_url}
+                                  alt=""
+                                  className="h-11 w-11 shrink-0 rounded border border-line bg-field-raised object-cover"
+                                />
+                              ) : (
+                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-line bg-field-raised font-mono text-[10px] text-ash/60">
+                                  {t("No photo")}
+                                </span>
+                              )}
+                              <div className="min-w-0">
+                                <p className="truncate text-sm text-ink">
+                                  {item.products.brand ? `${item.products.brand} ` : ""}
+                                  {item.products.canonical_name}
+                                </p>
+                                {(item.products.size || item.products.unit) && (
+                                  <p className="font-mono text-[11px] text-ash">
+                                    {item.products.size ?? ""} {item.products.unit ?? ""}
+                                  </p>
+                                )}
+                                {(cheaper || pricier) && (
+                                  <p className={"font-mono text-[11px] font-medium " + (cheaper ? "text-value" : "text-flag")}>
+                                    {cheaper
+                                      ? t("{n}% cheaper than other stores").replace("{n}", String(Math.abs(percent!)))
+                                      : t("{n}% pricier than other stores").replace("{n}", String(Math.abs(percent!)))}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="font-mono text-sm text-ink">
+                                {item.price.toFixed(2)} <span className="text-xs text-ash">{item.currency}</span>
                               </p>
-                            )}
+                              {!item.in_stock && (
+                                <p className="font-mono text-[10px] uppercase tracking-wide text-flag">{t("Out of stock")}</p>
+                              )}
+                            </div>
                           </div>
-                          <div className="shrink-0 text-right">
-                            <p className="font-mono text-sm text-ink">
-                              {item.price.toFixed(2)} <span className="text-xs text-ash">{item.currency}</span>
-                            </p>
-                            {!item.in_stock && (
-                              <p className="font-mono text-[10px] uppercase tracking-wide text-flag">{t("Out of stock")}</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

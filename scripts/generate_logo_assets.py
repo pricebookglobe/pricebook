@@ -41,6 +41,26 @@ im = Image.open(f"{ROOT}/app/icon.png").convert("RGBA")
 icon = im.crop(im.getbbox())
 print("trimmed source size:", icon.size)
 
+# The master's edges are anti-aliased with a few pixels of PARTIAL alpha
+# (not fully opaque, not fully transparent) — normal for any soft-edged
+# PNG. On a light page background that fringe is invisible, but on the
+# app's very dark "ink" sidebar it alpha-blends into a soft, slightly
+# lighter-blue halo traced around the whole shield (worse once the browser
+# downscales the image to its small on-screen size, which further softens
+# that fringe) — that's the "logo looks hazy/glowing" complaint. Squaring
+# off the alpha channel (fully transparent below the threshold, fully
+# opaque at/above it) removes the partial-alpha pixels that halo comes
+# from, on every background, at the cost of a slightly harder edge that
+# isn't visible at this icon's actual on-screen sizes.
+px = icon.load()
+w, h = icon.size
+for y in range(h):
+    for x in range(w):
+        r, g, b, a = px[x, y]
+        if a == 0:
+            continue
+        px[x, y] = (r, g, b, 0 if a < 160 else 255)
+
 
 def export(name, target_height):
     if target_height == icon.height:
