@@ -34,6 +34,23 @@ export function useAccount() {
   return useContext(AccountContext);
 }
 
+// The Check Price / Search items screens cache their last result in
+// sessionStorage so a "back" navigation can restore it (see
+// CheckPriceExperience.tsx). sessionStorage survives a logout — it's only
+// cleared when the tab/app session itself ends — so without this, signing
+// out and logging back in (as the same person or a different one, on a
+// shared device) would still show whatever check or search was last on
+// screen before anyone signed in this time. Cleared on every fresh sign-in
+// so a login always starts from a blank slate.
+function clearCachedChecksAndSearches() {
+  try {
+    sessionStorage.removeItem("pricebook:lastSearchResult:menu");
+    sessionStorage.removeItem("pricebook:lastSearchResult:text");
+  } catch {
+    // sessionStorage unavailable (private mode, SSR) — nothing to clear
+  }
+}
+
 export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [storeName, setStoreName] = useState<string | null>(null);
@@ -127,6 +144,9 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         shownUserId = null;
         load();
         return;
+      }
+      if (event === "SIGNED_IN") {
+        clearCachedChecksAndSearches();
       }
       const incomingUserId = session?.user?.id ?? null;
       if (shownUserId && incomingUserId && incomingUserId !== shownUserId) {

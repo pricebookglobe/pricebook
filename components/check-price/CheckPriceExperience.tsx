@@ -680,7 +680,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           <button
             type="button"
             onClick={() => setCheckPriceRevealed(false)}
-            className="mb-6 inline-flex items-center gap-1 rounded border border-ash bg-ash px-3 py-1.5 font-display text-sm text-white transition-colors hover:border-field active:border-ink-dark active:bg-ink-dark"
+            className="mb-6 inline-flex items-center gap-1 rounded border border-flag bg-flag px-3 py-1.5 font-display text-sm text-white transition-colors hover:border-field active:border-ink-dark active:bg-ink-dark"
           >
             {t("Back")}
           </button>
