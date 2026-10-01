@@ -12,6 +12,10 @@ import plugin from "tailwindcss/plugin";
 //            No orange is used anywhere in the product.
 // - flag:    a neutral slate used ONLY for a secondary/attention tier (never
 //            orange)
+// - mark:    the exact cyan-green from the logo artwork itself (the barcode,
+//            arrow, and the "Book" half of the wordmark) — fixed to match
+//            the supplied logo pixel-for-pixel, kept separate from `value`
+//            so re-tuning button colors never drifts the logo's own colors
 // - line:    hairline dividers for the price-ledger rows
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
@@ -32,6 +36,7 @@ const config: Config = {
           soft: "#D7F3EE"
         },
         flag: "#64748B",
+        mark: "#13BDC4",
         line: "#E4E2DA",
         ash: "#5B6472"
       },

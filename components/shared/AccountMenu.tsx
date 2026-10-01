@@ -136,7 +136,7 @@ export function AccountMenu() {
           <img src="/pricebook-logo.svg" alt="" className="h-auto w-32" />
           <p className="mt-1 font-display text-xl font-bold leading-none">
             <span className="text-white">Price</span>
-            <span className="text-value">Book</span>
+            <span className="text-mark">Book</span>
           </p>
           <p className="mt-1 font-mono text-[9px] uppercase tracking-widest text-field/60">{t("Track Best Prices")}</p>
         </Link>

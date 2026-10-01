@@ -73,7 +73,7 @@ export function IntroAnimation({ onFinished }: { onFinished: () => void }) {
       <div className="intro-scene intro-scene-1 absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
         <img src="/pricebook-icon-dark.png" alt="PriceBook" className="h-auto w-32 intro-pop" />
         <p className="font-display text-3xl font-bold text-ink">
-          Price<span className="text-value">Book</span>
+          Price<span className="text-mark">Book</span>
         </p>
         <p className="font-display text-sm font-medium tracking-wide text-ash">Track Best Prices</p>
       </div>
