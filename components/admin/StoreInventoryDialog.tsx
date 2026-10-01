@@ -130,7 +130,7 @@ export function StoreInventoryDialog({
                     {row.products.size ? `${row.products.size} ${row.products.unit ?? ""}` : "—"}
                   </td>
                   <td className="font-mono text-xs">
-                    <span className={row.in_stock ? "text-value" : "text-flag"}>
+                    <span className={row.in_stock ? "text-green-600" : "text-flag"}>
                       {row.in_stock ? "Available" : "Unavailable"}
                     </span>
                     {row.is_hidden && <span className="ml-2 text-ash">· Hidden</span>}

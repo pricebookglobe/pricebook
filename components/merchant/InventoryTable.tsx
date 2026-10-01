@@ -238,7 +238,7 @@ export function InventoryTable({
                     {row.products.size ? `${row.products.size} ${row.products.unit ?? ""}` : "—"}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <span className={`font-mono text-[11px] ${row.in_stock ? "text-value" : "text-flag"}`}>
+                    <span className={`font-mono text-[11px] ${row.in_stock ? "text-green-600" : "text-flag"}`}>
                       {row.in_stock ? t("Available") : t("Unavailable")}
                     </span>
                     {row.is_hidden && <span className="font-mono text-[11px] text-ash">· {t("Hidden")}</span>}
@@ -289,7 +289,7 @@ export function InventoryTable({
                   {row.products.size ? `${row.products.size} ${row.products.unit ?? ""}` : "—"}
                 </td>
                 <td className="font-mono text-xs">
-                  <span className={row.in_stock ? "text-value" : "text-flag"}>
+                  <span className={row.in_stock ? "text-green-600" : "text-flag"}>
                     {row.in_stock ? t("Available") : t("Unavailable")}
                   </span>
                   {row.is_hidden && <span className="ml-2 text-ash">· {t("Hidden")}</span>}
