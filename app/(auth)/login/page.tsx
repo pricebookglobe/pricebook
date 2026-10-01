@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { PageShell } from "@/components/shared/PageShell";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { takeLoginPrefill } from "@/lib/loginPrefill";
 
 function LoginForm() {
   const router = useRouter();
@@ -16,6 +17,16 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Just came from signup — the email/password already typed there gets
+  // carried over here so the person doesn't have to type them again.
+  useEffect(() => {
+    const prefill = takeLoginPrefill();
+    if (prefill) {
+      setEmail(prefill.email);
+      setPassword(prefill.password);
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

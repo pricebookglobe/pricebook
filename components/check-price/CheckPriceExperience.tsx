@@ -305,7 +305,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [error, setError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationCheck, setLocationCheck] = useState<
-    { store: { store_id: string; store_name: string; distance_m: number } | null } | null
+    { store: { store_id: string; store_name: string; store_photo_url: string | null; distance_m: number } | null } | null
   >(null);
   const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
   const [scanningBarcode, setScanningBarcode] = useState(false);
@@ -358,20 +358,26 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     }
   }, [result, initialMode]);
 
-  async function handleFindMyLocation() {
-    setLocating(true);
-    setLocationCheck(null);
+  // `silent` skips the "Finding your location…" flash and the locationCheck
+  // reset — used by the 30-second background refresh below, so the panel
+  // just quietly swaps to the new answer instead of blanking out and
+  // reloading every half minute.
+  async function handleFindMyLocation(silent = false) {
+    if (!silent) {
+      setLocating(true);
+      setLocationCheck(null);
+    }
     try {
       if (!coords) {
-        setError(t("Turn on location so we can tell where you are."));
+        if (!silent) setError(t("Turn on location so we can tell where you are."));
         return;
       }
       const store = await findNearestStore(coords.lat, coords.lng);
       setLocationCheck({ store });
     } catch (e: any) {
-      setError(e.message ?? "Couldn't check your location.");
+      if (!silent) setError(e.message ?? "Couldn't check your location.");
     } finally {
-      setLocating(false);
+      if (!silent) setLocating(false);
     }
   }
 
@@ -385,6 +391,20 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     handleFindMyLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coords, initialMode, locationCheck, locating]);
+
+  // Keeps "you are at [store]" current while the panel is on screen —
+  // someone can easily walk from an unregistered spot into a store (or the
+  // other way round) over the course of a minute without ever tapping
+  // anything, so this re-checks on its own rather than requiring a manual
+  // refresh.
+  useEffect(() => {
+    if (initialMode !== "menu" || checkPriceRevealed) return;
+    const id = setInterval(() => {
+      if (coords) handleFindMyLocation(true);
+    }, 30000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMode, checkPriceRevealed, coords]);
 
   // Explicit reset for "Start a new check": clears the result and every bit
   // of state tied to the last one, and drops back to the Check Price menu
@@ -552,19 +572,32 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </p>
           ) : locationCheck ? (
             <>
-              {coords && (
+              {locationCheck.store?.store_photo_url ? (
+                // The store's own front photo — the more recognizable,
+                // "yes, that's the shop I'm standing in front of" signal —
+                // takes priority over the map whenever the store has one.
                 <div className="overflow-hidden rounded border border-line">
-                  <iframe
-                    title={t("Your location")}
-                    width="100%"
-                    height="220"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    src={`https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&t=k&output=embed`}
+                  <img
+                    src={locationCheck.store.store_photo_url}
+                    alt={locationCheck.store.store_name}
+                    className="h-[220px] w-full object-cover"
                   />
                 </div>
+              ) : (
+                coords && (
+                  <div className="overflow-hidden rounded border border-line">
+                    <iframe
+                      title={t("Your location")}
+                      width="100%"
+                      height="220"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      src={`https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&t=k&output=embed`}
+                    />
+                  </div>
+                )
               )}
-              <p className={`text-sm text-ink ${coords ? "bg-field-raised px-3 py-2" : ""}`}>
+              <p className={`text-center text-sm text-ink ${coords ? "bg-field-raised px-3 py-2" : ""}`}>
                 {locationCheck.store ? (
                   <>
                     {t("You are at")} <strong>{locationCheck.store.store_name}</strong>
