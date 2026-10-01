@@ -297,7 +297,7 @@ export default function AddItemPage() {
                 className={`rounded-sm px-4 py-1.5 font-display text-sm font-medium transition-colors disabled:opacity-40 ${
                   textQuery.trim()
                     ? "bg-value text-white hover:bg-value/90 active:bg-value/90"
-                    : "bg-ink text-field hover:bg-value hover:text-white active:bg-value active:text-white"
+                    : "bg-sidebar text-field hover:bg-sidebar-light hover:text-white active:bg-sidebar-dark active:text-white"
                 }`}
               >
                 {extracting ? t("Reading…") : t("Identify")}
@@ -504,7 +504,7 @@ export default function AddItemPage() {
             <button
               onClick={handleSave}
               disabled={saving || !price}
-              className="rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-field transition-colors hover:bg-value hover:text-white active:bg-value active:text-white disabled:opacity-40"
+              className="rounded-sm bg-sidebar px-4 py-2 font-display text-sm font-medium text-field transition-colors hover:bg-sidebar-light hover:text-white active:bg-sidebar-dark active:text-white disabled:opacity-40"
             >
               {saving ? t("Saving…") : t("Save item")}
             </button>

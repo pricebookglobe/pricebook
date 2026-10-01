@@ -327,7 +327,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={captureLocation}
                 disabled={locating}
-                className="rounded-sm bg-ink px-2 py-1 font-display text-xs font-medium text-field transition-colors hover:bg-value hover:text-white active:bg-value active:text-white disabled:opacity-40"
+                className="rounded-sm bg-sidebar px-2 py-1 font-display text-xs font-medium text-field transition-colors hover:bg-sidebar-light hover:text-white active:bg-sidebar-dark active:text-white disabled:opacity-40"
               >
                 {locating ? "…" : coords ? t("Update") : t("Use my location")}
               </button>

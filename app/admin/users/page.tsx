@@ -121,7 +121,7 @@ export default function AdminUsersPage() {
           }}
           placeholder="Search by name or email…"
         />
-        <button type="submit" className="rounded-sm bg-ink px-4 py-2 font-display text-sm text-white transition-colors hover:bg-value active:bg-value">
+        <button type="submit" className="rounded-sm bg-sidebar px-4 py-2 font-display text-sm text-white transition-colors hover:bg-sidebar-light active:bg-sidebar-dark">
           Search
         </button>
       </form>
