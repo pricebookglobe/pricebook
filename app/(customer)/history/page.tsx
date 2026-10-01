@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -91,8 +92,12 @@ export default function HistoryPage() {
                   {new Date(row.searched_at).toLocaleDateString()}
                 </td>
                 <td className="num">
-                  <button onClick={() => setPendingDeleteOne(row)} className="text-sm text-ash underline hover:text-flag">
-                    {t("Delete")}
+                  <button
+                    onClick={() => setPendingDeleteOne(row)}
+                    aria-label={t("Delete")}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full text-red-600 hover:bg-red-50"
+                  >
+                    <X size={16} strokeWidth={2.25} />
                   </button>
                 </td>
               </tr>

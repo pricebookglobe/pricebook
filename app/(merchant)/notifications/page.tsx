@@ -172,8 +172,12 @@ export default function NotificationsPage() {
                   <NotificationSummary n={n} t={t} />
                 </td>
                 <td className="num">
-                  <button onClick={() => setPendingDelete(n)} className="text-sm text-red-600 underline hover:text-red-700">
-                    {t("Delete")}
+                  <button
+                    onClick={() => setPendingDelete(n)}
+                    aria-label={t("Delete")}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full text-red-600 hover:bg-red-50"
+                  >
+                    <X size={16} strokeWidth={2.25} />
                   </button>
                 </td>
               </tr>
