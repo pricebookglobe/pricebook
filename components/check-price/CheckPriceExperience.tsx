@@ -592,12 +592,12 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const cityBestDiffersFromNear =
     result?.city_best && (!result.near_best || result.city_best.store_id !== result.near_best.store_id);
 
-  // Scan / Snap / Enter details are the secondary actions on this screen —
-  // neutral at rest (border-line/bg-field-raised), darkening to solid ink on
-  // hover/press — matching Manage Inventory's buttons, on both the website
-  // and the app.
+  // Scan / Snap / Enter details — on the app, now the same solid shiny-ink
+  // treatment as the "Check Price & Compare" button below (rather than a
+  // washed-out neutral outline), so every actionable button on this screen
+  // reads the same way. The website keeps its own brand-green equivalent.
   const outlineButton = isNativeApp
-    ? "flex-1 rounded-xl border border-line bg-field px-4 py-3.5 font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:border-ink active:bg-ink-dark active:text-white"
+    ? "btn-shine flex-1 rounded-xl bg-ink px-4 py-3.5 font-display text-[14px] font-medium text-white shadow-md transition active:scale-[0.98] active:bg-ink-dark"
     : "btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105";
 
   return (

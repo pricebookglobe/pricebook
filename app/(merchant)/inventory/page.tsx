@@ -42,16 +42,18 @@ export default function InventoryPage() {
     });
   }, [router]);
 
-  // On the app, the main "Add Item" action gets a solid ink treatment so
-  // it stands out from the two secondary (outline) actions next to it —
-  // the same primary/secondary pattern used on the Check Price screen. The
-  // website's buttons use the brand's dark green at rest, with the frame
-  // lightening on hover/press, so both surfaces read as clearly actionable.
+  // On the app, every action here now shares the same solid shiny-ink
+  // treatment as the Check Price screen's main button (rather than a
+  // washed-out neutral outline) — "Add Item" stays visually primary only
+  // via its bolder weight and the 2-column span, not a different color.
+  // The website's buttons use the brand's dark green at rest, with the
+  // frame lightening on hover/press, so both surfaces read as clearly
+  // actionable.
   const buttonClass = isNativeApp
-    ? "flex-1 rounded-xl border border-line bg-field px-4 py-3.5 text-center font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:border-ink active:bg-ink-dark active:text-white"
+    ? "btn-shine flex-1 rounded-xl bg-ink px-4 py-3.5 text-center font-display text-[14px] font-medium text-white shadow-md transition active:scale-[0.98] active:bg-ink-dark"
     : "btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105";
   const primaryButtonClass = isNativeApp
-    ? "flex-1 rounded-xl bg-field px-4 py-3.5 text-center font-display text-[14px] font-semibold text-ink shadow-md transition active:scale-[0.98] active:bg-ink-dark active:text-white"
+    ? "btn-shine flex-1 rounded-xl bg-ink px-4 py-3.5 text-center font-display text-[14px] font-semibold text-white shadow-md transition active:scale-[0.98] active:bg-ink-dark"
     : buttonClass;
 
   return (
