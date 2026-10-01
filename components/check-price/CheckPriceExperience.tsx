@@ -307,7 +307,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [locationCheck, setLocationCheck] = useState<
     { store: { store_id: string; store_name: string; distance_m: number } | null } | null
   >(null);
-  const [showLocationMap, setShowLocationMap] = useState(false);
   const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
   const [scanningBarcode, setScanningBarcode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -362,7 +361,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   async function handleFindMyLocation() {
     setLocating(true);
     setLocationCheck(null);
-    setShowLocationMap(false);
     try {
       if (!coords) {
         setError(t("Turn on location so we can tell where you are."));
@@ -385,7 +383,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     setResult(null);
     setError(null);
     setLocationCheck(null);
-    setShowLocationMap(false);
     setUseGuidedForm(false);
     setMode(initialMode);
     setCheckPriceRevealed(true);
@@ -537,43 +534,17 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           onClick={() => setCheckPriceRevealed(true)}
           className={
             isNativeApp
-              ? "mb-6 w-full rounded-xl bg-value px-4 py-5 font-display text-[18px] font-bold text-white shadow-md transition active:scale-[0.98]"
-              : "mb-6 w-full rounded border border-value/30 bg-value-soft px-4 py-5 font-display text-[18px] font-bold text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
+              ? "mb-6 w-full rounded-xl bg-value px-4 py-6 font-display text-[20px] font-bold text-white shadow-md transition active:scale-[0.98]"
+              : "mb-6 w-full rounded border border-value/30 bg-value-soft px-4 py-6 font-display text-[20px] font-bold text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
           }
         >
-          {t("Check Price")}
+          {t("Check Price & Compare")}
         </button>
       )}
 
       {locationCheck && (
         <div className="-mt-3 mb-6">
-          {locationCheck.store ? (
-            <div>
-              <p className="text-sm text-ink">
-                {t("You're at")} <strong>{locationCheck.store.store_name}</strong>{" "}
-                <span className="text-ash">({t("matched within 150 meters")})</span>.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowLocationMap((s) => !s)}
-                className="mt-1 text-sm text-value underline hover:text-value/80"
-              >
-                {showLocationMap ? t("Hide map") : t("View on map")}
-              </button>
-              {showLocationMap && coords && (
-                <div className="mt-2 overflow-hidden rounded border border-line">
-                  <iframe
-                    title={t("Your location")}
-                    width="100%"
-                    height="220"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    src={`https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&t=k&output=embed`}
-                  />
-                </div>
-              )}
-            </div>
-          ) : coords ? (
+          {coords && (
             <div className="overflow-hidden rounded border border-line">
               <iframe
                 title={t("Your location")}
@@ -583,28 +554,43 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 loading="lazy"
                 src={`https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&t=k&output=embed`}
               />
-              <p className="bg-field-raised px-3 py-2 text-sm text-ink">
-                {t("No store is registered on PriceBook at this location.")}
-              </p>
             </div>
-          ) : (
-            <p className="text-sm text-ink">{t("Couldn't determine your location.")}</p>
           )}
+          <p className={`text-sm text-ink ${coords ? "bg-field-raised px-3 py-2" : ""}`}>
+            {locationCheck.store ? (
+              <>
+                {t("You are at")} <strong>{locationCheck.store.store_name}</strong>
+              </>
+            ) : coords ? (
+              t("You are at an unregistered location")
+            ) : (
+              t("Couldn't determine your location.")
+            )}
+          </p>
         </div>
       )}
 
       {mode === "menu" && checkPriceRevealed && !busy && !scanningBarcode && (
-        <div className={isNativeApp ? "mb-6 grid grid-cols-2 gap-2" : "mb-6 flex flex-col gap-2 sm:flex-row"}>
-          <button onClick={() => setShowScanner(true)} className={outlineButton}>
-            {t("Scan Barcode")}
+        <>
+          <div className={isNativeApp ? "mb-3 grid grid-cols-2 gap-2" : "mb-3 flex flex-col gap-2 sm:flex-row"}>
+            <button onClick={() => setShowScanner(true)} className={outlineButton}>
+              {t("Scan Barcode")}
+            </button>
+            <button onClick={() => cameraInputRef.current?.click()} className={outlineButton}>
+              {t("Snap")}
+            </button>
+            <button onClick={() => setMode("text")} className={`${outlineButton}${isNativeApp ? " col-span-2" : ""}`}>
+              {t("Enter details")}
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCheckPriceRevealed(false)}
+            className="mb-6 inline-flex items-center gap-1 rounded border border-line bg-field px-3 py-1.5 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value-soft active:border-value active:bg-value-soft"
+          >
+            {t("Back")}
           </button>
-          <button onClick={() => cameraInputRef.current?.click()} className={outlineButton}>
-            {t("Snap")}
-          </button>
-          <button onClick={() => setMode("text")} className={`${outlineButton}${isNativeApp ? " col-span-2" : ""}`}>
-            {t("Enter details")}
-          </button>
-        </div>
+        </>
       )}
       {scanningBarcode && <p className="mb-6 text-sm text-ash">{t("Reading barcode…")}</p>}
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
@@ -663,11 +649,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       )}
 
       {busy && mode !== "text" && <p className="mt-3 text-sm text-ash">{t("Searching…")}</p>}
-      {status === "denied" && (
-        <p className="mt-3 text-sm text-flag">
-          {t("Location is off, so we can't sort by distance. Enable it in your browser to see nearby prices.")}
-        </p>
-      )}
       {error && <p className="mt-3 text-sm text-flag">{t(error)}</p>}
 
       {result && (
@@ -896,6 +877,16 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </table>
           )}
         </section>
+      )}
+
+      {status === "denied" && (
+        <div
+          className={`fixed inset-x-0 z-40 bg-flag px-4 py-3 text-center text-sm font-medium text-white shadow-lg ${
+            isNativeApp ? "bottom-16" : "bottom-0"
+          }`}
+        >
+          {t("Turn on location services so the app can find the store you are at and help you compare your prices.")}
+        </div>
       )}
     </AppPage>
   );
