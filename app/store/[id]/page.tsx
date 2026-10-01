@@ -46,7 +46,10 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
   const [store, setStore] = useState<StoreInfo | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [priceStats, setPriceStats] = useState<PriceReportStats | null>(null);
-  const [myRating, setMyRating] = useState(0);
+  // Defaults to the middle (plain/neutral) emoji so the picker never starts
+  // on an un-set, ambiguous state — overridden below if the shopper already
+  // left a review, so this never clobbers an existing rating.
+  const [myRating, setMyRating] = useState(3);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   // A shopper gets exactly one review per store, on both the website and
