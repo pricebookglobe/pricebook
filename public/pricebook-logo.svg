@@ -19,7 +19,7 @@
         style="paint-order: stroke; stroke:#FFFFFF; stroke-width:4px;">PB</text>
 
   <g>
-    <rect x="239.5" y="309.0" width="55.0" height="50" fill="#FF5700"/>
-    <path d="M212.0,359.0 L322.0,359.0 L267,427.0 Z" fill="#FF5700"/>
+    <rect x="247.0" y="292.0" width="40.0" height="36" fill="#FF5700"/>
+    <path d="M227.0,328.0 L307.0,328.0 L267,378.0 Z" fill="#FF5700"/>
   </g>
 </svg>
