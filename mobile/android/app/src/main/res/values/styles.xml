@@ -24,20 +24,28 @@
          @drawable/splash. postSplashScreenTheme hands off to the normal
          app theme once onCreate runs, and Capacitor's own SplashScreen
          plugin (capacitor.config.ts) takes it from there with the full
-         branded navy splash.png for up to 3s while the site loads — this
-         theme only covers the brief native gap before that.
+         branded light-green splash.png for up to 3s while the site loads —
+         this theme only covers the brief native gap before that.
 
-         Two rounds of fixes landed here:
-         1) windowSplashScreenBackground is white, not navy: the logo's
+         Three rounds of fixes have landed here:
+         1) windowSplashScreenBackground is light, not navy: the logo's
             shield outline and "P" are drawn in navy to sit on a light
             background, so on a navy background they nearly disappeared
             (only the green bits showed) — reported as "not clear".
          2) windowSplashScreenAnimatedIcon (@drawable/splash_icon) is
             generated per-density at the ~192dp container this API actually
-            draws it at, from the high-res app/icon.png master — the first
+            draws it at, from the high-res app/icon.png master — an earlier
             version reused the 48dp launcher-icon PNGs, which the OS then
             stretched ~4x, which is what was actually causing the blur
-            (not the background color). -->
+            (not the background color).
+         3) splashBackground moved from plain white to the brand's light
+            green (value-soft, #DCEEE3), and both this icon and the full
+            splash.png images (gen_splash.py) are regenerated from a
+            sharpened, upscaled-then-downsampled render of app/icon.png
+            with a proper safe-zone margin, instead of the shield running
+            edge-to-edge (which some OEMs' circular splash mask was
+            clipping) — together these are what was reported as the logo
+            looking "distracted"/unclear on the splash screen. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splashBackground</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>

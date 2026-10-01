@@ -7,11 +7,10 @@
 
     <!-- Shown as the window background the instant the process starts,
          before Capacitor's own JS-driven splash (capacitor.config.ts,
-         SplashScreen plugin) can take over. White, not navy: the logo's
-         shield outline and "P" are navy, so on a navy background they
-         were nearly invisible (only the green bits showed) no matter how
-         big or sharp the icon was — this is what was actually reported as
-         "not clear". White is a brief (well under a second) background
-         before the branded navy splash.png takes over, not a mismatch. -->
-    <color name="splashBackground">#FFFFFF</color>
+         SplashScreen plugin) can take over — now the brand's light green
+         (tailwind value-soft, #DCEEE3), matching the full-screen
+         splash.png images so there's no color jump between the two, and
+         still light enough that the navy shield outline reads clearly on
+         it (navy-on-navy was the original "not clear" complaint). -->
+    <color name="splashBackground">#DCEEE3</color>
 </resources>
