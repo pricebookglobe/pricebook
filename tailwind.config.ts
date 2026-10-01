@@ -7,11 +7,12 @@ import plugin from "tailwindcss/plugin";
 //            the lighter shade (also the sidebar's top band) used for hover,
 //            .dark is a darker shade used for active/pressed
 // - field:   a warm paper background, not stark white — a receipt/ledger feel
-// - value:   a green, sitting between the logo's light and dark green
-//            shades, that means "cheaper"/price-drop throughout the product.
-//            No orange is used anywhere in the product. Buttons built on
-//            this token rest on .soft (light green) and go to the
-//            DEFAULT/.dark shades (darker green) on hover/press.
+// - value:   a dark, shiny green, sitting between the logo's light and dark
+//            green shades, that means "cheaper"/price-drop throughout the
+//            product. No orange is used anywhere in the product. Buttons
+//            built on this token are solid DEFAULT at rest, with the
+//            border lightening to .soft on hover and darkening to .dark
+//            on press.
 // - flag:    a neutral slate used ONLY for a secondary/attention tier (never
 //            orange)
 // - mark:    the exact cyan-green from the logo artwork itself (the barcode,
@@ -34,9 +35,9 @@ const config: Config = {
           raised: "#FFFFFF"
         },
         value: {
-          DEFAULT: "#0E9488",
+          DEFAULT: "#0B7A6F",
           soft: "#D7F3EE",
-          dark: "#0A6F66"
+          dark: "#063F3A"
         },
         flag: "#64748B",
         mark: "#13BDC4",
