@@ -121,11 +121,17 @@ export function AccountMenu() {
   return (
     <div className="flex h-full flex-col items-center text-center">
       <Link href="/" className="flex flex-col items-center">
-        {/* The original, unprocessed app/icon.png master — per explicit
-            instruction, this is not to be swapped for a derived/re-exported
-            asset again. If it ever needs to change, that has to be a new
-            master file, not another crop/resize/threshold pass on this one. */}
-        <img src="/icon.png" alt="PriceBook" className="h-auto w-28" />
+        {/* public/pricebook-icon-dark.png — the same shield artwork as
+            app/icon.png, trimmed to its real content box and with its
+            anti-aliased edges squared off (see
+            scripts/generate_logo_assets.py). The raw app/icon.png master
+            carries a few pixels of partial-alpha edge that's invisible on a
+            light page but turns into a visible blue glow around the shield
+            on this dark sidebar — this file is the one-time fix for that,
+            not a work-in-progress export. This is the final, locked logo
+            for this spot: don't swap it back to the raw master, and don't
+            run it through the generator again. */}
+        <img src="/pricebook-icon-dark.png" alt="PriceBook" className="h-auto w-28" />
       </Link>
 
       <div className="mt-4 flex flex-col items-center">
