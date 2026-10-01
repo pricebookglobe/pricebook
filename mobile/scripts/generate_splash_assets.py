@@ -8,7 +8,16 @@
 #   python3 mobile/scripts/generate_splash_assets.py
 #
 # Re-run this whenever app/icon.png changes, then rebuild the Android app.
-from PIL import Image, ImageFilter, ImageEnhance
+#
+# NOTE on sharpening: an earlier version of this script ran the source
+# through ImageFilter.UnsharpMask before resizing, meaning to crisp it up.
+# The master PNG already has soft, anti-aliased edges with faint
+# compression artifacts baked in (not clean vector edges), and unsharp
+# masking amplified those into a visible dotted/haloed ring around the
+# whole shield — it made every exported size look noisier, not clearer.
+# Plain high-quality (LANCZOS) resampling straight from the trimmed master,
+# with no sharpening pass, is the cleanest result this source supports.
+from PIL import Image
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -16,20 +25,11 @@ ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 RES = f"{ROOT}/mobile/android/app/src/main/res"
 LIGHT_GREEN = (220, 238, 227)  # #DCEEE3 - tailwind value-soft
 
-def load_sharp_icon():
+def load_icon():
     im = Image.open(f"{ROOT}/app/icon.png").convert("RGBA")
     # Trim to the actual shield's bounding box (source has some transparent
     # margin) so later scaling is based on real content, not empty padding.
-    bbox = im.getbbox()
-    im = im.crop(bbox)
-    # Upscale 3x with high-quality resampling first, then sharpen, then the
-    # per-target resize downsamples from this larger, sharpened version —
-    # downsampling a sharpened-and-enlarged image anti-aliases cleaner than
-    # sharpening at the final small size would.
-    big = im.resize((im.width * 3, im.height * 3), Image.LANCZOS)
-    sharpened = big.filter(ImageFilter.UnsharpMask(radius=3, percent=160, threshold=2))
-    sharpened = ImageEnhance.Contrast(sharpened).enhance(1.08)
-    return sharpened
+    return im.crop(im.getbbox())
 
 def fit_icon(icon, box_size, fraction):
     target = int(box_size * fraction)
@@ -38,7 +38,7 @@ def fit_icon(icon, box_size, fraction):
     new_size = (max(1, round(w * scale)), max(1, round(h * scale)))
     return icon.resize(new_size, Image.LANCZOS)
 
-icon = load_sharp_icon()
+icon = load_icon()
 print("source trimmed icon size:", icon.size)
 
 # --- Android 12+ SplashScreen API icon (windowSplashScreenAnimatedIcon) ---
@@ -78,7 +78,7 @@ splash_sizes = {
 }
 for rel, (w, h) in splash_sizes.items():
     canvas = Image.new("RGB", (w, h), LIGHT_GREEN)
-    fitted = fit_icon(icon, min(w, h), 0.38)
+    fitted = fit_icon(icon, min(w, h), 0.46)
     pos = ((w - fitted.width) // 2, (h - fitted.height) // 2)
     canvas.paste(fitted, pos, fitted)
     path = f"{RES}/{rel}"

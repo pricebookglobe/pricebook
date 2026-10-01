@@ -19,12 +19,15 @@ export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.
       <div className="app-gradient relative flex min-h-screen flex-col overflow-hidden">
         {/* Faint centered wordmark watermark, purely decorative, so the app
             reads as its own branded product rather than a browser tab even
-            on screens with little other imagery. */}
+            on screens with little other imagery. Constrained by width only
+            (h-auto) so the image's own aspect ratio decides its height —
+            forcing an equal h-[80vw]/w-[80vw] box here used to squash the
+            (taller-than-wide) shield into a square, stretching it. */}
         <img
           src="/pricebook-icon-transparent.png"
           alt=""
           aria-hidden="true"
-          className="pointer-events-none fixed left-1/2 top-1/2 h-[80vw] max-h-[480px] w-[80vw] max-w-[480px] -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.09]"
+          className="pointer-events-none fixed left-1/2 top-1/2 h-auto w-[65vw] max-w-[400px] -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.09]"
         />
 
         <div className="relative z-10 flex min-h-screen flex-col">

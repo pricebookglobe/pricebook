@@ -682,7 +682,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               <button
                 type="button"
                 onClick={startNewCheck}
-                className="whitespace-nowrap text-sm text-value underline hover:text-value/80"
+                className="whitespace-nowrap rounded border border-value/30 bg-value-soft px-3 py-1.5 font-display text-sm text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white"
               >
                 {t("Start new check")}
               </button>
