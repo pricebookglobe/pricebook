@@ -9,7 +9,9 @@ import plugin from "tailwindcss/plugin";
 // - field:   a warm paper background, not stark white — a receipt/ledger feel
 // - value:   a green, sitting between the logo's light and dark green
 //            shades, that means "cheaper"/price-drop throughout the product.
-//            No orange is used anywhere in the product.
+//            No orange is used anywhere in the product. Buttons built on
+//            this token rest on .soft (light green) and go to the
+//            DEFAULT/.dark shades (darker green) on hover/press.
 // - flag:    a neutral slate used ONLY for a secondary/attention tier (never
 //            orange)
 // - mark:    the exact cyan-green from the logo artwork itself (the barcode,
@@ -33,7 +35,8 @@ const config: Config = {
         },
         value: {
           DEFAULT: "#0E9488",
-          soft: "#D7F3EE"
+          soft: "#D7F3EE",
+          dark: "#0A6F66"
         },
         flag: "#64748B",
         mark: "#13BDC4",

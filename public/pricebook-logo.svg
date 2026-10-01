@@ -50,9 +50,7 @@
     <rect x="340" y="296" width="5" height="40" fill="#13BDC4"/>
   </g>
 
-  <!-- Price-drop arrow: small, sits below the barcode, clear of the border -->
-  <g>
-    <rect x="257.0" y="344.0" width="20.0" height="16" fill="#13BDC4"/>
-    <path d="M247.0,360.0 L287.0,360.0 L267,376.0 Z" fill="#13BDC4"/>
-  </g>
+  <!-- Price-drop arrow: one unbroken shape, its base flush against the
+       barcode's bottom edge (no gap/stem) so the two read as a single mark -->
+  <path d="M179.0,336.0 L353.0,336.0 L266.0,406.0 Z" fill="#13BDC4"/>
 </svg>

@@ -348,7 +348,7 @@ export function InventoryTable({
                     type="button"
                     onClick={lookupNutritionForEdit}
                     disabled={loadingNutrition}
-                    className="rounded-sm border border-line bg-field px-2 py-1 font-display text-xs text-ink transition-colors hover:border-value hover:bg-ink-soft hover:text-white active:border-value active:bg-ink-dark active:text-white disabled:opacity-40"
+                    className="rounded-sm border border-value/30 bg-value-soft px-2 py-1 font-display text-xs text-value transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value-dark active:text-white disabled:opacity-40"
                   >
                     {loadingNutrition ? t("Estimating…") : t("Look up nutrition facts")}
                   </button>
@@ -437,14 +437,14 @@ export function InventoryTable({
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setEditing(null)}
-                className="rounded-sm bg-field px-4 py-2 font-display text-sm font-medium text-ink transition-colors hover:bg-ink-soft active:bg-ink-dark hover:text-white active:text-white"
+                className="rounded-sm bg-value-soft px-4 py-2 font-display text-sm font-medium text-value transition-colors hover:bg-value active:bg-value-dark hover:text-white active:text-white"
               >
                 {t("Cancel")}
               </button>
               <button
                 onClick={saveEdit}
                 disabled={savingEdit || !editName.trim()}
-                className="rounded-sm bg-field px-4 py-2 font-display text-sm font-medium text-ink hover:bg-ink-soft active:bg-ink-dark disabled:opacity-40 hover:text-white active:text-white"
+                className="rounded-sm bg-value-soft px-4 py-2 font-display text-sm font-medium text-value hover:bg-value active:bg-value-dark disabled:opacity-40 hover:text-white active:text-white"
               >
                 {savingEdit ? t("Saving…") : t("Save")}
               </button>
@@ -557,7 +557,7 @@ export function InventoryTable({
             </div>
             <button
               onClick={() => setViewingNutrition(null)}
-              className="mt-4 w-full rounded-sm bg-field px-4 py-2 font-display text-sm text-ink transition-colors hover:bg-ink-soft hover:text-white active:bg-ink-dark active:text-white"
+              className="mt-4 w-full rounded-sm bg-value-soft px-4 py-2 font-display text-sm text-value transition-colors hover:bg-value hover:text-white active:bg-value-dark active:text-white"
             >
               {t("Close")}
             </button>

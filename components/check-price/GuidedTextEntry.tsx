@@ -104,7 +104,7 @@ export function GuidedTextEntry({
               unit: unit || null
             })
           }
-          className="rounded-sm bg-field px-4 py-2 font-display text-sm font-medium text-ink transition-colors hover:bg-ink-soft active:bg-ink-dark disabled:opacity-40 hover:text-white active:text-white"
+          className="rounded-sm bg-value-soft px-4 py-2 font-display text-sm font-medium text-value transition-colors hover:bg-value active:bg-value-dark disabled:opacity-40 hover:text-white active:text-white"
         >
           {t("Find price")}
         </button>
