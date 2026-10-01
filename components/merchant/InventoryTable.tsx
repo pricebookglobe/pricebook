@@ -557,7 +557,7 @@ export function InventoryTable({
             </div>
             <button
               onClick={() => setViewingNutrition(null)}
-              className="mt-4 w-full rounded-sm bg-sidebar px-4 py-2 font-display text-sm text-field transition-colors hover:bg-sidebar-light hover:text-white active:bg-sidebar-dark active:text-white"
+              className="mt-4 w-full rounded-sm bg-ink px-4 py-2 font-display text-sm text-field transition-colors hover:bg-ink-soft hover:text-white active:bg-ink-dark active:text-white"
             >
               {t("Close")}
             </button>

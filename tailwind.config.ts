@@ -2,12 +2,10 @@ import type { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 
 // Design tokens, grounded in the PriceBook brand (dark-teal shield + orange value marks):
-// - ink:     the deep teal from the logo shield, used for chrome, headings, primary actions
-// - sidebar: a dark neutral slate used for primary buttons site-wide (NOT the
-//            actual nav sidebar, despite the name — that went back to bg-ink/
-//            ink-soft). Kept separate from ink so buttons don't flash the
-//            brand orange on hover; .light/.dark are its hover (lighter) and
-//            active/pressed (darker) shades
+// - ink:     the deep teal from the logo shield and the sidebar's base color.
+//            Primary buttons use it too, so they match the sidebar — .soft is
+//            the lighter shade (also the sidebar's top band) used for hover,
+//            .dark is a darker shade used for active/pressed
 // - field:   a warm paper background, not stark white — a receipt/ledger feel
 // - value:   the orange that means "cheaper"/price-drop throughout the product
 // - flag:    a warm amber used ONLY for the single cheapest result in a list
@@ -19,12 +17,8 @@ const config: Config = {
       colors: {
         ink: {
           DEFAULT: "#00333E",
-          soft: "#135E78"
-        },
-        sidebar: {
-          DEFAULT: "#121D26",
-          light: "#28404F",
-          dark: "#0A1118"
+          soft: "#135E78",
+          dark: "#001A20"
         },
         field: {
           DEFAULT: "#F6F5F1",

@@ -79,7 +79,7 @@ export function SearchBar({ onSearch, busy }: Props) {
       <button
         type="submit"
         disabled={busy || !text.trim()}
-        className="rounded-sm bg-sidebar px-4 py-1.5 font-display text-sm font-medium text-field transition-colors hover:bg-sidebar-light hover:text-white active:bg-sidebar-dark active:text-white disabled:opacity-40"
+        className="rounded-sm bg-ink px-4 py-1.5 font-display text-sm font-medium text-field transition-colors hover:bg-ink-soft hover:text-white active:bg-ink-dark active:text-white disabled:opacity-40"
       >
         {busy ? t("Searching…") : t("Find price")}
       </button>
