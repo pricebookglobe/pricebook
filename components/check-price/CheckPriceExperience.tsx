@@ -523,7 +523,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
   return (
     <AppPage>
-      <p className="mb-4 text-sm text-ash">{t("Track best prices, near you first.")}</p>
+      <p className="mb-4 text-sm font-bold text-ink">{t("Track best prices, near you first.")}</p>
 
       {mode === "menu" && !checkPriceRevealed && (
         // The main action on this screen — clicking it hides the automatic

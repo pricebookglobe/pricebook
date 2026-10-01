@@ -1,18 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Package, Clock, Settings as SettingsIcon, LogOut, LayoutDashboard, ClipboardList, Users, ShieldCheck, Search, Camera, Bell, Boxes, X } from "lucide-react";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useAccount } from "@/lib/AccountProvider";
+import { EmojiRating } from "./EmojiRating";
+
+// Same price-report-trust coloring as the public store page: green above
+// 90% positive, amber 75-90%, red below 75%, grey with nothing yet — a
+// plain colored dot, separate from the face-emoji review rating next to it.
+function trustCircleColor(positivePct: number | null): string {
+  if (positivePct === null) return "bg-field/40";
+  if (positivePct > 90) return "bg-value";
+  if (positivePct >= 75) return "bg-flag";
+  return "bg-red-500";
+}
 
 export function AccountMenu() {
   const router = useRouter();
   const { t } = useLanguage();
-  const { profile, storeName, storeLogoUrl, token, loading } = useAccount();
+  const { profile, storeName, storeId, storeLogoUrl, token, loading } = useAccount();
   const [confirmingLogout, setConfirmingLogout] = useState(false);
+  // The merchant's own at-a-glance reputation — the same circle+face pair
+  // shown on their public store page — surfaced beside the store name here
+  // too, so it's visible from every merchant page via this shared sidebar,
+  // not just the Overview dashboard.
+  const [reviewStats, setReviewStats] = useState<{ average: number | null; count: number } | null>(null);
+  const [positivePct, setPositivePct] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!storeId || profile?.role !== "merchant") return;
+    let cancelled = false;
+    fetch(`/api/stores/${storeId}/reviews`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d) setReviewStats({ average: d.average_rating ?? null, count: d.count ?? 0 });
+      })
+      .catch(() => {});
+    fetch(`/api/stores/${storeId}/price-reports`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d) setPositivePct(d.positive_pct ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId, profile?.role]);
 
   async function confirmLogout() {
     const supabase = createBrowserSupabase();
@@ -68,6 +105,16 @@ export function AccountMenu() {
         )}
         <p className="mt-2 font-display text-[15px] font-semibold leading-tight text-field">{displayName}</p>
         <p className="font-mono text-[10px] uppercase tracking-wide text-field/50">{profile.role}</p>
+        {profile.role === "merchant" && storeId && (
+          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-field-raised px-2 py-1">
+            <span
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${trustCircleColor(positivePct)}`}
+              title={t("Price-report accuracy")}
+              aria-label={t("Price-report accuracy")}
+            />
+            <EmojiRating rating={reviewStats && reviewStats.count > 0 ? reviewStats.average : null} count={reviewStats?.count} size={18} />
+          </div>
+        )}
       </div>
 
       <nav className="mt-6 flex w-full flex-col gap-0.5 text-sm">
