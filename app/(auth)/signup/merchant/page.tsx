@@ -5,10 +5,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { PageShell } from "@/components/shared/PageShell";
-import { AlreadySignedInNotice } from "@/components/shared/AlreadySignedInNotice";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import { useAccount } from "@/lib/AccountProvider";
 import { COUNTRIES, citiesFor } from "@/lib/geography";
+import { stashLoginPrefill } from "@/lib/loginPrefill";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -22,7 +21,6 @@ function fileToBase64(file: File): Promise<string> {
 export default function MerchantSignup() {
   const router = useRouter();
   const { t } = useLanguage();
-  const { profile, loading: accountLoading } = useAccount();
   const [form, setForm] = useState({
     commercialName: "",
     commercialRegistration: "",
@@ -81,6 +79,15 @@ export default function MerchantSignup() {
     setError(null);
 
     const supabase = createBrowserSupabase();
+    // Submitting this form while already signed in as someone else used to
+    // be blocked behind an explicit "log out and continue" screen — removed
+    // per request. Signing out first here keeps the same underlying safety
+    // (no silent swap of who's signed in mid-session) without making the
+    // person see or click through anything extra.
+    const { data: existing } = await supabase.auth.getSession();
+    if (existing.session) {
+      await supabase.auth.signOut();
+    }
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
@@ -152,6 +159,13 @@ export default function MerchantSignup() {
       })
     });
 
+    // The dashboard stays locked until an admin verifies the store, so this
+    // signed-up session isn't left sitting around — carry the email/password
+    // over to the login page instead, prefilled, so logging back in once
+    // approved takes one click rather than retyping everything.
+    stashLoginPrefill(form.email, form.password);
+    await supabase.auth.signOut();
+
     setBusy(false);
     setPendingReview(true);
   }
@@ -165,7 +179,7 @@ export default function MerchantSignup() {
           — we'll email you once you're approved.
         </p>
         <Link
-          href="/login"
+          href="/login?justSignedUp=1"
           className="mt-6 block rounded-sm bg-value px-4 py-2 text-center font-display text-sm font-medium text-white hover:bg-value/90 active:bg-value/90"
         >
           {t("Go to log in")}
@@ -182,13 +196,6 @@ export default function MerchantSignup() {
       <h1 className="text-center font-display text-xl font-semibold text-ink">{t("Register your store")}</h1>
       <p className="mt-1 text-center text-sm text-ash">{t("Manage your prices and see how you rank nearby.")}</p>
 
-      {!accountLoading && profile && (
-        <div className="mt-6">
-          <AlreadySignedInNotice email={profile.email} displayName={profile.full_name || profile.email} />
-        </div>
-      )}
-
-      {!accountLoading && !profile && (
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
         <label className="text-sm text-ash">
           {t("Commercial name")} <span className="text-red-600">*</span>
@@ -311,7 +318,6 @@ export default function MerchantSignup() {
           {busy ? t("Setting up…") : t("Register your store")}
         </button>
       </form>
-      )}
     </PageShell>
   );
 }

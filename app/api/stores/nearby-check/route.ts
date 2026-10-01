@@ -8,16 +8,16 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createServiceSupabase();
-  // 150m, not a tighter radius: a phone's GPS/network fix is commonly off
-  // by tens of meters, and a shopper standing at a large store's entrance
-  // or parking lot can easily be 50-100m from the coordinate pinned for
-  // that store. A too-small radius (this used to be 10m) means "you're at
-  // the store" fails even when you plainly are. Matches AT_STORE_METERS,
-  // the same threshold CheckPriceExperience already uses for search results.
+  // 100m: close enough that a shopper standing at a store's entrance or
+  // parking lot still matches, but tight enough that with several stores
+  // registered in the same area, one that's actually a different store
+  // down the street doesn't get claimed as "you're here." The RPC itself
+  // already returns only the single nearest store within the radius, so a
+  // crowded area naturally resolves to whichever one is actually closest.
   const { data, error } = await supabase.rpc("find_nearest_store", {
     user_lat: lat,
     user_lng: lng,
-    max_meters: 150
+    max_meters: 100
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
