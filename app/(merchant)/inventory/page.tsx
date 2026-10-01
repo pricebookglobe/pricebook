@@ -45,10 +45,12 @@ export default function InventoryPage() {
   // On the app, the main "Add Item" action gets a solid green treatment so
   // it stands out from the two secondary (light green) actions next to it —
   // the same primary/secondary pattern used on the Check Price screen. The
-  // website keeps its original single outline style, unchanged.
+  // website's secondary buttons now match the app's light-green resting
+  // state (bg-value-soft) instead of plain white, and darken to the full
+  // brand green on hover/press, so both surfaces read the same way.
   const buttonClass = isNativeApp
-    ? "flex-1 rounded-xl border border-value/30 bg-value-soft px-4 py-3.5 text-center font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:bg-value-soft/70"
-    : "flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white";
+    ? "flex-1 rounded-xl border border-value/30 bg-value-soft px-4 py-3.5 text-center font-display text-[14px] font-medium text-ink shadow-sm transition active:scale-[0.98] active:border-value active:bg-value active:text-white"
+    : "flex-1 rounded border border-value/30 bg-value-soft px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-value hover:bg-value hover:text-white active:border-value active:bg-value active:text-white";
   const primaryButtonClass = isNativeApp
     ? "flex-1 rounded-xl bg-value px-4 py-3.5 text-center font-display text-[14px] font-semibold text-white shadow-md transition active:scale-[0.98] active:bg-value/90"
     : buttonClass;
