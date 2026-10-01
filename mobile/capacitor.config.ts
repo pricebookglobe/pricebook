@@ -14,18 +14,22 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: false
   },
-  // Without this, the native launch screen (drawable/splash.png, our navy
-  // background + logo) disappears the moment MainActivity attaches its
-  // content view, leaving a blank white WebView until the remote site
+  // Without this, the native launch screen (drawable/splash.png, our light
+  // green background + logo) disappears the moment MainActivity attaches
+  // its content view, leaving a blank white WebView until the remote site
   // finishes loading over the network — the "white screen with no icon"
   // gap. The splash-screen plugin keeps that same branded image showing
   // (auto-hiding once the page has actually loaded, capped at 3s) so
   // there's no unbranded gap between the two.
+  //
+  // backgroundColor matches splash.png's own background (and
+  // colors.xml's splashBackground) exactly, so there's no visible color
+  // seam if this ever shows before the image is decoded.
   plugins: {
     SplashScreen: {
       launchShowDuration: 3000,
       launchAutoHide: true,
-      backgroundColor: '#16223F',
+      backgroundColor: '#DCEEE3',
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
