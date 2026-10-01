@@ -138,7 +138,7 @@ export function AccountMenu() {
             <span className="text-white">Price</span>
             <span className="text-mark">Book</span>
           </p>
-          <p className="mt-1 font-mono text-[9px] uppercase tracking-widest text-field/60">{t("Track Best Prices")}</p>
+          <p className="shine-text mt-1 font-mono text-[9px] uppercase tracking-widest">{t("Track Best Prices")}</p>
         </Link>
 
         <div className="mt-4 flex flex-col items-center">

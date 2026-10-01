@@ -33,14 +33,14 @@ export function Pagination({
         <button
           onClick={() => onPageChange(Math.max(0, page - 1))}
           disabled={page === 0}
-          className="rounded-sm border border-line bg-field px-3 py-1.5 font-medium text-ash transition-colors hover:border-ash hover:bg-ash hover:text-white active:bg-ink-dark active:border-ink-dark active:text-white disabled:opacity-40"
+          className="rounded-sm border border-flag bg-flag px-3 py-1.5 font-medium text-white transition-colors hover:border-flag hover:bg-field hover:text-ash active:border-ink-dark active:bg-ink-dark active:text-white disabled:opacity-40"
         >
           ← {t("Back")}
         </button>
         <button
           onClick={() => onPageChange(Math.min(totalPages - 1, page + 1))}
           disabled={page >= totalPages - 1}
-          className="rounded-sm border border-line bg-field px-3 py-1.5 font-medium text-ash transition-colors hover:border-ash hover:bg-ash hover:text-white active:bg-ink-dark active:border-ink-dark active:text-white disabled:opacity-40"
+          className="rounded-sm border border-ash bg-ash px-3 py-1.5 font-medium text-white transition-colors hover:border-ash hover:bg-field hover:text-ash active:border-ink-dark active:bg-ink-dark active:text-white disabled:opacity-40"
         >
           {t("Next")} →
         </button>
