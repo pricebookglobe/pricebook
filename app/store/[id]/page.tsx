@@ -15,6 +15,21 @@ const REVIEWS_PAGE_SIZE = 5;
 type StoreInfo = { id: string; name: string; address: string; city: string; lat: number; lng: number };
 type Review = { id: string; rating: number; comment: string | null; created_at: string };
 type MyReview = { id: string; rating: number; comment: string | null };
+type InventoryItem = {
+  id: string;
+  price: number;
+  currency: string;
+  in_stock: boolean;
+  is_hidden: boolean;
+  products: {
+    id: string;
+    canonical_name: string;
+    brand: string | null;
+    size: number | null;
+    unit: string | null;
+    category: string | null;
+  };
+};
 type PriceReportStats = {
   count: number;
   positive_count: number;
@@ -65,6 +80,14 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
   // the X rather than staying open forever once expanded.
   const [reviewsExpanded, setReviewsExpanded] = useState(false);
   const [reviewsPage, setReviewsPage] = useState(0);
+  // This store's full registered-item list, grouped by category below —
+  // fetched once and kept flat here; `itemsByCategory` does the grouping so
+  // this never has to be re-sorted on every render.
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  // Which category accordions are open — every category starts collapsed,
+  // so a store with a large catalog doesn't dump every item on screen at
+  // once; a shopper opens just the categories they care about.
+  const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch(`/api/stores/${params.id}`).then((r) => r.ok && r.json()).then((s) => s && setStore(s));
@@ -72,6 +95,15 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
       .then((r) => r.json())
       .then(setPriceStats);
     fetch(`/api/stores/${params.id}/view`, { method: "POST" }).catch(() => {});
+    fetch(`/api/stores/${params.id}/inventory`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows: InventoryItem[]) => {
+        // Hidden items are a merchant's own "not shown to shoppers" flag —
+        // out-of-stock items still belong on this list (with a label), but
+        // hidden ones should never appear here at all.
+        setItems((rows ?? []).filter((row) => !row.is_hidden));
+      })
+      .catch(() => {});
 
     (async () => {
       const supabase = createBrowserSupabase();
@@ -135,6 +167,27 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
 
   const circle = trustCircle(priceStats?.positive_pct ?? null);
 
+  // Grouped by category for the collapsible list below — "Uncategorized"
+  // catches any item whose product record has no category set, so nothing
+  // registered at this store ever silently goes missing from the list.
+  const itemsByCategory = new Map<string, InventoryItem[]>();
+  for (const item of items) {
+    const category = item.products?.category?.trim() || t("Uncategorized");
+    const list = itemsByCategory.get(category) ?? [];
+    list.push(item);
+    itemsByCategory.set(category, list);
+  }
+  const categories = Array.from(itemsByCategory.keys()).sort((a, b) => a.localeCompare(b));
+
+  function toggleCategory(category: string) {
+    setOpenCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  }
+
   return (
     <AppPage>
       {backButton}
@@ -176,6 +229,70 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
       >
         {t("Get directions")}
       </a>
+
+      <section className="mt-8">
+        <h2 className="font-display text-[15px] font-medium text-ink">{t("Items at this store")}</h2>
+        {categories.length === 0 ? (
+          <p className="mt-2 text-sm text-ash">{t("No registered items yet.")}</p>
+        ) : (
+          <div className="mt-2 flex flex-col gap-2">
+            {categories.map((category) => {
+              const categoryItems = itemsByCategory.get(category) ?? [];
+              const expanded = openCategories.has(category);
+              return (
+                <div key={category} className="rounded border border-line bg-field">
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(category)}
+                    aria-expanded={expanded}
+                    className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
+                  >
+                    <span className="font-display text-sm font-medium text-ink">{category}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-ash">{categoryItems.length}</span>
+                      <ChevronDown
+                        size={16}
+                        strokeWidth={2}
+                        className={"text-ash transition-transform " + (expanded ? "rotate-180" : "")}
+                      />
+                    </span>
+                  </button>
+                  {expanded && (
+                    <div className="border-t border-line">
+                      {categoryItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5 last:border-b-0"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm text-ink">
+                              {item.products.brand ? `${item.products.brand} ` : ""}
+                              {item.products.canonical_name}
+                            </p>
+                            {(item.products.size || item.products.unit) && (
+                              <p className="font-mono text-[11px] text-ash">
+                                {item.products.size ?? ""} {item.products.unit ?? ""}
+                              </p>
+                            )}
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="font-mono text-sm text-ink">
+                              {item.price.toFixed(2)} <span className="text-xs text-ash">{item.currency}</span>
+                            </p>
+                            {!item.in_stock && (
+                              <p className="font-mono text-[10px] uppercase tracking-wide text-flag">{t("Out of stock")}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <section className="mt-8">
         <h2 className="font-display text-[15px] font-medium text-ink">

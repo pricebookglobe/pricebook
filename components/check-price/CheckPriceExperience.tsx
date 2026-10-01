@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useGeolocation } from "@/components/shared/GeolocationProvider";
-import { ResultRow } from "@/components/search/ResultRow";
+import { ResultRow, type StoreRating } from "@/components/search/ResultRow";
+import { EmojiRating } from "@/components/shared/EmojiRating";
 import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
 import { FreeTextSearch } from "@/components/check-price/FreeTextSearch";
 import { searchProducts, findNearestStore, reportPrice, type SearchResponse, type SearchResult } from "@/lib/api";
@@ -54,10 +55,12 @@ function formatDistance(meters: number): string {
 function PriceCallout({
   label,
   result,
+  rating,
   isNativeApp = false
 }: {
   label: string;
   result: SearchResult;
+  rating?: StoreRating;
   isNativeApp?: boolean;
 }) {
   const { t } = useLanguage();
@@ -100,11 +103,12 @@ function PriceCallout({
         <p className="mt-1 font-mono text-2xl text-[#7FE0AE]">
           {result.price.toFixed(2)} <span className="text-sm text-field/60">{result.currency}</span>
         </p>
-        <p className="mt-1 text-xs text-field/60">
+        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-field/60">
           <Link href={`/store/${result.store_id}`} className="underline">
             {result.store_name}
-          </Link>{" "}
+          </Link>
           · {formatDistance(result.distance_m)}
+          {rating && <EmojiRating rating={rating.count > 0 ? rating.average_rating : null} count={rating.count} size={15} showValue={false} />}
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
           <a
@@ -115,6 +119,9 @@ function PriceCallout({
           >
             {t("Open in Maps")}
           </a>
+          <Link href={`/store/${result.store_id}`} className="text-field underline">
+            {t("Visit Store Page")}
+          </Link>
           {reported ? (
             <span className="font-mono text-[11px] text-[#7FE0AE]">
               {reported === "correct_price" ? t("Thanks — marked as correct.") : t("Thanks — marked as wrong.")}
@@ -186,12 +193,15 @@ function PriceCallout({
 
   return (
     <div className="mb-3 rounded border border-value bg-value-soft px-4 py-3">
-      <p className="text-sm text-ink">
-        <strong>{result.product_name}</strong> — {label}: <strong>{result.price.toFixed(2)} {result.currency}</strong> at{" "}
-        <Link href={`/store/${result.store_id}`} className="underline">
-          {result.store_name}
-        </Link>{" "}
-        ({formatDistance(result.distance_m)} away).
+      <p className="flex flex-wrap items-center gap-1.5 text-sm text-ink">
+        <span>
+          <strong>{result.product_name}</strong> — {label}: <strong>{result.price.toFixed(2)} {result.currency}</strong> at{" "}
+          <Link href={`/store/${result.store_id}`} className="underline">
+            {result.store_name}
+          </Link>{" "}
+          ({formatDistance(result.distance_m)} away).
+        </span>
+        {rating && <EmojiRating rating={rating.count > 0 ? rating.average_rating : null} count={rating.count} size={16} showValue={false} />}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
         <a
@@ -202,6 +212,9 @@ function PriceCallout({
         >
           {t("Open in Maps")}
         </a>
+        <Link href={`/store/${result.store_id}`} className="text-ink underline hover:text-ink/80">
+          {t("Visit Store Page")}
+        </Link>
         {reported ? (
           <span className="font-mono text-[11px] text-value">
             {reported === "correct_price" ? t("Thanks — marked as correct.") : t("Thanks — marked as wrong.")}
@@ -312,6 +325,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [showScanner, setShowScanner] = useState(false);
   const [useGuidedForm, setUseGuidedForm] = useState(false);
   const [sortMode, setSortMode] = useState<"price" | "distance">("price");
+  // This screen's own per-store review summary cache (average emoji rating
+  // + count), keyed by store_id — fetched once per result set, in a single
+  // batched request for every store on screen, rather than one request per
+  // row (a result set can list dozens of different stores at once).
+  const [ratings, setRatings] = useState<Record<string, StoreRating>>({});
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Restore this screen's own last results on remount (see the cache
@@ -527,6 +545,37 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // for the list.
   const tableRows = sorted;
 
+  // Fetch review summaries for every store on screen in one batched
+  // request, whenever the result set changes — covers the comparison
+  // table, both "best price" callouts, and the "you're at this store"
+  // panel, all of which show a store name and can each name a different
+  // store.
+  useEffect(() => {
+    const ids = new Set<string>();
+    for (const r of sorted) ids.add(r.store_id);
+    if (result?.near_best) ids.add(result.near_best.store_id);
+    if (result?.city_best) ids.add(result.city_best.store_id);
+    if (ids.size === 0) {
+      setRatings({});
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/stores/ratings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ store_ids: Array.from(ids) })
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d) setRatings(d);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result]);
+
   // Only worth calling out the city-wide best when it's actually a
   // different store than the nearby best — otherwise it's the same
   // information said twice.
@@ -737,10 +786,23 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           {atStore && isNativeApp && (
             <div className="mb-4 rounded-lg bg-ink px-4 py-3 text-field">
               <p className="text-xs text-field/60">{t("You're at")}</p>
-              <p className="font-display text-[16px] font-bold">{atStore.store_name}</p>
+              <p className="flex flex-wrap items-center gap-1.5 font-display text-[16px] font-bold">
+                {atStore.store_name}
+                {ratings[atStore.store_id] && (
+                  <EmojiRating
+                    rating={ratings[atStore.store_id].count > 0 ? ratings[atStore.store_id].average_rating : null}
+                    count={ratings[atStore.store_id].count}
+                    size={16}
+                    showValue={false}
+                  />
+                )}
+              </p>
               <p className="mt-1 font-mono text-xl text-[#7FE0AE]">
                 {atStore.price.toFixed(2)} <span className="font-sans text-xs text-field/60">{atStore.currency}</span>
               </p>
+              <Link href={`/store/${atStore.store_id}`} className="mt-1 inline-block text-sm text-[#7FE0AE] underline">
+                {t("Visit Store Page")}
+              </Link>
               {atStore.nutrition_facts && (
                 <button
                   onClick={() => setShowAtStoreNutrition((s) => !s)}
@@ -798,11 +860,24 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
           {atStore && !isNativeApp && (
             <div className="mb-4 rounded border border-value bg-value-soft px-4 py-3">
-              <p className="text-sm text-ink">
-                <strong>{atStore.product_name}</strong> — You are at <strong>{atStore.store_name}</strong> — the price here is{" "}
-                <strong>{atStore.price.toFixed(2)} {atStore.currency}</strong>.
+              <p className="flex flex-wrap items-center gap-1.5 text-sm text-ink">
+                <span>
+                  <strong>{atStore.product_name}</strong> — You are at <strong>{atStore.store_name}</strong> — the price here is{" "}
+                  <strong>{atStore.price.toFixed(2)} {atStore.currency}</strong>.
+                </span>
+                {ratings[atStore.store_id] && (
+                  <EmojiRating
+                    rating={ratings[atStore.store_id].count > 0 ? ratings[atStore.store_id].average_rating : null}
+                    count={ratings[atStore.store_id].count}
+                    size={16}
+                    showValue={false}
+                  />
+                )}
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
+                <Link href={`/store/${atStore.store_id}`} className="text-sm text-ink underline hover:text-ink/80">
+                  {t("Visit Store Page")}
+                </Link>
                 {atStore.nutrition_facts && (
                   <button
                     onClick={() => setShowAtStoreNutrition((s) => !s)}
@@ -859,9 +934,21 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </div>
           )}
 
-          {result.near_best && <PriceCallout label={t("Best price within 5km")} result={result.near_best} isNativeApp={isNativeApp} />}
+          {result.near_best && (
+            <PriceCallout
+              label={t("Best price within 5km")}
+              result={result.near_best}
+              rating={ratings[result.near_best.store_id]}
+              isNativeApp={isNativeApp}
+            />
+          )}
           {cityBestDiffersFromNear && result.city_best && (
-            <PriceCallout label={t("Best price in the whole city")} result={result.city_best} isNativeApp={isNativeApp} />
+            <PriceCallout
+              label={t("Best price in the whole city")}
+              result={result.city_best}
+              rating={ratings[result.city_best.store_id]}
+              isNativeApp={isNativeApp}
+            />
           )}
 
           {tableRows.length > 1 && (
@@ -893,6 +980,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                   key={r.store_id + r.product_id}
                   result={r}
                   isCheapest={`${r.store_id}::${r.product_id}` === cheapestKey}
+                  rating={ratings[r.store_id]}
                   variant="card"
                 />
               ))}
@@ -916,6 +1004,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                     key={r.store_id + r.product_id}
                     result={r}
                     isCheapest={`${r.store_id}::${r.product_id}` === cheapestKey}
+                    rating={ratings[r.store_id]}
                   />
                 ))}
               </tbody>
