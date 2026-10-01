@@ -208,7 +208,7 @@ function PriceCallout({
           href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
           target="_blank"
           rel="noreferrer"
-          className="text-value underline hover:text-value/80"
+          className="text-ink underline hover:text-ink/80"
         >
           {t("Open in Maps")}
         </a>
@@ -222,11 +222,11 @@ function PriceCallout({
         ) : (
           <>
             <span className="text-ash">{t("Is this price accurate?")}</span>
-            <button disabled={busy} onClick={() => handleReport("correct_price")} className="text-value underline hover:text-value/80">
+            <button disabled={busy} onClick={() => handleReport("correct_price")} className="text-ink underline hover:text-ink/80">
               {t("Yes")}
             </button>
-            <button disabled={busy} onClick={() => handleReport("wrong_price")} className="text-flag underline hover:text-flag/80">
-              {t("No, it was higher in store")}
+            <button disabled={busy} onClick={() => handleReport("wrong_price")} className="text-value underline hover:text-value/80">
+              {t("No")}
             </button>
           </>
         )}

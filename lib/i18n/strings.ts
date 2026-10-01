@@ -146,6 +146,7 @@ export const UI_STRINGS = [
   "Open in Maps",
   "Is this price accurate?",
   "Yes",
+  "No",
   "No, it was higher in store",
 
   // Manage Inventory / Registered Items / Search Items (merchant)

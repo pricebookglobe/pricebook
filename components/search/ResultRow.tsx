@@ -238,7 +238,7 @@ export function ResultRow({
           </div>
           <p className="font-mono text-[15px] text-ink">
             {isCheapest && (
-              <span className="mr-2 rounded-sm bg-value px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-wide text-white">
+              <span className="mr-2 rounded-sm bg-green-100 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-wide text-green-700">
                 {t("Cheapest")}
               </span>
             )}
@@ -285,7 +285,7 @@ export function ResultRow({
         <td className="num font-mono text-xs text-ash">{formatDistance(result.distance_m)}</td>
         <td className="num">
           {isCheapest && (
-            <span className="mr-2 rounded-sm bg-value-soft px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide text-value">
+            <span className="mr-2 rounded-sm bg-green-100 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide text-green-700">
               {t("Cheapest")}
             </span>
           )}
