@@ -143,6 +143,22 @@ body {
   animation-delay: 5.6s;
 }
 
+@keyframes intro-walk-in {
+  0% { transform: translateX(-24px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+.intro-walk-in {
+  animation: intro-walk-in 0.8s ease-out both;
+}
+
+@keyframes intro-tap {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-6deg); }
+}
+.intro-tap {
+  animation: intro-tap 1.1s ease-in-out infinite;
+}
+
 @keyframes intro-pulse-ring {
   0% { transform: scale(0.7); opacity: 0.6; }
   100% { transform: scale(1.6); opacity: 0; }
@@ -163,7 +179,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .intro-scene, .intro-pop, .intro-pop-delay, .intro-pulse-ring, .intro-progress {
+  .intro-scene, .intro-pop, .intro-pop-delay, .intro-pulse-ring, .intro-progress, .intro-walk-in, .intro-tap {
     animation: none;
   }
 }

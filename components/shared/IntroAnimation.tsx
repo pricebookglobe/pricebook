@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapPin, Tag, CheckCircle2 } from "lucide-react";
+import { Tag, CheckCircle2 } from "lucide-react";
 
 const TOTAL_MS = 10000;
 
@@ -78,14 +78,19 @@ export function IntroAnimation({ onFinished }: { onFinished: () => void }) {
         <p className="font-display text-sm font-medium tracking-wide text-ash">Track Best Prices</p>
       </div>
 
-      {/* Scene 2 — finds the store you're at */}
+      {/* Scene 2 — a shopper walks up to a store and the app recognizes it.
+          An illustrated person (not a literal photo/video — this page has
+          no way to source or render real footage) stands in for "someone
+          actually using the app here," rather than a bare location pin. */}
       <div className="intro-scene intro-scene-2 absolute inset-0 flex flex-col items-center justify-center gap-5 px-8 text-center">
-        <div className="relative flex h-24 w-24 items-center justify-center">
-          <span className="intro-pulse-ring absolute h-24 w-24 rounded-full border-2 border-value" />
-          <span className="intro-pulse-ring intro-pulse-ring-delay absolute h-24 w-24 rounded-full border-2 border-value" />
-          <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-value text-white shadow-lg">
-            <MapPin size={28} strokeWidth={2.25} />
-          </span>
+        <div className="intro-walk-in relative flex h-28 w-28 items-end justify-center" aria-hidden="true">
+          <span className="intro-pulse-ring absolute bottom-2 h-20 w-20 rounded-full border-2 border-value" />
+          <span className="intro-pulse-ring intro-pulse-ring-delay absolute bottom-2 h-20 w-20 rounded-full border-2 border-value" />
+          {/* storefront, faint, behind the shopper */}
+          <span className="absolute -left-2 bottom-0 text-5xl opacity-70">🏬</span>
+          {/* the shopper, phone in hand */}
+          <span className="relative text-6xl drop-shadow-sm">🧍</span>
+          <span className="intro-tap absolute bottom-6 right-0 origin-bottom-left text-3xl">📱</span>
         </div>
         <p className="font-display text-xl font-bold text-ink">Finds the store you're at</p>
         <p className="rounded-full border border-value/30 bg-value-soft px-4 py-1.5 font-display text-sm text-ink">
@@ -93,9 +98,14 @@ export function IntroAnimation({ onFinished }: { onFinished: () => void }) {
         </p>
       </div>
 
-      {/* Scene 3 — compares prices nearby */}
+      {/* Scene 3 — the same shopper checks their phone and sees the price
+          comparison; the cheapest option is called out. */}
       <div className="intro-scene intro-scene-3 absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center">
         <p className="font-display text-xl font-bold text-ink">Compares prices nearby</p>
+        <div className="flex items-center gap-1" aria-hidden="true">
+          <span className="text-5xl">🧍</span>
+          <span className="intro-tap -ml-1 -mt-7 origin-bottom-left text-2xl">📱</span>
+        </div>
         <div className="flex items-end gap-3">
           <div className="flex flex-col items-center gap-1 rounded-lg border border-line bg-field-raised px-3 py-2.5 opacity-80">
             <Tag size={16} strokeWidth={2} className="text-ash" />
@@ -113,10 +123,15 @@ export function IntroAnimation({ onFinished }: { onFinished: () => void }) {
         <p className="font-display text-sm font-medium text-value">Best price nearby ✓</p>
       </div>
 
-      {/* Scene 4 — payoff */}
-      <div className="intro-scene intro-scene-4 absolute inset-0 flex flex-col items-center justify-center gap-2 px-8 text-center">
-        <img src="/pricebook-icon-dark.png" alt="PriceBook" className="h-auto w-16" />
-        <p className="mt-2 font-display text-2xl font-bold leading-snug text-ink">
+      {/* Scene 4 — payoff: the shopper walks off with their bag, having
+          found and paid the best price. */}
+      <div className="intro-scene intro-scene-4 absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
+        <div className="flex items-center gap-1 text-6xl" aria-hidden="true">
+          <span>🧍</span>
+          <span className="intro-pop-delay">🛍️</span>
+        </div>
+        <img src="/pricebook-icon-dark.png" alt="PriceBook" className="h-auto w-14" />
+        <p className="font-display text-2xl font-bold leading-snug text-ink">
           Check the price.
           <br />
           Find it nearby.
