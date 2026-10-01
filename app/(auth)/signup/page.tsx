@@ -18,17 +18,17 @@ export default function SignupChooser() {
       <div className="mt-6 flex flex-col gap-3">
         <Link
           href="/signup/customer"
-          className="group rounded border border-value bg-value px-4 py-4 text-left transition-colors hover:border-value-soft active:border-value-dark active:bg-value-dark hover:text-white active:text-white"
+          className="rounded border border-value bg-value px-4 py-4 text-left transition-colors hover:border-value-soft active:border-value-dark active:bg-value-dark"
         >
-          <p className="font-display text-[15px] font-medium text-ink group-hover:text-white">{t("I'm shopping")}</p>
-          <p className="mt-0.5 text-sm text-ash group-hover:text-white/90">{t("Find the best local prices near me.")}</p>
+          <p className="font-display text-[15px] font-medium text-white">{t("I'm shopping")}</p>
+          <p className="mt-0.5 text-sm text-white/80">{t("Find the best local prices near me.")}</p>
         </Link>
         <Link
           href="/signup/merchant"
-          className="group rounded border border-value bg-value px-4 py-4 text-left transition-colors hover:border-value-soft active:border-value-dark active:bg-value-dark hover:text-white active:text-white"
+          className="rounded border border-value bg-value px-4 py-4 text-left transition-colors hover:border-value-soft active:border-value-dark active:bg-value-dark"
         >
-          <p className="font-display text-[15px] font-medium text-ink group-hover:text-white">{t("I own a store")}</p>
-          <p className="mt-0.5 text-sm text-ash group-hover:text-white/90">{t("List my prices and reach nearby shoppers.")}</p>
+          <p className="font-display text-[15px] font-medium text-white">{t("I own a store")}</p>
+          <p className="mt-0.5 text-sm text-white/80">{t("List my prices and reach nearby shoppers.")}</p>
         </Link>
       </div>
 
