@@ -63,7 +63,7 @@ export default function AdminDashboardPage() {
           <StatBox
             value={`${stats.positive_review_count} (${stats.positive_review_pct}%)`}
             label="Positive price reports"
-            valueClassName="text-value"
+            valueClassName="text-green-700"
           />
           <StatBox
             value={`${stats.negative_review_count} (${stats.negative_review_pct}%)`}

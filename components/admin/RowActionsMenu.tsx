@@ -43,7 +43,7 @@ export function RowActionsMenu({ actions, disabled }: { actions: MenuAction[]; d
               const toneClass = {
                 positive: "text-value",
                 warning: "text-amber-600",
-                danger: "text-flag",
+                danger: "text-red-600",
                 default: "text-ink"
               }[tone];
               return (

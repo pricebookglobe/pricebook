@@ -145,7 +145,7 @@ export default function AdminUsersPage() {
               <td className="font-mono text-xs">{u.email}</td>
               <td className="font-mono text-xs capitalize">{u.role}</td>
               <td>
-                <span className={u.is_frozen ? "text-flag" : "text-value"}>{u.is_frozen ? "Frozen" : "Active"}</span>
+                <span className={u.is_frozen ? "text-flag" : "text-green-600"}>{u.is_frozen ? "Frozen" : "Active"}</span>
               </td>
               <td className="num">
                 <RowActionsMenu

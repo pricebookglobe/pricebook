@@ -88,7 +88,7 @@ export default function AdminNotificationsPage() {
                 <td>{r.store_name}</td>
                 <td>{r.product_name}</td>
                 <td>
-                  <span className={r.report_type === "correct_price" ? "text-value" : "text-red-600"}>
+                  <span className={r.report_type === "correct_price" ? "text-green-600" : "text-red-600"}>
                     {r.report_type === "correct_price" ? "+ Price correct" : "− Price wrong"}
                   </span>
                 </td>

@@ -159,7 +159,7 @@ export default function AdminStoresPage() {
               <td>{s.city}</td>
               <td className="capitalize">{s.verification_status}</td>
               <td>
-                <span className={s.owner_is_frozen ? "text-flag" : "text-value"}>
+                <span className={s.owner_is_frozen ? "text-flag" : "text-green-600"}>
                   {s.owner_is_frozen ? "Frozen" : "Active"}
                 </span>
               </td>
