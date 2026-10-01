@@ -6,6 +6,9 @@ import type { SearchResult } from "@/lib/api";
 import { reportPrice } from "@/lib/api";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { EmojiRating } from "@/components/shared/EmojiRating";
+
+export type StoreRating = { average_rating: number | null; count: number };
 
 function formatDistance(meters: number): string {
   return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(1)} km`;
@@ -185,10 +188,15 @@ function ActionsMenu({
 export function ResultRow({
   result,
   isCheapest,
+  rating,
   variant = "row"
 }: {
   result: SearchResult;
   isCheapest: boolean;
+  /** This store's review summary (average emoji rating + count), looked up
+   *  in a single batched request by the parent screen — undefined while
+   *  that request is still in flight. */
+  rating?: StoreRating;
   /** "row" (default) renders a <tr> for the website's table. "card" renders
    *  a self-contained rounded card, used only in the packaged app, which
    *  can't use a <table> layout comfortably on a phone-width screen. */
@@ -203,25 +211,31 @@ export function ResultRow({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="truncate font-display text-[14px] font-semibold text-ink">{result.product_name}</p>
-            <div className="mt-1 flex items-center gap-1.5">
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <span className={"h-1.5 w-1.5 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />
               <Link href={`/store/${result.store_id}`} className="truncate text-xs text-ash hover:underline">
                 {result.store_name}
               </Link>
               <span className="text-xs text-ash">· {formatDistance(result.distance_m)}</span>
+              {rating && <EmojiRating rating={rating.count > 0 ? rating.average_rating : null} count={rating.count} size={15} showValue={false} />}
             </div>
           </div>
           <ActionsMenu result={result} showingNutrition={showNutrition} onToggleNutrition={() => setShowNutrition((s) => !s)} />
         </div>
         <div className="mt-2 flex items-center justify-between">
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
-            target="_blank"
-            rel="noreferrer"
-            className="font-mono text-[11px] text-value underline"
-          >
-            {t("view on map")}
-          </a>
+          <div className="flex items-center gap-3">
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono text-[11px] text-value underline"
+            >
+              {t("view on map")}
+            </a>
+            <Link href={`/store/${result.store_id}`} className="font-mono text-[11px] text-ink underline">
+              {t("Visit Store Page")}
+            </Link>
+          </div>
           <p className="font-mono text-[15px] text-ink">
             {isCheapest && (
               <span className="mr-2 rounded-sm bg-value px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-wide text-white">
@@ -244,17 +258,27 @@ export function ResultRow({
           <div className="flex items-center gap-2">
             <span className={"h-2 w-2 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />
             <div className="min-w-0">
-              <Link href={`/store/${result.store_id}`} className="truncate font-medium hover:underline">
-                {result.store_name}
-              </Link>
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
-                target="_blank"
-                rel="noreferrer"
-                className="block font-mono text-[11px] text-ash underline"
-              >
-                {t("view on map")}
-              </a>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Link href={`/store/${result.store_id}`} className="truncate font-medium hover:underline">
+                  {result.store_name}
+                </Link>
+                {rating && (
+                  <EmojiRating rating={rating.count > 0 ? rating.average_rating : null} count={rating.count} size={16} showValue={false} />
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-mono text-[11px] text-ash underline"
+                >
+                  {t("view on map")}
+                </a>
+                <Link href={`/store/${result.store_id}`} className="font-mono text-[11px] text-ash underline">
+                  {t("Visit Store Page")}
+                </Link>
+              </div>
             </div>
           </div>
         </td>
