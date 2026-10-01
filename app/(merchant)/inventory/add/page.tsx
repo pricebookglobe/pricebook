@@ -243,21 +243,21 @@ export default function AddItemPage() {
               <button
                 type="button"
                 onClick={() => setShowScanner(true)}
-                className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-ink hover:bg-ink-soft hover:text-white active:border-ink active:bg-ink-dark active:text-white"
+                className="flex-1 rounded border border-line bg-field px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-white active:border-ink active:bg-ink-dark active:text-white"
               >
                 {t("Scan Barcode")}
               </button>
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-ink hover:bg-ink-soft hover:text-white active:border-ink active:bg-ink-dark active:text-white"
+                className="flex-1 rounded border border-line bg-field px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-white active:border-ink active:bg-ink-dark active:text-white"
               >
                 {t("Snap")}
               </button>
               <button
                 type="button"
                 onClick={() => setMode("text")}
-                className="flex-1 rounded border border-line bg-field-raised px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-ink hover:bg-ink-soft hover:text-white active:border-ink active:bg-ink-dark active:text-white"
+                className="flex-1 rounded border border-line bg-field px-4 py-3 font-display text-[15px] text-ink transition-colors hover:border-ink hover:bg-ink hover:text-white active:border-ink active:bg-ink-dark active:text-white"
               >
                 {t("Enter item details")}
               </button>
@@ -296,8 +296,8 @@ export default function AddItemPage() {
                 disabled={extracting || !textQuery.trim()}
                 className={`rounded-sm px-4 py-1.5 font-display text-sm font-medium transition-colors disabled:opacity-40 ${
                   textQuery.trim()
-                    ? "bg-ink text-white hover:bg-ink-soft active:bg-ink-dark"
-                    : "bg-ink text-field hover:bg-ink-soft hover:text-white active:bg-ink-dark active:text-white"
+                    ? "bg-field text-ink hover:bg-ink active:bg-ink-dark hover:text-white active:text-white"
+                    : "bg-field text-ink hover:bg-ink hover:text-white active:bg-ink-dark active:text-white"
                 }`}
               >
                 {extracting ? t("Reading…") : t("Identify")}
@@ -504,7 +504,7 @@ export default function AddItemPage() {
             <button
               onClick={handleSave}
               disabled={saving || !price}
-              className="rounded-sm bg-ink px-4 py-2 font-display text-sm font-medium text-field transition-colors hover:bg-ink-soft hover:text-white active:bg-ink-dark active:text-white disabled:opacity-40"
+              className="rounded-sm bg-field px-4 py-2 font-display text-sm font-medium text-ink transition-colors hover:bg-ink hover:text-white active:bg-ink-dark active:text-white disabled:opacity-40"
             >
               {saving ? t("Saving…") : t("Save item")}
             </button>

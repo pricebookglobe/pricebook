@@ -73,7 +73,7 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
                 href={store.logo_url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-sm bg-ink px-3 py-1.5 text-sm font-medium text-white hover:bg-ink-soft active:bg-ink-dark"
+                className="rounded-sm bg-field px-3 py-1.5 text-sm font-medium text-ink hover:bg-ink active:bg-ink-dark hover:text-white active:text-white"
               >
                 View logo
               </a>
@@ -83,7 +83,7 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
                 href={store.cr_certificate_url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-sm bg-ink px-3 py-1.5 text-sm font-medium text-white hover:bg-ink-soft active:bg-ink-dark"
+                className="rounded-sm bg-field px-3 py-1.5 text-sm font-medium text-ink hover:bg-ink active:bg-ink-dark hover:text-white active:text-white"
               >
                 View CR certificate
               </a>
@@ -93,7 +93,7 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
                 href={store.store_photo_url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-sm bg-ink px-3 py-1.5 text-sm font-medium text-white hover:bg-ink-soft active:bg-ink-dark"
+                className="rounded-sm bg-field px-3 py-1.5 text-sm font-medium text-ink hover:bg-ink active:bg-ink-dark hover:text-white active:text-white"
               >
                 View store photo
               </a>
