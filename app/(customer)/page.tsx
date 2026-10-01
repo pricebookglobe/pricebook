@@ -57,7 +57,7 @@ function SignedOutHome() {
         <button
           type="submit"
           disabled={busy}
-          className="mt-1 rounded-sm border border-value bg-value px-4 py-2.5 font-display text-sm font-medium text-white active:bg-value-dark disabled:opacity-40 hover:border-value-soft hover:text-white active:border-value-dark active:text-white"
+          className="btn-shine mt-1 rounded-sm border border-value bg-value px-4 py-2.5 font-display text-sm font-medium text-white active:bg-value-dark disabled:opacity-40 hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-110"
         >
           {busy ? t("Logging in…") : t("Log in")}
         </button>

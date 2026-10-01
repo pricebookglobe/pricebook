@@ -73,7 +73,7 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
                 href={store.logo_url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-sm border border-value bg-value px-3 py-1.5 text-sm font-medium text-white active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white"
+                className="btn-shine rounded-sm border border-value bg-value px-3 py-1.5 text-sm font-medium text-white active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-110"
               >
                 View logo
               </a>
@@ -83,7 +83,7 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
                 href={store.cr_certificate_url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-sm border border-value bg-value px-3 py-1.5 text-sm font-medium text-white active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white"
+                className="btn-shine rounded-sm border border-value bg-value px-3 py-1.5 text-sm font-medium text-white active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-110"
               >
                 View CR certificate
               </a>
@@ -93,7 +93,7 @@ export function StoreDetailsDialog({ store, onClose }: { store: StoreDetails | n
                 href={store.store_photo_url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-sm border border-value bg-value px-3 py-1.5 text-sm font-medium text-white active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white"
+                className="btn-shine rounded-sm border border-value bg-value px-3 py-1.5 text-sm font-medium text-white active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-110"
               >
                 View store photo
               </a>

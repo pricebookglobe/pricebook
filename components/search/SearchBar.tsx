@@ -79,7 +79,7 @@ export function SearchBar({ onSearch, busy }: Props) {
       <button
         type="submit"
         disabled={busy || !text.trim()}
-        className="rounded-sm border border-value bg-value px-4 py-1.5 font-display text-sm font-medium text-white transition-colors hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white disabled:opacity-40"
+        className="btn-shine rounded-sm border border-value bg-value px-4 py-1.5 font-display text-sm font-medium text-white transition-all hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white disabled:opacity-40 duration-200 hover:scale-110"
       >
         {busy ? t("Searching…") : t("Find price")}
       </button>

@@ -12,7 +12,9 @@ import plugin from "tailwindcss/plugin";
 //            product. No orange is used anywhere in the product. Buttons
 //            built on this token are solid DEFAULT at rest, with the
 //            border lightening to .soft on hover and darkening to .dark
-//            on press.
+//            on press. .light is a one-off, lighter tint used by the
+//            signup role cards (lighter at rest, DEFAULT on hover — the
+//            reverse of the usual button, by request).
 // - flag:    a neutral slate used ONLY for a secondary/attention tier (never
 //            orange)
 // - mark:    the exact cyan-green from the logo artwork itself (the barcode,
@@ -37,7 +39,8 @@ const config: Config = {
         value: {
           DEFAULT: "#0B7A6F",
           soft: "#D7F3EE",
-          dark: "#063F3A"
+          dark: "#063F3A",
+          light: "#3C958C"
         },
         flag: "#64748B",
         mark: "#13BDC4",

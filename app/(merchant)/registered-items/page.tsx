@@ -133,7 +133,7 @@ export default function RegisteredItemsPage() {
               className={
                 isNativeApp
                   ? "rounded-lg bg-field px-3 py-1.5 font-display text-sm font-medium text-ink shadow-sm transition active:scale-[0.98] active:bg-ink-dark active:text-white disabled:opacity-60"
-                  : "rounded-sm border border-value bg-value px-3 py-1.5 font-display text-sm text-white transition-colors hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white disabled:opacity-40"
+                  : "btn-shine rounded-sm border border-value bg-value px-3 py-1.5 font-display text-sm text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white disabled:opacity-40 duration-200 hover:scale-110"
               }
             >
               {fillingNutrition
@@ -147,7 +147,7 @@ export default function RegisteredItemsPage() {
           <div className="relative">
             <button
               onClick={() => setSortMenuOpen((o) => !o)}
-              className="rounded-sm border border-value bg-value px-3 py-1.5 font-display text-sm font-medium text-white transition-colors active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white"
+              className="btn-shine rounded-sm border border-value bg-value px-3 py-1.5 font-display text-sm font-medium text-white transition-all active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white duration-200 hover:scale-110"
             >
               {sortLabel}
             </button>
