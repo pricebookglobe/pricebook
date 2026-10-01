@@ -134,7 +134,7 @@ export function AccountMenu() {
               pixel-sharp at any size on any background, which a raster
               export of the original artwork could never guarantee here. */}
           <img src="/pricebook-logo.svg" alt="" className="h-auto w-32" />
-          <p className="mt-2 font-display text-xl font-bold leading-none">
+          <p className="mt-1 font-display text-xl font-bold leading-none">
             <span className="text-white">Price</span>
             <span className="text-value">Book</span>
           </p>
@@ -167,19 +167,19 @@ export function AccountMenu() {
       <div className="h-px w-full bg-white/25" />
 
       <div className="flex w-full flex-1 flex-col items-center px-6 py-6">
-      <nav className="flex w-full flex-col gap-0.5 text-sm">
+      <nav className="flex w-full flex-col gap-1.5 text-sm">
         {profile.role === "admin" ? (
           <>
-            <Link href="/admin" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+            <Link href="/admin" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
               <LayoutDashboard size={16} strokeWidth={1.75} /> Admin dashboard
             </Link>
-            <Link href="/admin/users" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+            <Link href="/admin/users" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
               <Users size={16} strokeWidth={1.75} /> Customers
             </Link>
-            <Link href="/admin/stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+            <Link href="/admin/stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
               <ShieldCheck size={16} strokeWidth={1.75} /> Stores and Shops
             </Link>
-            <Link href="/admin/pending-stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+            <Link href="/admin/pending-stores" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
               <ClipboardList size={16} strokeWidth={1.75} /> Store requests
               {pendingStoreCount > 0 && (
                 <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-400 px-1.5 font-mono text-[11px] font-bold text-ink">
@@ -187,42 +187,42 @@ export function AccountMenu() {
                 </span>
               )}
             </Link>
-            <Link href="/admin/items" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+            <Link href="/admin/items" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
               <Boxes size={16} strokeWidth={1.75} /> Registered items
             </Link>
-            <Link href="/admin/notifications" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+            <Link href="/admin/notifications" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
               <Bell size={16} strokeWidth={1.75} /> Notifications
             </Link>
           </>
         ) : profile.role === "merchant" ? (
           <>
-            <Link href="/overview" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+            <Link href="/overview" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
               <LayoutDashboard size={16} strokeWidth={1.75} /> {t("Overview")}
             </Link>
-            <Link href="/inventory" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+            <Link href="/inventory" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
               <Package size={16} strokeWidth={1.75} /> {t("Manage inventory")}
             </Link>
-            <Link href="/registered-items" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+            <Link href="/registered-items" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
               <Boxes size={16} strokeWidth={1.75} /> {t("Registered items")}
             </Link>
-            <Link href="/notifications" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+            <Link href="/notifications" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
               <Bell size={16} strokeWidth={1.75} /> {t("Notifications")}
             </Link>
           </>
         ) : (
           <>
-            <Link href="/check-price" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+            <Link href="/check-price" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
               <Camera size={16} strokeWidth={1.75} /> {t("Check price")}
             </Link>
-            <Link href="/search-items" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+            <Link href="/search-items" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
               <Search size={16} strokeWidth={1.75} /> {t("Search items")}
             </Link>
-            <Link href="/history" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+            <Link href="/history" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
               <Clock size={16} strokeWidth={1.75} /> {t("Search history")}
             </Link>
           </>
         )}
-        <Link href="/settings" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
+        <Link href="/settings" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 bg-ink-soft text-field hover:bg-ink-dark hover:text-white">
           <SettingsIcon size={16} strokeWidth={1.75} /> {t("Settings")}
         </Link>
       </nav>
