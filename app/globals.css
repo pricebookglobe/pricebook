@@ -105,3 +105,65 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .btn-shine::after { animation: none; }
 }
+
+/* The ~10s app-open sequence (IntroAnimation.tsx) — four scenes sharing one
+   fade/slide keyframe, each given its own slice of the 10s timeline via
+   animation-delay/duration so only one is visible at a time, with a short
+   crossfade where consecutive windows overlap. animation-fill-mode: both
+   holds each scene at opacity 0 outside its own window (the keyframe's 0%
+   and 100% stops), so nothing needs separate "hidden" styling. */
+@keyframes intro-fade {
+  0% { opacity: 0; transform: translateY(8px); }
+  12% { opacity: 1; transform: translateY(0); }
+  88% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+.intro-scene {
+  opacity: 0;
+  animation-name: intro-fade;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: both;
+}
+.intro-scene-1 { animation-duration: 2.6s; animation-delay: 0s; }
+.intro-scene-2 { animation-duration: 2.8s; animation-delay: 2.3s; }
+.intro-scene-3 { animation-duration: 2.8s; animation-delay: 4.8s; }
+.intro-scene-4 { animation-duration: 2.7s; animation-delay: 7.3s; }
+
+@keyframes intro-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.intro-pop {
+  animation: intro-pop 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.intro-pop-delay {
+  opacity: 0;
+  animation: intro-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 5.6s;
+}
+
+@keyframes intro-pulse-ring {
+  0% { transform: scale(0.7); opacity: 0.6; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.intro-pulse-ring {
+  animation: intro-pulse-ring 1.8s ease-out infinite;
+}
+.intro-pulse-ring-delay {
+  animation-delay: 0.9s;
+}
+
+@keyframes intro-progress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+.intro-progress {
+  animation: intro-progress 10s linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-scene, .intro-pop, .intro-pop-delay, .intro-pulse-ring, .intro-progress {
+    animation: none;
+  }
+}
