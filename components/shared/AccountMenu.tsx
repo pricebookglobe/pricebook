@@ -120,10 +120,10 @@ export function AccountMenu() {
 
   return (
     <div className="flex h-full flex-col items-center text-center">
-      {/* Logo band: the same ink color as the rest of the sidebar, just a
-          lighter shade (ink-soft), separated from the account/nav band
-          below by a light hairline — rather than a different, unrelated
-          color — so the two bands read as one family. */}
+      {/* Logo + account band: the same ink color as the rest of the sidebar,
+          just a lighter shade (ink-soft), separated from the nav band below
+          by a light hairline — rather than a different, unrelated color —
+          so the two bands read as one family. */}
       <div className="flex w-full flex-col items-center bg-ink-soft px-6 py-8">
         <Link href="/" className="flex flex-col items-center">
           {/* public/pricebook-logo.svg — the shield outline is traced
@@ -135,34 +135,34 @@ export function AccountMenu() {
               export of the original artwork could never guarantee here. */}
           <img src="/pricebook-logo.svg" alt="PriceBook" className="h-auto w-28" />
         </Link>
+
+        <div className="mt-4 flex flex-col items-center">
+          {storeLogoUrl ? (
+            <img src={storeLogoUrl} alt="" className="h-9 w-9 rounded-full object-cover" />
+          ) : (
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-value font-display text-sm font-medium text-white">
+              {initial}
+            </span>
+          )}
+          <p className="mt-2 font-display text-[15px] font-semibold leading-tight text-field">{displayName}</p>
+          <p className="font-mono text-[10px] uppercase tracking-wide text-field/50">{profile.role}</p>
+          {profile.role === "merchant" && storeId && (
+            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-field-raised px-2 py-1">
+              <span
+                className={`h-2.5 w-2.5 shrink-0 rounded-full ${trustCircleColor(positivePct)}`}
+                title={t("Price-report accuracy")}
+                aria-label={t("Price-report accuracy")}
+              />
+              <EmojiRating rating={reviewStats && reviewStats.count > 0 ? reviewStats.average : null} count={reviewStats?.count} size={18} />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="h-px w-full bg-white/25" />
 
       <div className="flex w-full flex-1 flex-col items-center px-6 py-6">
-      <div className="flex flex-col items-center">
-        {storeLogoUrl ? (
-          <img src={storeLogoUrl} alt="" className="h-9 w-9 rounded-full object-cover" />
-        ) : (
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-value font-display text-sm font-medium text-white">
-            {initial}
-          </span>
-        )}
-        <p className="mt-2 font-display text-[15px] font-semibold leading-tight text-field">{displayName}</p>
-        <p className="font-mono text-[10px] uppercase tracking-wide text-field/50">{profile.role}</p>
-        {profile.role === "merchant" && storeId && (
-          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-field-raised px-2 py-1">
-            <span
-              className={`h-2.5 w-2.5 shrink-0 rounded-full ${trustCircleColor(positivePct)}`}
-              title={t("Price-report accuracy")}
-              aria-label={t("Price-report accuracy")}
-            />
-            <EmojiRating rating={reviewStats && reviewStats.count > 0 ? reviewStats.average : null} count={reviewStats?.count} size={18} />
-          </div>
-        )}
-      </div>
-
-      <nav className="mt-6 flex w-full flex-col gap-0.5 text-sm">
+      <nav className="flex w-full flex-col gap-0.5 text-sm">
         {profile.role === "admin" ? (
           <>
             <Link href="/admin" className="flex items-center justify-center gap-2 rounded-sm px-3 py-2 text-field/70 hover:bg-white/10 hover:text-field">
