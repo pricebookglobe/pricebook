@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceSupabase } from "@/lib/supabaseClient";
 
 export async function POST(req: NextRequest) {
-  const { lat, lng } = await req.json();
+  const { lat, lng, accuracy } = await req.json();
   if (typeof lat !== "number" || typeof lng !== "number") {
     return NextResponse.json({ error: "lat and lng are required" }, { status: 400 });
   }
@@ -14,10 +14,19 @@ export async function POST(req: NextRequest) {
   // down the street doesn't get claimed as "you're here." The RPC itself
   // already returns only the single nearest store within the radius, so a
   // crowded area naturally resolves to whichever one is actually closest.
+  //
+  // accuracy_m is the device's own reported GPS accuracy, when the caller
+  // has one — the RPC uses it to tell two close-together stores apart with
+  // confidence (returning no match rather than a guess when it can't).
+  // Clamped to a sane range and falls back to the RPC's own 5m default
+  // when the device didn't report a usable number.
+  const accuracyM = typeof accuracy === "number" && Number.isFinite(accuracy) ? Math.min(Math.max(accuracy, 1), 50) : undefined;
+
   const { data, error } = await supabase.rpc("find_nearest_store", {
     user_lat: lat,
     user_lng: lng,
-    max_meters: 100
+    max_meters: 100,
+    ...(accuracyM !== undefined ? { accuracy_m: accuracyM } : {})
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -87,7 +87,13 @@ export async function getStoreRanking(storeId: string): Promise<RankingRow[]> {
 
 export async function findNearestStore(
   lat: number,
-  lng: number
+  lng: number,
+  // The GPS fix's own accuracy radius in meters, when known — lets the
+  // server tell two nearby stores apart with confidence instead of
+  // guessing when a loose fix puts them within each other's margin of
+  // error. Omitted (not just a generous default) when the caller has no
+  // real reading, e.g. a manually-picked city.
+  accuracy?: number | null
 ): Promise<{
   store_id: string;
   store_name: string;
@@ -99,7 +105,7 @@ export async function findNearestStore(
   const res = await fetch("/api/stores/nearby-check", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ lat, lng })
+    body: JSON.stringify({ lat, lng, accuracy: typeof accuracy === "number" ? accuracy : undefined })
   });
   if (!res.ok) throw new Error((await res.json()).error ?? "Couldn't check your location");
   const { store } = await res.json();

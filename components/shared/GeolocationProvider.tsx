@@ -8,6 +8,12 @@ import { currencyForCoords } from "@/lib/currency";
 type Coords = { lat: number; lng: number } | null;
 type GeoState = {
   coords: Coords;
+  // How precise the current fix is, in meters, straight from the device
+  // (GPS, Wi-Fi or cell-based — whatever the OS actually used). Null for a
+  // manually-picked city, which has no meaningful accuracy radius. Used to
+  // tell two nearby registered stores apart with confidence instead of
+  // guessing — see find_nearest_store's accuracy_m parameter.
+  accuracy: number | null;
   status: "loading" | "granted" | "denied" | "manual";
   currency: string;
   countryCode: string | null;
@@ -16,6 +22,7 @@ type GeoState = {
 
 const GeoContext = createContext<GeoState>({
   coords: null,
+  accuracy: null,
   status: "loading",
   currency: "USD",
   countryCode: null,
@@ -28,6 +35,7 @@ export function useGeolocation() {
 
 export function GeolocationProvider({ children }: { children: React.ReactNode }) {
   const [coords, setCoords] = useState<Coords>(null);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
   const [status, setStatus] = useState<GeoState["status"]>("loading");
   const [currency, setCurrency] = useState("USD");
   const [countryCode, setCountryCode] = useState<string | null>(null);
@@ -87,6 +95,7 @@ export function GeolocationProvider({ children }: { children: React.ReactNode })
               return;
             }
             setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            setAccuracy(typeof pos.coords.accuracy === "number" ? pos.coords.accuracy : null);
             setStatus("granted");
           }
         );
@@ -114,11 +123,12 @@ export function GeolocationProvider({ children }: { children: React.ReactNode })
   const setManualCity = (lat: number, lng: number) => {
     manualRef.current = true;
     setCoords({ lat, lng });
+    setAccuracy(null);
     setStatus("manual");
   };
 
   return (
-    <GeoContext.Provider value={{ coords, status, currency, countryCode, setManualCity }}>
+    <GeoContext.Provider value={{ coords, accuracy, status, currency, countryCode, setManualCity }}>
       {children}
     </GeoContext.Provider>
   );

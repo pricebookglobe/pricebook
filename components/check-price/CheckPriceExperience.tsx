@@ -24,7 +24,10 @@ const TIER_LABEL: Record<string, string> = {
   city: "city zone"
 };
 
-const AT_STORE_METERS = 150;
+// Kept in step with find_nearest_store's own max_meters (see
+// supabase/migrations/0027_nearest_store_accuracy.sql) so a store counts
+// as "you're here" the same way everywhere in the app.
+const AT_STORE_METERS = 100;
 
 // This component used to cache its last result in sessionStorage (keyed
 // per screen — "menu" for /check-price, "text" for /search-items) and
@@ -361,7 +364,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const router = useRouter();
   const { t } = useLanguage();
   const isNativeApp = useIsNativeApp();
-  const { coords, status } = useGeolocation();
+  const { coords, accuracy, status } = useGeolocation();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [result, setResult] = useState<SearchResponse | null>(null);
   const [showAtStoreNutrition, setShowAtStoreNutrition] = useState(false);
@@ -436,7 +439,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         if (!silent) setError(t("Turn on location so we can tell where you are."));
         return;
       }
-      const store = await findNearestStore(coords.lat, coords.lng);
+      const store = await findNearestStore(coords.lat, coords.lng, accuracy);
       setLocationCheck({ store });
     } catch (e: any) {
       if (!silent) setError(e.message ?? "Couldn't check your location.");
@@ -459,14 +462,14 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // Keeps "you are at [store]" current while the panel is on screen —
   // someone can easily walk from an unregistered spot into a store (or the
   // other way round) without ever tapping anything, so this re-checks on
-  // its own rather than requiring a manual refresh. Every 60s: frequent
-  // enough to catch a shopper walking into a store, not so frequent it
-  // hammers the lookup while they're just standing around reading prices.
+  // its own rather than requiring a manual refresh. Every 10s: frequent
+  // enough that walking up to a store is reflected almost immediately,
+  // without the shopper ever having to tap anything.
   useEffect(() => {
     if (initialMode !== "menu" || checkPriceRevealed) return;
     const id = setInterval(() => {
       if (coords) handleFindMyLocation(true);
-    }, 60000);
+    }, 10000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialMode, checkPriceRevealed, coords]);
