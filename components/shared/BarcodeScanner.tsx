@@ -19,9 +19,72 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
   const [torchSupported, setTorchSupported] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const detectedRef = useRef(false);
+  const refocusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+
+    // Nudges continuous autofocus back on periodically. Some Android WebView
+    // camera stacks silently drop a focusMode constraint after the first
+    // autofocus lock (there's no event for this — it just quietly stops
+    // refocusing), so a one-time applyConstraints() call right after the
+    // stream opens isn't always enough. Re-asserting it every couple of
+    // seconds is cheap and harmless on devices that don't need it.
+    function keepRefocusing(track: MediaStreamTrack) {
+      if (refocusTimerRef.current) clearInterval(refocusTimerRef.current);
+      refocusTimerRef.current = setInterval(() => {
+        track.applyConstraints({ advanced: [{ focusMode: "continuous" } as unknown as MediaTrackConstraintSet] }).catch(() => {});
+      }, 2000);
+    }
+
+    // Picks the actual back camera by device label when facingMode can't be
+    // trusted to do it. Needed because a meaningful slice of Android WebView
+    // camera stacks treat facingMode as a loose hint rather than a real
+    // selector — "environment" can silently resolve to the front camera on
+    // some devices, something iOS Safari doesn't do.
+    async function findBackCameraDeviceId(): Promise<string | undefined> {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cams = devices.filter((d) => d.kind === "videoinput");
+        const back = cams.find((d) => /back|rear|environment/i.test(d.label) && !/front/i.test(d.label));
+        return back?.deviceId ?? (cams.length > 1 ? cams[cams.length - 1].deviceId : undefined);
+      } catch {
+        return undefined;
+      }
+    }
+
+    async function openStream(): Promise<MediaStream> {
+      // A moderate, not maximal, resolution: zxing decodes by drawing
+      // every frame onto a canvas and reading its raw pixels back in JS,
+      // and that cost scales with frame size. Asking for 1080p can
+      // actually make scanning WORSE on a mid/low-end Android CPU — fewer
+      // decode attempts fit in per second — even though it sounds like it
+      // should help accuracy. 1280x720 is the sweet spot: enough detail
+      // to resolve a barcode held at a normal distance, cheap enough to
+      // decode many times a second.
+      const baseVideo: MediaTrackConstraints = { width: { ideal: 1280 }, height: { ideal: 720 } };
+      try {
+        // Try first with an EXACT back-camera requirement — on iOS Safari
+        // "environment" as a plain ideal hint already reliably picks the
+        // back camera, but several Android WebView camera stacks need the
+        // stronger "exact" form or they can default to the front camera.
+        return await navigator.mediaDevices.getUserMedia({
+          video: { ...baseVideo, facingMode: { exact: "environment" } }
+        });
+      } catch {
+        // "exact" is unsupported on this device/browser — fall back to a
+        // soft hint, and if even that doesn't reliably land on the back
+        // camera, pick it explicitly by enumerating devices.
+        try {
+          return await navigator.mediaDevices.getUserMedia({ video: { ...baseVideo, facingMode: "environment" } });
+        } catch {
+          const deviceId = await findBackCameraDeviceId();
+          return navigator.mediaDevices.getUserMedia({
+            video: deviceId ? { ...baseVideo, deviceId: { exact: deviceId } } : baseVideo
+          });
+        }
+      }
+    }
 
     async function start() {
       try {
@@ -53,26 +116,18 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
           delayBetweenScanSuccess: 500
         });
 
-        const controls = await reader.decodeFromConstraints(
-          {
-            video: {
-              facingMode: "environment",
-              // A higher requested resolution gives the decoder more
-              // pixels to work with on a small, far-off barcode — iOS
-              // cameras tend to default to a usably high resolution on
-              // their own, Android ones more often don't.
-              width: { ideal: 1920 },
-              height: { ideal: 1080 }
-            }
-          },
-          videoRef.current ?? undefined,
-          (result) => {
-            if (result && !detectedRef.current && !cancelled) {
-              detectedRef.current = true;
-              onDetected(result.getText());
-            }
+        const stream = await openStream();
+        if (cancelled) {
+          stream.getTracks().forEach((tr) => tr.stop());
+          return;
+        }
+
+        const controls = await reader.decodeFromStream(stream, videoRef.current ?? undefined, (result) => {
+          if (result && !detectedRef.current && !cancelled) {
+            detectedRef.current = true;
+            onDetected(result.getText());
           }
-        );
+        });
         if (cancelled) {
           controls.stop();
           return;
@@ -85,10 +140,10 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
         // lock focus after the initial frame, leaving a close-up barcode
         // permanently soft/blurry until something forces a refocus. Where
         // the device exposes focusMode as a controllable capability, ask
-        // for continuous autofocus explicitly rather than relying on
-        // whatever the browser's default happened to be.
-        const stream = videoRef.current?.srcObject;
-        const track = stream instanceof MediaStream ? stream.getVideoTracks()[0] : undefined;
+        // for continuous autofocus explicitly (and keep re-asserting it —
+        // see keepRefocusing) rather than relying on whatever the
+        // browser's default happened to be.
+        const track = stream.getVideoTracks()[0];
         if (track) {
           trackRef.current = track;
           const capabilities = track.getCapabilities?.() as (MediaTrackCapabilities & { focusMode?: string[] }) | undefined;
@@ -96,6 +151,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
             track
               .applyConstraints({ advanced: [{ focusMode: "continuous" } as unknown as MediaTrackConstraintSet] })
               .catch(() => {});
+            keepRefocusing(track);
           }
           setTorchSupported(Boolean((capabilities as { torch?: boolean } | undefined)?.torch));
         }
@@ -114,6 +170,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
     return () => {
       cancelled = true;
       controlsRef.current?.stop();
+      if (refocusTimerRef.current) clearInterval(refocusTimerRef.current);
     };
   }, [onDetected, t]);
 
