@@ -444,15 +444,15 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   }
 
   // Runs the location check automatically as soon as a fix is available —
-  // only on the Check Price tab (the Search items tab has no "what store am
-  // I at" concept at all) and only once per result, so it doesn't refire on
-  // every subsequent position update from watchPosition.
+  // on both the Check Price and Search Items tabs (the "what store am I
+  // at" panel is the same on either one now) and only once per result, so
+  // it doesn't refire on every subsequent position update from
+  // watchPosition.
   useEffect(() => {
-    if (initialMode !== "menu") return;
     if (!coords || locationCheck || locating) return;
     handleFindMyLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coords, initialMode, locationCheck, locating]);
+  }, [coords, locationCheck, locating]);
 
   // Keeps "you are at [store]" current while the panel is on screen —
   // someone can easily walk from an unregistered spot into a store (or the
@@ -461,13 +461,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // enough to catch a shopper walking into a store, not so frequent it
   // hammers the lookup while they're just standing around reading prices.
   useEffect(() => {
-    if (initialMode !== "menu" || checkPriceRevealed) return;
+    if (checkPriceRevealed) return;
     const id = setInterval(() => {
       if (coords) handleFindMyLocation(true);
     }, 60000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialMode, checkPriceRevealed, coords]);
+  }, [checkPriceRevealed, coords]);
 
   // Explicit reset for "Start a new check": clears the result and every bit
   // of state tied to the last one, and drops back to the Check Price menu
@@ -654,11 +654,12 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         </button>
       )}
 
-      {/* Automatic location panel — Check Price tab only, and hidden the
-          moment "Check Price & Compare" is pressed (checkPriceRevealed). No
-          button to trigger this anymore: it runs on its own as soon as a
-          location fix is available. */}
-      {initialMode === "menu" && !checkPriceRevealed && (
+      {/* Automatic location panel — same on Check Price and Search Items,
+          and hidden the moment "Check Price & Compare" is pressed
+          (checkPriceRevealed, which search items never sets). No button to
+          trigger this anymore: it runs on its own as soon as a location
+          fix is available. */}
+      {!checkPriceRevealed && (
         <div className="-mt-3 mb-6">
           {status === "denied" ? (
             <p className="rounded border border-flag/30 bg-flag/10 px-3 py-2 text-sm text-flag">
@@ -837,19 +838,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 <span className="font-mono text-xs uppercase tracking-wide text-ash">
                   {t(TIER_LABEL[result.tier] ?? result.tier)}
                 </span>
-              )}
-              {/* On the Check Price screen (initialMode "menu"), Start new
-                  check now lives paired with Back above instead of here —
-                  see that row's comment. Search items (initialMode "text")
-                  never renders that row, so it keeps its own button here. */}
-              {initialMode !== "menu" && (
-                <button
-                  type="button"
-                  onClick={startNewCheck}
-                  className="btn-shine whitespace-nowrap rounded border border-value bg-value px-3 py-1.5 font-display text-sm text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
-                >
-                  {t("Start new check")}
-                </button>
               )}
             </div>
           </div>
