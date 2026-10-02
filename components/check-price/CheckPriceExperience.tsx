@@ -667,21 +667,25 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           ) : locationCheck ? (
             <>
               {locationCheck.store ? (
-                // Registered store: show both the map (centered on the
-                // STORE's own location, not just wherever the shopper is
-                // currently standing) and the store's own front photo —
-                // together, so "yes, that's the shop" and "yes, that's
-                // where it is" are both confirmed at a glance.
+                // Registered store: the map is always centered on the
+                // SHOPPER's own live GPS position (never the store's saved
+                // coordinates — those can be wrong or stale, and showing
+                // them here made the map jump to a location the shopper
+                // wasn't actually standing at). The store's own front
+                // photo sits beside it as the "yes, that's the shop"
+                // confirmation instead.
                 <div className="grid grid-cols-2 gap-2">
                   <div className="overflow-hidden rounded border border-line">
-                    <iframe
-                      title={t("Store location")}
-                      width="100%"
-                      height="220"
-                      style={{ border: 0 }}
-                      loading="lazy"
-                      src={`https://www.google.com/maps?q=${locationCheck.store.store_lat},${locationCheck.store.store_lng}&z=17&t=k&output=embed`}
-                    />
+                    {coords && (
+                      <iframe
+                        title={t("Your location")}
+                        width="100%"
+                        height="220"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        src={`https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&t=k&output=embed`}
+                      />
+                    )}
                   </div>
                   {locationCheck.store.store_photo_url ? (
                     <div className="overflow-hidden rounded border border-line">
