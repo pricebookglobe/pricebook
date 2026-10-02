@@ -19,16 +19,18 @@ const config: CapacitorConfig = {
   // its content view, leaving a blank white WebView until the remote site
   // finishes loading over the network — the "white screen with no icon"
   // gap. The splash-screen plugin keeps that same branded image showing
-  // (auto-hiding once the page has actually loaded, capped at 3s) so
-  // there's no unbranded gap between the two.
+  // until the web app explicitly hides it (IntroGate.tsx calls
+  // SplashScreen.hide() the instant it mounts), so there's no unbranded
+  // gap between the two, but also no separate logo screen lingering on a
+  // fixed timer after the app is actually ready — launchAutoHide is off so
+  // nothing but that explicit call ever dismisses it.
   //
   // backgroundColor matches splash.png's own background (and
   // colors.xml's splashBackground) exactly, so there's no visible color
   // seam if this ever shows before the image is decoded.
   plugins: {
     SplashScreen: {
-      launchShowDuration: 3000,
-      launchAutoHide: true,
+      launchAutoHide: false,
       backgroundColor: '#DCEEE3',
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',

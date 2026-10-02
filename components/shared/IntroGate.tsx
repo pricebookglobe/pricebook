@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SplashScreen } from "@capacitor/splash-screen";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
 import { IntroAnimation } from "./IntroAnimation";
 
@@ -18,6 +19,18 @@ export function IntroGate({ children }: { children: React.ReactNode }) {
   const isNativeApp = useIsNativeApp();
   const [showIntro, setShowIntro] = useState(false);
   const [checked, setChecked] = useState(false);
+
+  // Dismiss the native splash screen (the old static logo screen covering
+  // the gap while the remote site loads over the network) the instant this
+  // component — i.e. the real web app — has mounted and is ready to paint,
+  // so the handoff is straight into the intro animation below rather than
+  // sitting on a separate logo screen first. capacitor.config.ts turns off
+  // the plugin's own fixed timer (launchAutoHide: false) so this explicit
+  // call is the only thing that ever hides it. A no-op outside the native
+  // app (the plugin is only registered there).
+  useEffect(() => {
+    SplashScreen.hide().catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!isNativeApp) {
