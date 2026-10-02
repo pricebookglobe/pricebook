@@ -28,12 +28,45 @@ export async function POST(req: NextRequest) {
   // that aren't right on top of each other, which is all this is for.
   const accuracyM = typeof accuracy === "number" && Number.isFinite(accuracy) ? Math.min(Math.max(accuracy, 1), 5) : undefined;
 
-  const { data, error } = await supabase.rpc("find_nearest_store", {
+  // This repo's migrations are applied by hand, one at a time, in the
+  // Supabase SQL editor (see README) — so the live find_nearest_store may
+  // still be running an older signature than what this code assumes
+  // (missing accuracy_m from 0027, or even missing store_photo_url /
+  // store_lat / store_lng from 0025 / 0026). Calling an RPC with a named
+  // parameter the live function doesn't have fails outright rather than
+  // being ignored, so this falls back through progressively older
+  // signatures instead of just erroring — a shopper gets the best match
+  // the live database can actually provide, rather than "couldn't check
+  // your location" because of a migration that hasn't been run yet.
+  let data: any = null;
+  let error: any = null;
+
+  ({ data, error } = await supabase.rpc("find_nearest_store", {
     user_lat: lat,
     user_lng: lng,
     max_meters: 100,
     ...(accuracyM !== undefined ? { accuracy_m: accuracyM } : {})
-  });
+  }));
+
+  if (error && accuracyM !== undefined) {
+    // Live function predates 0027 (no accuracy_m parameter) — retry
+    // without it.
+    ({ data, error } = await supabase.rpc("find_nearest_store", {
+      user_lat: lat,
+      user_lng: lng,
+      max_meters: 100
+    }));
+  }
+
+  if (error) {
+    // Live function predates even 0026/0025 (no max_meters, or an
+    // entirely different shape) — last resort, the original 2-argument
+    // call every version of this function has supported since 0011.
+    ({ data, error } = await supabase.rpc("find_nearest_store", {
+      user_lat: lat,
+      user_lng: lng
+    }));
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ store: data?.[0] ?? null });
