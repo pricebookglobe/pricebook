@@ -119,14 +119,6 @@ function PriceCallout({
           {t("Price:")} {result.price.toFixed(2)} <span className="text-sm text-field/60">{result.currency}</span>
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[#7FE0AE] underline"
-          >
-            {t("Open in Maps")}
-          </a>
           {reported ? (
             <span className="font-mono text-[11px] text-[#7FE0AE]">
               {reported === "correct_price" ? t("Thanks — marked as correct.") : t("Thanks — marked as wrong.")}
@@ -151,6 +143,15 @@ function PriceCallout({
             </>
           )}
         </div>
+        {/* Open in Maps, on its own line at the bottom of the box. */}
+        <a
+          href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-block text-sm text-[#7FE0AE] underline"
+        >
+          {t("Open in Maps")}
+        </a>
         {!reported && (
           <p className="mt-1 text-[10px] text-field/40">
             {t("Your answer counts toward this store's total price reports and credibility.")}
@@ -232,14 +233,6 @@ function PriceCallout({
         {t("Price:")} <strong>{result.price.toFixed(2)}</strong> <span className="text-xs text-ash">{result.currency}</span>
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-        <a
-          href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
-          target="_blank"
-          rel="noreferrer"
-          className="text-ink underline hover:text-ink/80"
-        >
-          {t("Open in Maps")}
-        </a>
         {reported ? (
           <span className="font-mono text-[11px] text-value">
             {reported === "correct_price" ? t("Thanks — marked as correct.") : t("Thanks — marked as wrong.")}
@@ -264,6 +257,15 @@ function PriceCallout({
           </>
         )}
       </div>
+      {/* Open in Maps, on its own line at the bottom of the box. */}
+      <a
+        href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-2 inline-block text-sm text-ink underline hover:text-ink/80"
+      >
+        {t("Open in Maps")}
+      </a>
       {!reported && (
         <p className="mt-1 text-[10px] text-ash/70">
           {t("Your answer counts toward this store's total price reports and credibility.")}
