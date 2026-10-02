@@ -14,6 +14,7 @@
     "@capacitor/splash-screen": "^6.0.4",
     "@supabase/supabase-js": "^2.45.4",
     "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
     "lucide-react": "^0.400.0",
     "next": "14.2.35",
     "nodemailer": "^6.9.14",
