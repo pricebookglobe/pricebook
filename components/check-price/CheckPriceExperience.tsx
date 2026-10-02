@@ -35,6 +35,21 @@ function searchCacheKey(mode: Mode): string {
   return `pricebook:lastSearchResult:${mode}`;
 }
 
+// Snap hands off to Android's own camera app via <input capture="environment">,
+// which backgrounds this page for however long the camera is open. Under
+// memory pressure Android can kill the WebView's process while it's in the
+// background and recreate it from scratch when the user comes back — a full
+// reload that looks exactly like the screen "resetting", and loses the photo
+// that was mid-capture with no way to recover it. This flag is set only for
+// the few seconds Snap's camera is actually open, so a reload in that narrow
+// window can be told apart from an ordinary, deliberate navigation to this
+// screen (which should still always start clean) and can land the user back
+// at the Scan/Snap/Enter-details menu with a note to retry, instead of all
+// the way back at the very first "Check Price & Compare" button.
+function snapInFlightKey(mode: Mode): string {
+  return `pricebook:snapInFlight:${mode}`;
+}
+
 type Mode = "menu" | "text";
 
 function formatDistance(meters: number): string {
@@ -366,17 +381,27 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // batched request for every store on screen, rather than one request per
   // row (a result set can list dozens of different stores at once).
   const [ratings, setRatings] = useState<Record<string, StoreRating>>({});
+  const [snapInterrupted, setSnapInterrupted] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Clicking into Check Price or Search Items (both land here fresh on
   // every mount) always starts clean — no previous check or search result
-  // left showing. Explicitly drops this screen's old cached entry, if any
-  // is still sitting there from before this was removed.
+  // left showing, EXCEPT when this mount is actually the Android reload
+  // that interrupted an in-flight Snap (see snapInFlightKey above): that
+  // case isn't a deliberate revisit, so it skips the clean reset and goes
+  // back to the Scan/Snap/Enter-details menu with a note to retry instead.
   useEffect(() => {
+    let snapWasInFlight = false;
     try {
+      snapWasInFlight = sessionStorage.getItem(snapInFlightKey(initialMode)) === "1";
+      sessionStorage.removeItem(snapInFlightKey(initialMode));
       sessionStorage.removeItem(searchCacheKey(initialMode));
     } catch {
       // storage unavailable — nothing to clear
+    }
+    if (snapWasInFlight) {
+      setCheckPriceRevealed(true);
+      setSnapInterrupted(true);
     }
     // Only ever run once, right after mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -483,6 +508,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    // The camera handed a photo back without this page reloading in
+    // between, so the capture completed cleanly — clear the in-flight flag.
+    try {
+      sessionStorage.removeItem(snapInFlightKey(initialMode));
+    } catch {
+      // storage unavailable — nothing to clear
+    }
     const file = e.target.files?.[0];
     if (!file) return;
     const imageBase64 = await fileToBase64(file);
@@ -697,11 +729,27 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
       {mode === "menu" && checkPriceRevealed && !busy && !scanningBarcode && (
         <>
+          {snapInterrupted && (
+            <p className="mb-3 rounded border border-flag/30 bg-flag/10 px-3 py-2 text-sm text-flag">
+              {t("The camera closed before the photo came back — please try Snap again.")}
+            </p>
+          )}
           <div className={isNativeApp ? "mb-3 grid grid-cols-2 gap-2" : "mb-3 flex flex-col gap-2 sm:flex-row"}>
             <button onClick={() => setShowScanner(true)} className={outlineButton}>
               {t("Scan Barcode")}
             </button>
-            <button onClick={() => cameraInputRef.current?.click()} className={outlineButton}>
+            <button
+              onClick={() => {
+                try {
+                  sessionStorage.setItem(snapInFlightKey(initialMode), "1");
+                } catch {
+                  // storage unavailable — the in-flight check is simply skipped
+                }
+                setSnapInterrupted(false);
+                cameraInputRef.current?.click();
+              }}
+              className={outlineButton}
+            >
               {t("Snap")}
             </button>
             <button onClick={() => setMode("text")} className={`${outlineButton}${isNativeApp ? " col-span-2" : ""}`}>
