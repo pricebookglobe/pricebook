@@ -15,6 +15,8 @@ import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { displayProductName } from "@/lib/productName";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
+import { Capacitor } from "@capacitor/core";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 
 const TIER_LABEL: Record<string, string> = {
   neighborhood: "neighborhood zone",
@@ -507,6 +509,44 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     });
   }
 
+  // Inside the native app, Snap hands off to @capacitor/camera's own
+  // getPhoto() instead of the hidden <input capture> below. That plugin's
+  // bridge is specifically engineered to survive the exact scenario that
+  // caused the "Snap resets the app" bug: it persists the pending call
+  // before handing off to Android's native camera, and resumes it
+  // correctly even if the WebView's process gets killed and recreated
+  // while the camera is open. So the sessionStorage in-flight flag below
+  // is only needed for the website's plain <input capture> flow, which has
+  // no such protection.
+  async function handleSnap() {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const photo = await Camera.getPhoto({
+          resultType: CameraResultType.Base64,
+          source: CameraSource.Camera,
+          quality: 80,
+          saveToGallery: false
+        });
+        if (photo.base64String) runSearch({ imageBase64: photo.base64String });
+      } catch (e: any) {
+        // The user backed out of the camera without taking a photo — not
+        // an error worth surfacing.
+        if (e?.message && !/cancel/i.test(e.message)) {
+          setError(t("Couldn't open the camera."));
+        }
+      }
+      return;
+    }
+
+    try {
+      sessionStorage.setItem(snapInFlightKey(initialMode), "1");
+    } catch {
+      // storage unavailable — the in-flight check is simply skipped
+    }
+    setSnapInterrupted(false);
+    cameraInputRef.current?.click();
+  }
+
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     // The camera handed a photo back without this page reloading in
     // between, so the capture completed cleanly — clear the in-flight flag.
@@ -738,18 +778,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             <button onClick={() => setShowScanner(true)} className={outlineButton}>
               {t("Scan Barcode")}
             </button>
-            <button
-              onClick={() => {
-                try {
-                  sessionStorage.setItem(snapInFlightKey(initialMode), "1");
-                } catch {
-                  // storage unavailable — the in-flight check is simply skipped
-                }
-                setSnapInterrupted(false);
-                cameraInputRef.current?.click();
-              }}
-              className={outlineButton}
-            >
+            <button onClick={handleSnap} className={outlineButton}>
               {t("Snap")}
             </button>
             <button onClick={() => setMode("text")} className={`${outlineButton}${isNativeApp ? " col-span-2" : ""}`}>
