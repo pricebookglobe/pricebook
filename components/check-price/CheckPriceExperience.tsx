@@ -944,19 +944,21 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
           {atStore && !isNativeApp && (
             <div className="mb-4 rounded border border-ink/25 bg-ink/[0.07] px-4 py-3">
-              <p className="flex flex-wrap items-center gap-1.5 text-sm text-ink">
-                <span>
-                  <strong>{atStore.product_name}</strong> — You are at <strong>{atStore.store_name}</strong> — the price here is{" "}
-                  <strong>{atStore.price.toFixed(2)} {atStore.currency}</strong>.
-                </span>
+              <p className="text-xs text-ash">{t("You're at")}</p>
+              {/* Store name, beside the review circle/face — no numbers. */}
+              <p className="mt-0.5 flex flex-wrap items-center gap-1.5 font-display text-base font-bold text-ink">
+                {atStore.store_name}
                 {ratings[atStore.store_id] && (
                   <EmojiRating
                     rating={ratings[atStore.store_id].count > 0 ? ratings[atStore.store_id].average_rating : null}
-                    count={ratings[atStore.store_id].count}
                     size={16}
                     showValue={false}
                   />
                 )}
+              </p>
+              {/* Price, on its own line. */}
+              <p className="mt-1 font-mono text-lg text-ink">
+                {t("The Price:")} {atStore.price.toFixed(2)} <span className="text-xs text-ash">{atStore.currency}</span>
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <Link href={`/store/${atStore.store_id}`} className="text-sm text-ink underline hover:text-ink/80">

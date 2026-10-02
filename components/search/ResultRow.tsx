@@ -210,7 +210,9 @@ export function ResultRow({
       <div className="rounded-lg border border-line bg-field-raised px-3.5 py-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
+            {/* (1) Item name. */}
             <p className="truncate font-display text-[14px] font-semibold text-ink">{result.product_name}</p>
+            {/* (2) Store name, on its own line, with the review circle + face. */}
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <span className={"h-1.5 w-1.5 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />
               <Link href={`/store/${result.store_id}`} className="truncate text-xs text-ash hover:underline">
@@ -219,31 +221,31 @@ export function ResultRow({
               <span className="text-xs text-ash">· {formatDistance(result.distance_m)}</span>
               {rating && <EmojiRating rating={rating.count > 0 ? rating.average_rating : null} count={rating.count} size={15} showValue={false} />}
             </div>
+            {/* (3) Price, on its own line — "cheapest" highlighted on the lowest price. */}
+            <p className={"mt-1 font-mono text-sm " + (isCheapest ? "font-semibold text-green-700" : "text-ink")}>
+              {isCheapest && (
+                <span className="mr-2 rounded-sm bg-green-100 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-wide text-green-700">
+                  {t("Cheapest")}
+                </span>
+              )}
+              {t("Price")}: {result.price.toFixed(2)} <span className="text-xs font-normal text-ash">{result.currency}</span>
+            </p>
+            {/* (4) Open in Maps + Visit Store Page, on their own line. */}
+            <div className="mt-1.5 flex items-center gap-3">
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-mono text-[11px] text-value underline"
+              >
+                {t("Open in Maps")}
+              </a>
+              <Link href={`/store/${result.store_id}`} className="font-mono text-[11px] text-ink underline">
+                {t("Visit Store Page")}
+              </Link>
+            </div>
           </div>
           <ActionsMenu result={result} showingNutrition={showNutrition} onToggleNutrition={() => setShowNutrition((s) => !s)} />
-        </div>
-        <div className="mt-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
-              target="_blank"
-              rel="noreferrer"
-              className="font-mono text-[11px] text-value underline"
-            >
-              {t("view on map")}
-            </a>
-            <Link href={`/store/${result.store_id}`} className="font-mono text-[11px] text-ink underline">
-              {t("Visit Store Page")}
-            </Link>
-          </div>
-          <p className="font-mono text-[15px] text-ink">
-            {isCheapest && (
-              <span className="mr-2 rounded-sm bg-green-100 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-wide text-green-700">
-                {t("Cheapest")}
-              </span>
-            )}
-            {result.price.toFixed(2)} <span className="text-xs font-normal text-ash">{result.currency}</span>
-          </p>
         </div>
         {showNutrition && <NutritionPanel result={result} />}
       </div>
