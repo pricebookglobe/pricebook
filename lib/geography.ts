@@ -45,3 +45,10 @@ export const COUNTRIES: Country[] = [
 export function citiesFor(countryCode: string): string[] {
   return COUNTRIES.find((c) => c.code === countryCode)?.cities ?? [];
 }
+
+// Reverse lookup used to show a store's country on its page without
+// needing a separate stored country column — every store's city already
+// comes from this same list at signup, so the country is implied by it.
+export function countryNameForCity(city: string): string | undefined {
+  return COUNTRIES.find((c) => c.cities.includes(city))?.name;
+}

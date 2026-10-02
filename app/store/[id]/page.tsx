@@ -9,6 +9,7 @@ import { Pagination, paginate } from "@/components/admin/Pagination";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
+import { countryNameForCity } from "@/lib/geography";
 
 const REVIEWS_PAGE_SIZE = 5;
 
@@ -210,15 +211,15 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
           <EmojiRating rating={reviewStats.count > 0 ? reviewStats.average : null} showValue={false} size={22} />
         </span>
       </h1>
-      <p className="mt-1 text-sm text-ash">{store.address}, {store.city}</p>
-
-      {priceStats && priceStats.count > 0 && (
-        <div className="mt-3 flex flex-wrap gap-4 rounded border border-line bg-field px-4 py-3 text-sm">
-          <span className="text-ink">
-            <strong>{priceStats.count}</strong> {t("price reports")}
-          </span>
-        </div>
-      )}
+      {/* Area/street (when it's set to something more specific than the
+          city itself), city, and country — country isn't a stored column,
+          it's implied by the city from the same signup list, so it's
+          only shown when that lookup actually resolves. */}
+      <p className="mt-1 text-sm text-ash">
+        {[store.address && store.address !== store.city ? store.address : null, store.city, countryNameForCity(store.city)]
+          .filter(Boolean)
+          .join(", ")}
+      </p>
 
       <a
         href={`https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lng}`}

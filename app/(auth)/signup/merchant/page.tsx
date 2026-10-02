@@ -26,6 +26,7 @@ export default function MerchantSignup() {
     commercialRegistration: "",
     country: "",
     city: "",
+    area: "",
     contactPersonName: "",
     email: "",
     password: ""
@@ -125,7 +126,7 @@ export default function MerchantSignup() {
       body: JSON.stringify({
         name: form.commercialName,
         commercial_registration: form.commercialRegistration,
-        address: form.city,
+        address: form.area.trim() || form.city,
         city: form.city,
         contact_person_name: form.contactPersonName,
         admin_email: form.email,
@@ -247,6 +248,17 @@ export default function MerchantSignup() {
                 </option>
               ))}
             </select>
+          </label>
+        )}
+        {form.city && (
+          <label className="text-sm text-ash">
+            {t("Address")}
+            <input
+              value={form.area}
+              onChange={(e) => update("area", e.target.value)}
+              placeholder="Neighborhood / street, e.g. Abdoun"
+              className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+            />
           </label>
         )}
 
