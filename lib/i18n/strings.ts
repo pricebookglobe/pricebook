@@ -134,6 +134,7 @@ export const UI_STRINGS = [
   "Snap a photo or enter the details — then set your price.",
   "You're at",
   "You are at",
+  "The Price:",
   "You are at an unregistered location",
   "Store location",
   "This store hasn't added a storefront photo yet.",
@@ -148,10 +149,12 @@ export const UI_STRINGS = [
   "Best price within 5km",
   "Best price in the whole city",
   "Open in Maps",
+  "Price:",
   "Is this price accurate?",
   "Yes",
   "No",
   "No, it was higher in store",
+  "Your answer counts toward this store's total price reports and credibility.",
 
   // Manage Inventory / Registered Items / Search Items (merchant)
   "Registered items",

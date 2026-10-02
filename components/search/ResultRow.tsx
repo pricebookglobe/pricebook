@@ -253,51 +253,51 @@ export function ResultRow({
   return (
     <>
       <tr>
-        <td className="font-medium text-ink">{result.product_name}</td>
-        <td>
-          <div className="flex items-center gap-2">
+        {/* (1) Item name. */}
+        <td className="align-top">
+          <p className="font-medium text-ink">{result.product_name}</p>
+          {/* (2) Store name, on its own line, with the review circle + face. */}
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <span className={"h-2 w-2 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <Link href={`/store/${result.store_id}`} className="truncate font-medium hover:underline">
-                  {result.store_name}
-                </Link>
-                {rating && (
-                  <EmojiRating rating={rating.count > 0 ? rating.average_rating : null} count={rating.count} size={16} showValue={false} />
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-mono text-[11px] text-ash underline"
-                >
-                  {t("view on map")}
-                </a>
-                <Link href={`/store/${result.store_id}`} className="font-mono text-[11px] text-ash underline">
-                  {t("Visit Store Page")}
-                </Link>
-              </div>
-            </div>
+            <Link href={`/store/${result.store_id}`} className="truncate font-medium hover:underline">
+              {result.store_name}
+            </Link>
+            {rating && (
+              <EmojiRating rating={rating.count > 0 ? rating.average_rating : null} count={rating.count} size={16} showValue={false} />
+            )}
+            <span className="font-mono text-[11px] text-ash">· {formatDistance(result.distance_m)}</span>
+          </div>
+          {/* (3) Price, on its own line — "cheapest" highlighted on the lowest price. */}
+          <p className={"mt-1 font-mono text-sm " + (isCheapest ? "font-semibold text-green-700" : "text-ink")}>
+            {isCheapest && (
+              <span className="mr-2 rounded-sm bg-green-100 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide text-green-700">
+                {t("Cheapest")}
+              </span>
+            )}
+            {t("Price")}: {result.price.toFixed(2)} <span className="text-xs font-normal text-ash">{result.currency}</span>
+          </p>
+          {/* (4) Open in Maps + Visit Store Page, on their own line. */}
+          <div className="mt-1.5 flex items-center gap-3">
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono text-[11px] text-ink underline"
+            >
+              {t("Open in Maps")}
+            </a>
+            <Link href={`/store/${result.store_id}`} className="font-mono text-[11px] text-ink underline">
+              {t("Visit Store Page")}
+            </Link>
           </div>
         </td>
-        <td className="num font-mono text-xs text-ash">{formatDistance(result.distance_m)}</td>
-        <td className="num">
-          {isCheapest && (
-            <span className="mr-2 rounded-sm bg-green-100 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide text-green-700">
-              {t("Cheapest")}
-            </span>
-          )}
-          {result.price.toFixed(2)} <span className="text-xs font-normal text-ash">{result.currency}</span>
-        </td>
-        <td className="relative num">
+        <td className="relative num align-top">
           <ActionsMenu result={result} showingNutrition={showNutrition} onToggleNutrition={() => setShowNutrition((s) => !s)} />
         </td>
       </tr>
       {showNutrition && result.nutrition_facts && (
         <tr>
-          <td colSpan={5} className="bg-field px-3 py-2">
+          <td colSpan={2} className="bg-field px-3 py-2">
             <NutritionPanel result={result} />
           </td>
         </tr>

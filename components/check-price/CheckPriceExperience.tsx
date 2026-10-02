@@ -97,18 +97,26 @@ function PriceCallout({
     return (
       <div className="mb-3 rounded-lg bg-ink px-4 py-3.5 text-field">
         <p className="font-mono text-[10px] uppercase tracking-wide text-field/50">{label}</p>
-        <p className="mt-1 text-sm">
+        {/* Item name, with Nutrition facts beside it on the same line. */}
+        <p className="mt-1 flex items-center justify-between gap-2 text-sm">
           <strong className="text-field">{result.product_name}</strong>
+          {result.nutrition_facts && (
+            <button onClick={() => setShowNutrition((s) => !s)} className="shrink-0 text-xs text-field/80 underline">
+              {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
+            </button>
+          )}
         </p>
-        <p className="mt-1 font-mono text-2xl text-[#7FE0AE]">
-          {result.price.toFixed(2)} <span className="text-sm text-field/60">{result.currency}</span>
-        </p>
+        {/* Store name — itself the link to the store page — on its own line. */}
         <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-field/60">
-          <Link href={`/store/${result.store_id}`} className="underline">
+          <Link href={`/store/${result.store_id}`} className="font-medium text-[#7FE0AE] underline">
             {result.store_name}
           </Link>
           · {formatDistance(result.distance_m)}
           {rating && <EmojiRating rating={rating.count > 0 ? rating.average_rating : null} count={rating.count} size={15} showValue={false} />}
+        </p>
+        {/* Price, on its own line. */}
+        <p className="mt-1 font-mono text-2xl text-[#7FE0AE]">
+          {t("Price:")} {result.price.toFixed(2)} <span className="text-sm text-field/60">{result.currency}</span>
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
           <a
@@ -119,9 +127,6 @@ function PriceCallout({
           >
             {t("Open in Maps")}
           </a>
-          <Link href={`/store/${result.store_id}`} className="text-field underline">
-            {t("Visit Store Page")}
-          </Link>
           {reported ? (
             <span className="font-mono text-[11px] text-[#7FE0AE]">
               {reported === "correct_price" ? t("Thanks — marked as correct.") : t("Thanks — marked as wrong.")}
@@ -129,20 +134,28 @@ function PriceCallout({
           ) : (
             <>
               <span className="text-field/60">{t("Is this price accurate?")}</span>
-              <button disabled={busy} onClick={() => handleReport("correct_price")} className="text-[#7FE0AE] underline">
+              <button
+                disabled={busy}
+                onClick={() => handleReport("correct_price")}
+                className="rounded bg-value px-2 py-1 text-xs font-semibold text-white"
+              >
                 {t("Yes")}
               </button>
-              <button disabled={busy} onClick={() => handleReport("wrong_price")} className="text-red-300 underline">
-                {t("No, it was higher in store")}
+              <button
+                disabled={busy}
+                onClick={() => handleReport("wrong_price")}
+                className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white"
+              >
+                {t("No")}
               </button>
             </>
           )}
-          {result.nutrition_facts && (
-            <button onClick={() => setShowNutrition((s) => !s)} className="text-field underline">
-              {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
-            </button>
-          )}
         </div>
+        {!reported && (
+          <p className="mt-1 text-[10px] text-field/40">
+            {t("Your answer counts toward this store's total price reports and credibility.")}
+          </p>
+        )}
         {showNutrition && result.nutrition_facts && (
           <div className="mt-2 rounded bg-white/10 px-3 py-2">
             <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-field/60">
@@ -193,15 +206,30 @@ function PriceCallout({
 
   return (
     <div className="mb-3 rounded border border-ink/25 bg-ink/[0.07] px-4 py-3">
-      <p className="flex flex-wrap items-center gap-1.5 text-sm text-ink">
-        <span>
-          <strong>{result.product_name}</strong> — {label}: <strong>{result.price.toFixed(2)} {result.currency}</strong> at{" "}
-          <Link href={`/store/${result.store_id}`} className="underline">
-            {result.store_name}
-          </Link>{" "}
-          ({formatDistance(result.distance_m)} away).
-        </span>
-        {rating && <EmojiRating rating={rating.count > 0 ? rating.average_rating : null} count={rating.count} size={16} showValue={false} />}
+      {/* Item name, with Nutrition facts beside it on the same line. */}
+      <p className="flex items-center justify-between gap-2 text-sm text-ink">
+        <strong>{result.product_name}</strong>
+        {result.nutrition_facts && (
+          <button
+            onClick={() => setShowNutrition((s) => !s)}
+            className="shrink-0 text-xs text-ink/70 underline hover:text-ink"
+          >
+            {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
+          </button>
+        )}
+      </p>
+      {/* Store name — itself the link to the store page — on its own line. */}
+      <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ash">
+        {label}{" "}
+        <Link href={`/store/${result.store_id}`} className="font-medium text-ink underline hover:text-ink/80">
+          {result.store_name}
+        </Link>
+        · {formatDistance(result.distance_m)}
+        {rating && <EmojiRating rating={rating.count > 0 ? rating.average_rating : null} count={rating.count} size={15} showValue={false} />}
+      </p>
+      {/* Price, on its own line. */}
+      <p className="mt-1 font-mono text-lg text-ink">
+        {t("Price:")} <strong>{result.price.toFixed(2)}</strong> <span className="text-xs text-ash">{result.currency}</span>
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
         <a
@@ -212,9 +240,6 @@ function PriceCallout({
         >
           {t("Open in Maps")}
         </a>
-        <Link href={`/store/${result.store_id}`} className="text-ink underline hover:text-ink/80">
-          {t("Visit Store Page")}
-        </Link>
         {reported ? (
           <span className="font-mono text-[11px] text-value">
             {reported === "correct_price" ? t("Thanks — marked as correct.") : t("Thanks — marked as wrong.")}
@@ -222,20 +247,28 @@ function PriceCallout({
         ) : (
           <>
             <span className="text-ash">{t("Is this price accurate?")}</span>
-            <button disabled={busy} onClick={() => handleReport("correct_price")} className="text-ink underline hover:text-ink/80">
+            <button
+              disabled={busy}
+              onClick={() => handleReport("correct_price")}
+              className="rounded bg-value px-2 py-1 text-xs font-semibold text-white"
+            >
               {t("Yes")}
             </button>
-            <button disabled={busy} onClick={() => handleReport("wrong_price")} className="text-value underline hover:text-value/80">
+            <button
+              disabled={busy}
+              onClick={() => handleReport("wrong_price")}
+              className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white"
+            >
               {t("No")}
             </button>
           </>
         )}
-        {result.nutrition_facts && (
-          <button onClick={() => setShowNutrition((s) => !s)} className="text-ink underline hover:text-ink/80">
-            {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
-          </button>
-        )}
       </div>
+      {!reported && (
+        <p className="mt-1 text-[10px] text-ash/70">
+          {t("Your answer counts toward this store's total price reports and credibility.")}
+        </p>
+      )}
       {showNutrition && result.nutrition_facts && (
         <div className="mt-2 rounded border border-ink/20 bg-white/60 px-3 py-2">
           <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-ash">
@@ -707,13 +740,29 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               {t("Enter details")}
             </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setCheckPriceRevealed(false)}
-            className="mb-6 inline-flex items-center gap-1 rounded border border-flag bg-flag px-3 py-1.5 font-display text-sm text-white transition-colors hover:border-field active:border-ink-dark active:bg-ink-dark"
-          >
-            {t("Back")}
-          </button>
+          {/* Back and Start new check share one row — Back on the left,
+              Start new check on the right — rather than Start new check
+              sitting further down next to the result title, so the two
+              "leave this screen" actions read as a pair at a glance. Start
+              new check only appears here once a result actually exists. */}
+          <div className="mb-6 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setCheckPriceRevealed(false)}
+              className="inline-flex items-center gap-1 rounded border border-flag bg-flag px-3 py-1.5 font-display text-sm text-white transition-colors hover:border-field active:border-ink-dark active:bg-ink-dark"
+            >
+              {t("Back")}
+            </button>
+            {result && (
+              <button
+                type="button"
+                onClick={startNewCheck}
+                className="btn-shine whitespace-nowrap rounded border border-value bg-value px-3 py-1.5 font-display text-sm text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
+              >
+                {t("Start new check")}
+              </button>
+            )}
+          </div>
         </>
       )}
       {scanningBarcode && <p className="mb-6 text-sm text-ash">{t("Reading barcode…")}</p>}
@@ -787,13 +836,19 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                   {t(TIER_LABEL[result.tier] ?? result.tier)}
                 </span>
               )}
-              <button
-                type="button"
-                onClick={startNewCheck}
-                className="btn-shine whitespace-nowrap rounded border border-value bg-value px-3 py-1.5 font-display text-sm text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
-              >
-                {t("Start new check")}
-              </button>
+              {/* On the Check Price screen (initialMode "menu"), Start new
+                  check now lives paired with Back above instead of here —
+                  see that row's comment. Search items (initialMode "text")
+                  never renders that row, so it keeps its own button here. */}
+              {initialMode !== "menu" && (
+                <button
+                  type="button"
+                  onClick={startNewCheck}
+                  className="btn-shine whitespace-nowrap rounded border border-value bg-value px-3 py-1.5 font-display text-sm text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
+                >
+                  {t("Start new check")}
+                </button>
+              )}
             </div>
           </div>
 
@@ -821,14 +876,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 {ratings[atStore.store_id] && (
                   <EmojiRating
                     rating={ratings[atStore.store_id].count > 0 ? ratings[atStore.store_id].average_rating : null}
-                    count={ratings[atStore.store_id].count}
                     size={16}
                     showValue={false}
                   />
                 )}
               </p>
               <p className="mt-1 font-mono text-xl text-[#7FE0AE]">
-                {atStore.price.toFixed(2)} <span className="font-sans text-xs text-field/60">{atStore.currency}</span>
+                {t("The Price:")} {atStore.price.toFixed(2)} <span className="font-sans text-xs text-field/60">{atStore.currency}</span>
               </p>
               <Link href={`/store/${atStore.store_id}`} className="mt-1 inline-block text-sm text-[#7FE0AE] underline">
                 {t("Visit Store Page")}
@@ -1021,10 +1075,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>{t("Product")}</th>
-                  <th>{t("Store")}</th>
-                  <th className="num">{t("Distance")}</th>
-                  <th className="num">{t("Price")}</th>
+                  <th>{t("Item")}</th>
                   <th>{t("Actions")}</th>
                 </tr>
               </thead>
