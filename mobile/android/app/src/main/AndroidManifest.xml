@@ -9,6 +9,13 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <!-- Required by @capacitor-mlkit/barcode-scanning's ready-to-use
+             scan() UI: without this, the ML Kit barcode model isn't
+             declared as a dependency the app ships with, and the native
+             scanner screen can come up black/blank instead of showing a
+             camera feed. -->
+        <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui" />
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:name=".MainActivity"
@@ -41,6 +48,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Barcode scanning and "Snap" photo capture -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- The native barcode scanner's torch toggle needs this on some devices. -->
+    <uses-permission android:name="android.permission.FLASHLIGHT" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
     <!-- "What store am I at?" -->

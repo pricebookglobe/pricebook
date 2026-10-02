@@ -52,6 +52,13 @@ function snapInFlightKey(mode: Mode): string {
   return `pricebook:snapInFlight:${mode}`;
 }
 
+// Same idea as snapInFlightKey, for the camera the barcode scanner opens
+// (native app) or the live getUserMedia view (website) — either one can
+// end with the same kind of forced reload mid-scan.
+function scanInFlightKey(mode: Mode): string {
+  return `pricebook:scanInFlight:${mode}`;
+}
+
 type Mode = "menu" | "text";
 
 function formatDistance(meters: number): string {
@@ -384,26 +391,32 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // row (a result set can list dozens of different stores at once).
   const [ratings, setRatings] = useState<Record<string, StoreRating>>({});
   const [snapInterrupted, setSnapInterrupted] = useState(false);
+  const [scanInterrupted, setScanInterrupted] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Clicking into Check Price or Search Items (both land here fresh on
   // every mount) always starts clean — no previous check or search result
   // left showing, EXCEPT when this mount is actually the Android reload
-  // that interrupted an in-flight Snap (see snapInFlightKey above): that
-  // case isn't a deliberate revisit, so it skips the clean reset and goes
-  // back to the Scan/Snap/Enter-details menu with a note to retry instead.
+  // that interrupted an in-flight Snap or barcode scan (see snapInFlightKey
+  // / scanInFlightKey above): that case isn't a deliberate revisit, so it
+  // skips the clean reset and goes back to the Scan/Snap/Enter-details menu
+  // with a note to retry instead.
   useEffect(() => {
     let snapWasInFlight = false;
+    let scanWasInFlight = false;
     try {
       snapWasInFlight = sessionStorage.getItem(snapInFlightKey(initialMode)) === "1";
+      scanWasInFlight = sessionStorage.getItem(scanInFlightKey(initialMode)) === "1";
       sessionStorage.removeItem(snapInFlightKey(initialMode));
+      sessionStorage.removeItem(scanInFlightKey(initialMode));
       sessionStorage.removeItem(searchCacheKey(initialMode));
     } catch {
       // storage unavailable — nothing to clear
     }
-    if (snapWasInFlight) {
+    if (snapWasInFlight || scanWasInFlight) {
       setCheckPriceRevealed(true);
-      setSnapInterrupted(true);
+      setSnapInterrupted(snapWasInFlight);
+      setScanInterrupted(scanWasInFlight);
     }
     // Only ever run once, right after mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -519,6 +532,23 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // is only needed for the website's plain <input capture> flow, which has
   // no such protection.
   async function handleSnap() {
+    // Clear whatever result is currently on screen the moment Snap is
+    // tapped, not just once a new photo comes back — otherwise the old
+    // answer keeps showing underneath for the whole time the camera is
+    // open (or stays forever if the user backs out without taking a shot).
+    setResult(null);
+    setError(null);
+    setSnapInterrupted(false);
+    // The in-flight flag is set here even on the native path: the plugin
+    // bridge is supposed to survive an Activity recreation on its own, but
+    // a couple of resets have still been seen in practice, so this stays
+    // as a safety net either way — it only ever matters if a reload
+    // actually happens before the flag is cleared below.
+    try {
+      sessionStorage.setItem(snapInFlightKey(initialMode), "1");
+    } catch {
+      // storage unavailable — the in-flight check is simply skipped
+    }
     if (Capacitor.isNativePlatform()) {
       try {
         const photo = await Camera.getPhoto({
@@ -527,8 +557,18 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           quality: 80,
           saveToGallery: false
         });
+        try {
+          sessionStorage.removeItem(snapInFlightKey(initialMode));
+        } catch {
+          // storage unavailable — nothing to clear
+        }
         if (photo.base64String) runSearch({ imageBase64: photo.base64String });
       } catch (e: any) {
+        try {
+          sessionStorage.removeItem(snapInFlightKey(initialMode));
+        } catch {
+          // storage unavailable — nothing to clear
+        }
         // The user backed out of the camera without taking a photo — not
         // an error worth surfacing.
         if (e?.message && !/cancel/i.test(e.message)) {
@@ -538,12 +578,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       return;
     }
 
-    try {
-      sessionStorage.setItem(snapInFlightKey(initialMode), "1");
-    } catch {
-      // storage unavailable — the in-flight check is simply skipped
-    }
-    setSnapInterrupted(false);
     cameraInputRef.current?.click();
   }
 
@@ -562,8 +596,20 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     e.target.value = "";
   }
 
-  async function handleBarcodeDetected(barcode: string) {
+  // Clears the scan-in-flight flag and closes the scanner — used both when
+  // a barcode is actually found and when the user backs out without one,
+  // so the flag is only ever left set if a reload cuts the scan short.
+  function closeScanner() {
+    try {
+      sessionStorage.removeItem(scanInFlightKey(initialMode));
+    } catch {
+      // storage unavailable — nothing to clear
+    }
     setShowScanner(false);
+  }
+
+  async function handleBarcodeDetected(barcode: string) {
+    closeScanner();
     setScanningBarcode(true);
     setError(null);
     try {
@@ -774,8 +820,30 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               {t("The camera closed before the photo came back — please try Snap again.")}
             </p>
           )}
+          {scanInterrupted && (
+            <p className="mb-3 rounded border border-flag/30 bg-flag/10 px-3 py-2 text-sm text-flag">
+              {t("The scanner closed before it finished — please try Scan Barcode again.")}
+            </p>
+          )}
           <div className={isNativeApp ? "mb-3 grid grid-cols-2 gap-2" : "mb-3 flex flex-col gap-2 sm:flex-row"}>
-            <button onClick={() => setShowScanner(true)} className={outlineButton}>
+            <button
+              onClick={() => {
+                // Same reasoning as Snap: clear the old result as soon as
+                // the scanner opens, not only once a barcode is found, and
+                // set the in-flight flag so a reload mid-scan can be told
+                // apart from a deliberate revisit (see scanInFlightKey).
+                setResult(null);
+                setError(null);
+                setScanInterrupted(false);
+                try {
+                  sessionStorage.setItem(scanInFlightKey(initialMode), "1");
+                } catch {
+                  // storage unavailable — the in-flight check is simply skipped
+                }
+                setShowScanner(true);
+              }}
+              className={outlineButton}
+            >
               {t("Scan Barcode")}
             </button>
             <button onClick={handleSnap} className={outlineButton}>
@@ -812,7 +880,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       )}
       {scanningBarcode && <p className="mb-6 text-sm text-ash">{t("Reading barcode…")}</p>}
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
-      {showScanner && <BarcodeScanner onDetected={handleBarcodeDetected} onClose={() => setShowScanner(false)} />}
+      {showScanner && <BarcodeScanner onDetected={handleBarcodeDetected} onClose={closeScanner} />}
 
       {mode === "text" && !useGuidedForm && (
         <div className="flex flex-col gap-2">
