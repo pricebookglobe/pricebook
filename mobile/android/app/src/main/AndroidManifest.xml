@@ -1,8 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- largeHeap raises the memory ceiling Android gives this app's
+         process. Camera capture and barcode scanning are the most memory-
+         hungry things this app does, and a process that's closer to its
+         default heap limit is more likely to be the one Android kills to
+         free memory while those run in the background (e.g. the moment
+         the native camera/scanner UI takes over) — exactly the "app
+         resets" behavior reported during Snap and barcode scanning. This
+         doesn't eliminate that risk (Android can still reclaim any
+         background process under real memory pressure), but it gives the
+         app meaningfully more room before that becomes likely. -->
     <application
         android:allowBackup="true"
+        android:largeHeap="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"

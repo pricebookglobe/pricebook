@@ -18,9 +18,15 @@ export async function POST(req: NextRequest) {
   // accuracy_m is the device's own reported GPS accuracy, when the caller
   // has one — the RPC uses it to tell two close-together stores apart with
   // confidence (returning no match rather than a guess when it can't).
-  // Clamped to a sane range and falls back to the RPC's own 5m default
-  // when the device didn't report a usable number.
-  const accuracyM = typeof accuracy === "number" && Number.isFinite(accuracy) ? Math.min(Math.max(accuracy, 1), 50) : undefined;
+  // Capped at 5m even when the device reports a much looser fix (ordinary
+  // phone GPS is routinely 15-50m, especially indoors or in a city
+  // street): using that raw, looser number as the disambiguation radius
+  // was too aggressive and started throwing away perfectly good matches
+  // in any area with two stores anywhere near each other — the real cause
+  // of the storefront photo "disappearing" (no match at all means no
+  // store, no photo, just the map). 5m is enough to separate two stores
+  // that aren't right on top of each other, which is all this is for.
+  const accuracyM = typeof accuracy === "number" && Number.isFinite(accuracy) ? Math.min(Math.max(accuracy, 1), 5) : undefined;
 
   const { data, error } = await supabase.rpc("find_nearest_store", {
     user_lat: lat,

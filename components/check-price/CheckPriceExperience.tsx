@@ -367,7 +367,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const { coords, accuracy, status } = useGeolocation();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [result, setResult] = useState<SearchResponse | null>(null);
-  const [showAtStoreNutrition, setShowAtStoreNutrition] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
@@ -558,7 +557,14 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           resultType: CameraResultType.Base64,
           source: CameraSource.Camera,
           quality: 80,
-          saveToGallery: false
+          saveToGallery: false,
+          // A modern phone's full-res photo can be 20-50MB raw before
+          // base64 even bloats it further — capping the longest edge
+          // keeps the capture light on memory right when the app is most
+          // likely to get killed for being memory-heavy in the
+          // background, and this app only ever needs enough detail to
+          // read a price tag or product label, not a full-resolution shot.
+          width: 1600
         });
         try {
           sessionStorage.removeItem(snapInFlightKey(initialMode));
@@ -990,58 +996,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               <Link href={`/store/${atStore.store_id}`} className="mt-1 inline-block text-sm text-[#7FE0AE] underline">
                 {t("Visit Store Page")}
               </Link>
-              {atStore.nutrition_facts && (
-                <button
-                  onClick={() => setShowAtStoreNutrition((s) => !s)}
-                  className="mt-2 text-sm text-field/80 underline hover:text-field"
-                >
-                  {showAtStoreNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
-                </button>
-              )}
-              {showAtStoreNutrition && atStore.nutrition_facts && (
-                <div className="mt-2 rounded bg-white/10 px-3 py-2">
-                  <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-field/60">
-                    {t("AI estimate — check the actual package")}
-                  </p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-field">
-                    {atStore.nutrition_facts.serving_size && (
-                      <span>
-                        {t("Serving size")}: <strong>{atStore.nutrition_facts.serving_size}</strong>
-                      </span>
-                    )}
-                    {atStore.nutrition_facts.calories != null && (
-                      <span>
-                        {t("Calories")}: <strong>{atStore.nutrition_facts.calories}</strong>
-                      </span>
-                    )}
-                    {atStore.nutrition_facts.protein_g != null && (
-                      <span>
-                        {t("Protein (g)")}: <strong>{atStore.nutrition_facts.protein_g}</strong>
-                      </span>
-                    )}
-                    {atStore.nutrition_facts.fat_g != null && (
-                      <span>
-                        {t("Fat (g)")}: <strong>{atStore.nutrition_facts.fat_g}</strong>
-                      </span>
-                    )}
-                    {atStore.nutrition_facts.carbs_g != null && (
-                      <span>
-                        {t("Carbs (g)")}: <strong>{atStore.nutrition_facts.carbs_g}</strong>
-                      </span>
-                    )}
-                    {atStore.nutrition_facts.sugar_g != null && (
-                      <span>
-                        {t("Sugar (g)")}: <strong>{atStore.nutrition_facts.sugar_g}</strong>
-                      </span>
-                    )}
-                    {atStore.nutrition_facts.sodium_mg != null && (
-                      <span>
-                        {t("Sodium (mg)")}: <strong>{atStore.nutrition_facts.sodium_mg}</strong>
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -1067,59 +1021,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 <Link href={`/store/${atStore.store_id}`} className="text-sm text-ink underline hover:text-ink/80">
                   {t("Visit Store Page")}
                 </Link>
-                {atStore.nutrition_facts && (
-                  <button
-                    onClick={() => setShowAtStoreNutrition((s) => !s)}
-                    className="text-sm text-ink underline hover:text-ink/80"
-                  >
-                    {showAtStoreNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
-                  </button>
-                )}
               </div>
-              {showAtStoreNutrition && atStore.nutrition_facts && (
-                <div className="mt-2 rounded border border-ink/20 bg-white/60 px-3 py-2">
-                  <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-ash">
-                    {t("AI estimate — check the actual package")}
-                  </p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink">
-                    {atStore.nutrition_facts.serving_size && (
-                      <span>
-                        {t("Serving size")}: <strong>{atStore.nutrition_facts.serving_size}</strong>
-                      </span>
-                    )}
-                    {atStore.nutrition_facts.calories != null && (
-                      <span>
-                        {t("Calories")}: <strong>{atStore.nutrition_facts.calories}</strong>
-                      </span>
-                    )}
-                    {atStore.nutrition_facts.protein_g != null && (
-                      <span>
-                        {t("Protein (g)")}: <strong>{atStore.nutrition_facts.protein_g}</strong>
-                      </span>
-                    )}
-                    {atStore.nutrition_facts.fat_g != null && (
-                      <span>
-                        {t("Fat (g)")}: <strong>{atStore.nutrition_facts.fat_g}</strong>
-                      </span>
-                    )}
-                    {atStore.nutrition_facts.carbs_g != null && (
-                      <span>
-                        {t("Carbs (g)")}: <strong>{atStore.nutrition_facts.carbs_g}</strong>
-                      </span>
-                    )}
-                    {atStore.nutrition_facts.sugar_g != null && (
-                      <span>
-                        {t("Sugar (g)")}: <strong>{atStore.nutrition_facts.sugar_g}</strong>
-                      </span>
-                    )}
-                    {atStore.nutrition_facts.sodium_mg != null && (
-                      <span>
-                        {t("Sodium (mg)")}: <strong>{atStore.nutrition_facts.sodium_mg}</strong>
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
