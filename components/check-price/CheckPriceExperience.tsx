@@ -24,24 +24,16 @@ const TIER_LABEL: Record<string, string> = {
 
 const AT_STORE_METERS = 150;
 
-// Next.js unmounts this whole screen on client-side navigation (e.g.
-// tapping a store to open /store/[id]), and this component's search
-// results only ever lived in local React state — so pressing the back
-// button from the store page always returned to a freshly-reset, empty
-// menu/search screen instead of the results list the shopper was just
-// looking at. Caching the last result in sessionStorage (cleared when the
-// app/tab session ends) lets it be restored on remount instead.
-//
-// Keyed PER SCREEN (by initialMode — "menu" for /check-price, "text" for
-// /search-items): this component backs both screens, and a single shared
-// key meant a Check Price result was still sitting there when you then
-// went to Search items, making that screen look "stuck" showing the other
-// screen's result instead of starting fresh. Each screen now only ever
-// restores its own last result.
+// This component used to cache its last result in sessionStorage (keyed
+// per screen — "menu" for /check-price, "text" for /search-items) and
+// restore it on remount, so returning from a store page didn't lose the
+// list you were just looking at. Per request, Check Price and Search
+// Items now always start clean on every visit instead — this key is kept
+// only so a fresh mount can explicitly drop any old cached entry still
+// sitting there from before that change.
 function searchCacheKey(mode: Mode): string {
   return `pricebook:lastSearchResult:${mode}`;
 }
-const SEARCH_CACHE_MAX_AGE_MS = 30 * 60 * 1000; // 30 min — long enough to survive a store detour, short enough prices don't go stale
 
 type Mode = "menu" | "text";
 
@@ -376,49 +368,19 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [ratings, setRatings] = useState<Record<string, StoreRating>>({});
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Restore this screen's own last results on remount (see the cache
-  // comment above initialMode's screen — Check Price vs Search items never
-  // read each other's cached result).
+  // Clicking into Check Price or Search Items (both land here fresh on
+  // every mount) always starts clean — no previous check or search result
+  // left showing. Explicitly drops this screen's old cached entry, if any
+  // is still sitting there from before this was removed.
   useEffect(() => {
     try {
-      const key = searchCacheKey(initialMode);
-      const raw = sessionStorage.getItem(key);
-      if (!raw) return;
-      const cached = JSON.parse(raw) as { result: SearchResponse; savedAt: number };
-      if (Date.now() - cached.savedAt > SEARCH_CACHE_MAX_AGE_MS) {
-        sessionStorage.removeItem(key);
-        return;
-      }
-      setResult(cached.result);
-      // A restored result implies "Check Price" was already pressed and a
-      // method already chosen — without this, the "Check Price" menu
-      // button re-appears ABOVE the old result on remount (checkPriceRevealed
-      // resets to false on every fresh mount), so it looked like two
-      // screens stacked on top of each other rather than one clear result.
-      setCheckPriceRevealed(true);
-      setMode("menu");
+      sessionStorage.removeItem(searchCacheKey(initialMode));
     } catch {
-      // corrupt or unavailable storage — just start fresh
+      // storage unavailable — nothing to clear
     }
     // Only ever run once, right after mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Keep this screen's own cache slot in sync with whatever's currently on
-  // screen — a null result (new search starting, or "start new check")
-  // clears it immediately, so it can never resurface a stale result later.
-  useEffect(() => {
-    try {
-      const key = searchCacheKey(initialMode);
-      if (result) {
-        sessionStorage.setItem(key, JSON.stringify({ result, savedAt: Date.now() }));
-      } else {
-        sessionStorage.removeItem(key);
-      }
-    } catch {
-      // storage full/unavailable — the list just won't survive a back-navigation this time
-    }
-  }, [result, initialMode]);
 
   // `silent` skips the "Finding your location…" flash and the locationCheck
   // reset — used by the 30-second background refresh below, so the panel
