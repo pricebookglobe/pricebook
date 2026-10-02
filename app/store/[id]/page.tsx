@@ -207,22 +207,15 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
             average to the nearest whole face (1-5) rather than a star's
             partial fill. */}
         <span className="text-base font-normal">
-          <EmojiRating rating={reviewStats.count > 0 ? reviewStats.average : null} count={reviewStats.count} size={22} />
+          <EmojiRating rating={reviewStats.count > 0 ? reviewStats.average : null} showValue={false} size={22} />
         </span>
       </h1>
       <p className="mt-1 text-sm text-ash">{store.address}, {store.city}</p>
-      <p className="mt-0.5 font-mono text-[10px] text-ash/60">store id: {store.id}</p>
 
       {priceStats && priceStats.count > 0 && (
         <div className="mt-3 flex flex-wrap gap-4 rounded border border-line bg-field px-4 py-3 text-sm">
           <span className="text-ink">
             <strong>{priceStats.count}</strong> {t("price reports")}
-          </span>
-          <span className="text-value">
-            <strong>{priceStats.positive_count}</strong> {t("correct")} ({priceStats.positive_pct}%)
-          </span>
-          <span className="text-red-600">
-            <strong>{priceStats.negative_count}</strong> {t("wrong")}
           </span>
         </div>
       )}
@@ -377,7 +370,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
         >
           <span className="font-display text-[15px] font-medium text-ink">{t("Reviews")}</span>
           <span className="flex items-center gap-2">
-            <EmojiRating rating={reviewStats.count > 0 ? reviewStats.average : null} count={reviewStats.count} size={20} />
+            <EmojiRating rating={reviewStats.count > 0 ? reviewStats.average : null} showValue={false} size={20} />
             {reviews.length > 0 && (
               <ChevronDown
                 size={16}
