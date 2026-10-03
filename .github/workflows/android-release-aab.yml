@@ -60,15 +60,44 @@ jobs:
       # passwords are ever written to the repo or build logs.
       - name: Write the signing key and keystore.properties from secrets
         working-directory: mobile/android/app
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PW: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -e
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > pricebook-upload-key.jks
-          cat > keystore.properties <<EOF
+
+          # Fail with a clear, specific message instead of a cryptic
+          # downstream Gradle error if any secret was never set (an empty
+          # GitHub secret reference silently evaluates to "", it doesn't
+          # fail the workflow on its own).
+          for name in KEYSTORE_B64 STORE_PW KEY_ALIAS KEY_PW; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret for $name is empty or missing. Check Settings > Secrets and variables > Actions on the repo."
+              exit 1
+            fi
+          done
+
+          # -i (ignore-garbage) tolerates stray whitespace/CRLF line endings
+          # that copy-pasting the base64 text through different apps/OSes
+          # can introduce, which plain `base64 -d` rejects outright.
+          echo "$KEYSTORE_B64" | base64 -d -i > pricebook-upload-key.jks
+
+          # Confirm it's actually a valid keystore with this password BEFORE
+          # handing it to Gradle, so a bad secret value fails here with a
+          # clear message rather than a confusing signing error mid-build.
+          if ! keytool -list -keystore pricebook-upload-key.jks -storepass "$STORE_PW" > /dev/null 2>&1; then
+            echo "::error::pricebook-upload-key.jks didn't decode into a valid keystore, or ANDROID_KEYSTORE_PASSWORD is wrong. Re-check the ANDROID_KEYSTORE_BASE64 secret was pasted in full with no extra text, and that the password matches README-KEEP-SAFE.txt."
+            exit 1
+          fi
+
+          cat > keystore.properties <<PROPS
           storeFile=app/pricebook-upload-key.jks
-          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          EOF
+          storePassword=$STORE_PW
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PW
+          PROPS
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
