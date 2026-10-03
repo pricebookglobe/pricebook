@@ -15,6 +15,10 @@ export function Footer() {
       © {new Date().getFullYear()} PriceBook ·{" "}
       <Link href={termsHref} className="underline hover:text-ink">
         Terms &amp; Conditions
+      </Link>{" "}
+      ·{" "}
+      <Link href="/privacy" className="underline hover:text-ink">
+        Privacy Policy
       </Link>
     </footer>
   );

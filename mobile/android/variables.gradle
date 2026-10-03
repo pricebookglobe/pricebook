@@ -1,7 +1,17 @@
 ext {
     minSdkVersion = 22
-    compileSdkVersion = 34
-    targetSdkVersion = 34
+    // Google Play requires new app submissions (and this app has never
+    // been published, so it counts as new) to target API 36 (Android 16)
+    // as of the August 31, 2026 deadline. Needs Android Gradle Plugin
+    // 8.10.0+ and Gradle 8.11.1+ to actually build against — see
+    // build.gradle and gradle/wrapper/gradle-wrapper.properties, both
+    // bumped alongside this. UNTESTED: this sandbox has no Android SDK
+    // and can't reach dl.google.com to get one, so this combination has
+    // never actually been built — verify with a real build before relying
+    // on it (`npx cap sync android` first, since the camera/barcode
+    // plugins were added after this was last synced).
+    compileSdkVersion = 36
+    targetSdkVersion = 36
     androidxActivityVersion = '1.8.0'
     androidxAppCompatVersion = '1.6.1'
     androidxCoordinatorLayoutVersion = '1.2.0'

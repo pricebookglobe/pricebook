@@ -1,5 +1,21 @@
 apply plugin: 'com.android.application'
 
+// Release signing: reads from keystore.properties (never committed — see
+// .gitignore) rather than hardcoding a path/password in this file, which
+// would otherwise put the signing key's password in plain text in git
+// history forever. keystore.properties.example in this same folder shows
+// the format to copy. If keystore.properties isn't present (e.g. a debug
+// build on a machine that hasn't been given the release key), the release
+// signingConfig block below is simply skipped and `assembleRelease` /
+// `bundleRelease` will fail with a clear "keystore not found" error rather
+// than silently producing an unsigned build.
+def keystorePropertiesFile = rootProject.file('app/keystore.properties')
+def keystoreProperties = new Properties()
+def hasKeystoreProperties = keystorePropertiesFile.exists()
+if (hasKeystoreProperties) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace "com.pricebook.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -16,10 +32,23 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    if (hasKeystoreProperties) {
+        signingConfigs {
+            release {
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasKeystoreProperties) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     // Required by @capacitor-mlkit/barcode-scanning's ready-to-use scan() UI.

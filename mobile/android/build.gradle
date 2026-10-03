@@ -7,7 +7,10 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.1'
+        // 8.10.0 is the first AGP release that supports compiling against
+        // API 36 (Android 16) — AGP 8.9 and earlier cap out at API 35. See
+        // the note on compileSdkVersion in variables.gradle.
+        classpath 'com.android.tools.build:gradle:8.10.0'
         // com.google.gms:google-services was removed: this app has no
         // google-services.json and never applies the plugin (see
         // app/build.gradle), so the classpath dependency was pure dead
