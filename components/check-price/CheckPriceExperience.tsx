@@ -383,6 +383,20 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     } | null
   >(null);
   const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
+
+  // Mirrors of the latest coords/locationCheck for the background polling
+  // effect below to read without being in its dependency array — that
+  // effect manages its own timer loop and must NOT restart every time a
+  // new GPS fix or location-check result comes in, or it would re-poll
+  // immediately on every update instead of backing off as intended.
+  const coordsRef = useRef(coords);
+  useEffect(() => {
+    coordsRef.current = coords;
+  }, [coords]);
+  const locationCheckRef = useRef(locationCheck);
+  useEffect(() => {
+    locationCheckRef.current = locationCheck;
+  }, [locationCheck]);
   const [scanningBarcode, setScanningBarcode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [useGuidedForm, setUseGuidedForm] = useState(false);
@@ -447,6 +461,17 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     }
   }
 
+  // The background polling effect below only sets up its timer loop once
+  // (it must not restart on every coords/locationCheck change — see the
+  // comment there), so it can't call handleFindMyLocation directly: that
+  // would pin it to the stale coords/accuracy captured on the render the
+  // effect first ran. Keeping this ref current on every render lets the
+  // long-lived timer always call the latest version instead.
+  const handleFindMyLocationRef = useRef(handleFindMyLocation);
+  useEffect(() => {
+    handleFindMyLocationRef.current = handleFindMyLocation;
+  });
+
   // Runs the location check automatically as soon as a fix is available —
   // only on the Check Price tab (the Search items tab has no "what store am
   // I at" concept at all) and only once per result, so it doesn't refire on
@@ -461,17 +486,84 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // Keeps "you are at [store]" current while the panel is on screen —
   // someone can easily walk from an unregistered spot into a store (or the
   // other way round) without ever tapping anything, so this re-checks on
-  // its own rather than requiring a manual refresh. Every 10s: frequent
-  // enough that walking up to a store is reflected almost immediately,
-  // without the shopper ever having to tap anything.
+  // its own rather than requiring a manual refresh. Scales how often it
+  // actually hits the network instead of polling on a flat timer, since a
+  // flat 10s poll means real cost (a DB round trip) for no benefit the
+  // moment someone's phone is in their pocket or they've stopped moving:
+  //  - paused completely while the app isn't visible (another app in
+  //    front, screen locked) — resumes with an immediate check the instant
+  //    it's visible again, so nothing feels delayed on return
+  //  - the full 10s cadence only while the device has genuinely moved
+  //    since the last check; a slower 45s cadence while it's stayed in
+  //    roughly the same spot, since the answer can't have changed
+  //  - paused while confidently "at" a store and still within its radius —
+  //    walking out resumes the fast cadence for the next check
   useEffect(() => {
     if (initialMode !== "menu" || checkPriceRevealed) return;
-    const id = setInterval(() => {
-      if (coords) handleFindMyLocation(true);
-    }, 10000);
-    return () => clearInterval(id);
+
+    const FAST_MS = 10000;
+    const SLOW_MS = 45000;
+    const MOVED_THRESHOLD_M = 15; // below this, treated as GPS noise, not real movement
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
+    let lastPolledCoords: { lat: number; lng: number } | null = null;
+
+    function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+      const R = 6371000;
+      const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+      const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+      const s =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(s));
+    }
+
+    function schedule(delay: number) {
+      if (cancelled) return;
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(tick, delay);
+    }
+
+    async function tick() {
+      if (cancelled) return;
+      const liveCoords = coordsRef.current;
+      if (document.visibilityState !== "visible" || !liveCoords) {
+        // Backgrounded or no fix yet — nothing to poll. visibilitychange
+        // below fires an immediate check as soon as it's visible again,
+        // so this isn't "missing" an update, just not wasting one now.
+        schedule(FAST_MS);
+        return;
+      }
+
+      const knownStore = locationCheckRef.current?.store;
+      const atKnownStore =
+        !!knownStore &&
+        distanceMeters(liveCoords, { lat: knownStore.store_lat, lng: knownStore.store_lng }) <= AT_STORE_METERS;
+      const moved = !lastPolledCoords || distanceMeters(liveCoords, lastPolledCoords) > MOVED_THRESHOLD_M;
+
+      if (!atKnownStore && moved) {
+        lastPolledCoords = { lat: liveCoords.lat, lng: liveCoords.lng };
+        await handleFindMyLocationRef.current(true);
+      }
+
+      schedule(atKnownStore || !moved ? SLOW_MS : FAST_MS);
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") tick();
+    }
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    schedule(FAST_MS);
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialMode, checkPriceRevealed, coords]);
+  }, [initialMode, checkPriceRevealed]);
 
   // Explicit reset for "Start a new check": clears the result and every bit
   // of state tied to the last one, and drops back to the Check Price menu
