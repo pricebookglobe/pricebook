@@ -796,54 +796,55 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // "Save: X" line — compares the cheapest price within 5km of the shopper
   // to the priciest option in that same 5km radius, so the best-price row
   // shows exactly how much choosing it saves versus the worse nearby
-  // option. Grouped by product_id first and NEVER compared across groups —
-  // a search like "Ultra" can match several different products (bottled
-  // water, multivitamins, …) at wildly different natural prices, and
-  // comparing a cheap item against an expensive unrelated one produced a
-  // nonsense "Save" figure.
-  //
-  // product_id alone isn't fully trusted either — within each group, a
-  // candidate match additionally has to agree on size, unit, and
-  // manufacturer (falling back to brand when manufacturer isn't set)
-  // before it's ever compared against the group's cheapest row. See
-  // supabase/migrations/0028's comment for why: the "add item" dedup
-  // logic skips any of those checks that weren't provided on a given
-  // submission, so product_id alone can't be fully trusted to mean "same
-  // size and manufacturer." Only shown ("if exist") when there's a real
-  // spread between genuinely identical items — a single store within
-  // 5km, or several at the same price, has nothing meaningful to show.
+  // option. Identity is name + size + unit + manufacturer (falling back
+  // to brand) — deliberately NOT product_id. product_id is per-listing:
+  // two different merchants independently adding "Snickers" to their own
+  // inventory get two different products rows (and so two different
+  // product_id values) even though it's obviously the same real item —
+  // search already matches both under one query via embedding similarity,
+  // but requiring equal product_id for the savings comparison silently
+  // blocked every cross-merchant match, which is the single most common
+  // real case (that's the bug this replaces — Super2 and Astro both
+  // listing "Snickers" showed no savings at all). Matching on the item's
+  // actual attributes instead catches that case correctly, while still
+  // keeping genuinely different products (e.g. "Ultra Bottled Drinking
+  // Water" vs "Ultra Multivits & Minerals" — different names) apart. Only
+  // shown ("if exist") when there's a real spread between identical
+  // items — a single store within 5km, or several at the same price, has
+  // nothing meaningful to show.
+  function itemIdentity(r: SearchResult): string {
+    const name = (r.product_name || "").trim().toLowerCase();
+    const size = r.size ?? "";
+    const unit = (r.unit || "").trim().toLowerCase();
+    const maker = (r.manufacturer || r.brand || "").trim().toLowerCase();
+    return `${name}::${size}::${unit}::${maker}`;
+  }
   function sameItem(a: SearchResult, b: SearchResult): boolean {
-    if (a.product_id !== b.product_id) return false;
-    if ((a.size ?? null) !== (b.size ?? null)) return false;
-    if ((a.unit ?? "").trim().toLowerCase() !== (b.unit ?? "").trim().toLowerCase()) return false;
-    const makerA = (a.manufacturer || a.brand || "").trim().toLowerCase();
-    const makerB = (b.manufacturer || b.brand || "").trim().toLowerCase();
-    return makerA === makerB;
+    return itemIdentity(a) === itemIdentity(b);
   }
   const bestWithin5kmByProduct = (() => {
     const groups = new Map<string, SearchResult[]>();
     for (const r of sorted) {
       if (r.distance_m > 5000) continue;
-      const arr = groups.get(r.product_id) ?? [];
+      const identity = itemIdentity(r);
+      const arr = groups.get(identity) ?? [];
       arr.push(r);
-      groups.set(r.product_id, arr);
+      groups.set(identity, arr);
     }
     const map = new Map<string, { key: string; savings: number }>();
-    for (const [productId, items] of groups) {
+    for (const [identity, items] of groups) {
       if (items.length < 2) continue;
       const best = items.reduce((m, r) => (r.price < m.price ? r : m), items[0]);
-      const comparable = items.filter((r) => sameItem(r, best));
-      if (comparable.length < 2) continue;
-      const worst = comparable.reduce((m, r) => (r.price > m.price ? r : m), comparable[0]);
+      const worst = items.reduce((m, r) => (r.price > m.price ? r : m), items[0]);
       const savings = worst.price - best.price;
       if (savings > 0) {
-        map.set(productId, { key: `${best.store_id}::${best.product_id}`, savings });
+        map.set(identity, { key: `${best.store_id}::${best.product_id}`, savings });
       }
     }
     return map;
   })();
   function savingsFor(r: SearchResult): number | undefined {
-    const entry = bestWithin5kmByProduct.get(r.product_id);
+    const entry = bestWithin5kmByProduct.get(itemIdentity(r));
     return entry && entry.key === `${r.store_id}::${r.product_id}` ? entry.savings : undefined;
   }
 
