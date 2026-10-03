@@ -780,6 +780,18 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         sortMode === "price" ? a.price - b.price : a.distance_m - b.distance_m
       )
     : [];
+  // One product image for the whole results screen — not per-row. Every
+  // row here is the same searched-for item at a different store, so
+  // there's one real photo to show, not several; picks the first one
+  // actually set, checking local_results (in whatever order they came
+  // back in, not price/distance-sorted) before falling back to the
+  // near/city-best callouts, since those can have an image even when
+  // local_results is empty.
+  const productImageUrl =
+    result?.local_results.find((r) => r.image_url)?.image_url ??
+    result?.near_best?.image_url ??
+    result?.city_best?.image_url ??
+    null;
   // Identifies the single cheapest row, not just the cheapest store — a
   // store can now show more than one row (different products matching the
   // same partial-name search), so "store_id" alone could mark more than
@@ -1149,6 +1161,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
       {result && (
         <section className="mt-8">
+          {productImageUrl && (
+            <img
+              src={productImageUrl}
+              alt={displayProductName(result.query.brand, result.query.product_name)}
+              className="mb-3 h-40 w-40 rounded-lg border border-line bg-field-raised object-contain"
+            />
+          )}
           <div className="mb-2 flex items-baseline justify-between gap-2">
             <h2 className="font-display text-lg font-bold text-ink">
               {displayProductName(result.query.brand, result.query.product_name)}

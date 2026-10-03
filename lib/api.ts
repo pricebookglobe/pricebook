@@ -23,6 +23,9 @@ export type SearchResult = {
   manufacturer: string | null;
   size: number | null;
   unit: string | null;
+  // The product's own photo, set during "Add item" (an uploaded photo, or
+  // the image a barcode lookup returned) — not a store photo.
+  image_url: string | null;
   price: number;
   currency: string;
   distance_m: number;
