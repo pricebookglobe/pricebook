@@ -442,11 +442,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     let snapWasInFlight = false;
     let scanWasInFlight = false;
     try {
-      snapWasInFlight = sessionStorage.getItem(snapInFlightKey(initialMode)) === "1";
-      scanWasInFlight = sessionStorage.getItem(scanInFlightKey(initialMode)) === "1";
-      sessionStorage.removeItem(snapInFlightKey(initialMode));
-      sessionStorage.removeItem(scanInFlightKey(initialMode));
-      sessionStorage.removeItem(searchCacheKey(initialMode));
+      snapWasInFlight = localStorage.getItem(snapInFlightKey(initialMode)) === "1";
+      scanWasInFlight = localStorage.getItem(scanInFlightKey(initialMode)) === "1";
+      localStorage.removeItem(snapInFlightKey(initialMode));
+      localStorage.removeItem(scanInFlightKey(initialMode));
+      localStorage.removeItem(searchCacheKey(initialMode));
     } catch {
       // storage unavailable — nothing to clear
     }
@@ -639,13 +639,21 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
   // Inside the native app, Snap hands off to @capacitor/camera's own
   // getPhoto() instead of the hidden <input capture> below. That plugin's
-  // bridge is specifically engineered to survive the exact scenario that
-  // caused the "Snap resets the app" bug: it persists the pending call
-  // before handing off to Android's native camera, and resumes it
-  // correctly even if the WebView's process gets killed and recreated
-  // while the camera is open. So the sessionStorage in-flight flag below
-  // is only needed for the website's plain <input capture> flow, which has
-  // no such protection.
+  // bridge is DESIGNED to survive the exact scenario that caused the
+  // "Snap resets the app" bug (persisting the pending call before handing
+  // off to Android's native camera, and resuming it once the WebView
+  // reloads) — but real-device testing still shows a full reset with no
+  // recovery, so that guarantee isn't holding up in practice (possibly a
+  // Capacitor/plugin-version quirk, possibly the process being killed
+  // more thoroughly than the bridge expects on some devices). The
+  // in-flight flag below is now set on BOTH paths as a result — it's the
+  // one mechanism that's actually ours to guarantee, and it has to be in
+  // localStorage, not sessionStorage: sessionStorage does not survive a
+  // full Android process kill (only disk-backed storage does), so a flag
+  // written there was silently gone by the time the app relaunched,
+  // which is exactly why the "please try again" recovery banner was
+  // never showing — it looked like a clean reset because the one piece of
+  // state that would have explained it didn't survive either.
   async function handleSnap() {
     // Clear whatever result is currently on screen the moment Snap is
     // tapped, not just once a new photo comes back — otherwise the old
@@ -660,7 +668,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     // as a safety net either way — it only ever matters if a reload
     // actually happens before the flag is cleared below.
     try {
-      sessionStorage.setItem(snapInFlightKey(initialMode), "1");
+      localStorage.setItem(snapInFlightKey(initialMode), "1");
     } catch {
       // storage unavailable — the in-flight check is simply skipped
     }
@@ -680,14 +688,14 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           width: 1600
         });
         try {
-          sessionStorage.removeItem(snapInFlightKey(initialMode));
+          localStorage.removeItem(snapInFlightKey(initialMode));
         } catch {
           // storage unavailable — nothing to clear
         }
         if (photo.base64String) runSearch({ imageBase64: photo.base64String });
       } catch (e: any) {
         try {
-          sessionStorage.removeItem(snapInFlightKey(initialMode));
+          localStorage.removeItem(snapInFlightKey(initialMode));
         } catch {
           // storage unavailable — nothing to clear
         }
@@ -707,7 +715,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     // The camera handed a photo back without this page reloading in
     // between, so the capture completed cleanly — clear the in-flight flag.
     try {
-      sessionStorage.removeItem(snapInFlightKey(initialMode));
+      localStorage.removeItem(snapInFlightKey(initialMode));
     } catch {
       // storage unavailable — nothing to clear
     }
@@ -723,7 +731,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // so the flag is only ever left set if a reload cuts the scan short.
   function closeScanner() {
     try {
-      sessionStorage.removeItem(scanInFlightKey(initialMode));
+      localStorage.removeItem(scanInFlightKey(initialMode));
     } catch {
       // storage unavailable — nothing to clear
     }
@@ -1037,7 +1045,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 setError(null);
                 setScanInterrupted(false);
                 try {
-                  sessionStorage.setItem(scanInFlightKey(initialMode), "1");
+                  localStorage.setItem(scanInFlightKey(initialMode), "1");
                 } catch {
                   // storage unavailable — the in-flight check is simply skipped
                 }
