@@ -15,6 +15,14 @@ export type SearchResult = {
   store_lng: number;
   product_id: string;
   product_name: string;
+  // Added alongside product_id so the client can confirm two matches are
+  // genuinely the same item (same size, same manufacturer) before ever
+  // comparing their prices — see supabase/migrations/0028 for why this
+  // isn't just trusted to product_id alone.
+  brand: string | null;
+  manufacturer: string | null;
+  size: number | null;
+  unit: string | null;
   price: number;
   currency: string;
   distance_m: number;
