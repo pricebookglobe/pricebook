@@ -788,18 +788,38 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // "Save: X" line — compares the cheapest price within 5km of the shopper
   // to the priciest option in that same 5km radius, so the best-price row
   // shows exactly how much choosing it saves versus the worse nearby
-  // option. Only computed (and only shown, "if exist") when there's an
-  // actual spread to save against — a single store within 5km, or several
-  // all at the same price, has nothing meaningful to show here.
-  const bestWithin5km = (() => {
-    const withinRange = sorted.filter((r) => r.distance_m <= 5000);
-    if (withinRange.length < 2) return null;
-    const best = withinRange.reduce((m, r) => (r.price < m.price ? r : m), withinRange[0]);
-    const worst = withinRange.reduce((m, r) => (r.price > m.price ? r : m), withinRange[0]);
-    const savings = worst.price - best.price;
-    if (savings <= 0) return null;
-    return { key: `${best.store_id}::${best.product_id}`, savings, currency: best.currency };
+  // option. Grouped by product_id first and NEVER compared across groups —
+  // a search like "Ultra" can match several different products (bottled
+  // water, multivitamins, …) at wildly different natural prices, and
+  // comparing a cheap item against an expensive unrelated one produced a
+  // nonsense "Save" figure. Only computed (and only shown, "if exist")
+  // when there's an actual spread within the SAME product to save against
+  // — a single store within 5km, or several at the same price, has
+  // nothing meaningful to show here.
+  const bestWithin5kmByProduct = (() => {
+    const groups = new Map<string, SearchResult[]>();
+    for (const r of sorted) {
+      if (r.distance_m > 5000) continue;
+      const arr = groups.get(r.product_id) ?? [];
+      arr.push(r);
+      groups.set(r.product_id, arr);
+    }
+    const map = new Map<string, { key: string; savings: number }>();
+    for (const [productId, items] of groups) {
+      if (items.length < 2) continue;
+      const best = items.reduce((m, r) => (r.price < m.price ? r : m), items[0]);
+      const worst = items.reduce((m, r) => (r.price > m.price ? r : m), items[0]);
+      const savings = worst.price - best.price;
+      if (savings > 0) {
+        map.set(productId, { key: `${best.store_id}::${best.product_id}`, savings });
+      }
+    }
+    return map;
   })();
+  function savingsFor(r: SearchResult): number | undefined {
+    const entry = bestWithin5kmByProduct.get(r.product_id);
+    return entry && entry.key === `${r.store_id}::${r.product_id}` ? entry.savings : undefined;
+  }
 
   // Same "Save: X" idea, for the "Best price within 5km" callout box
   // specifically (result.near_best — the single cheapest match within
@@ -808,12 +828,18 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // (the most meaningful baseline — "you'd save X by going here instead
   // of where you are"); falls back to the priciest match within 5km,
   // same basis as the table's savings line, when there's no detected
-  // store to compare against.
+  // store to compare against. Every comparison is restricted to
+  // near_best's own product_id — atStore and the 5km list can both
+  // contain other, unrelated products from the same search, and
+  // comparing across products produced a nonsense "Save" figure.
   const nearBestSavings = (() => {
     const nb = result?.near_best;
     if (!nb) return null;
-    if (atStore && atStore.price > nb.price) return atStore.price - nb.price;
-    const withinRange = sorted.filter((r) => r.distance_m <= 5000);
+    const sameProductAtStore = atStore && atStore.product_id === nb.product_id ? atStore : null;
+    if (sameProductAtStore && sameProductAtStore.price > nb.price) {
+      return sameProductAtStore.price - nb.price;
+    }
+    const withinRange = sorted.filter((r) => r.distance_m <= 5000 && r.product_id === nb.product_id);
     if (withinRange.length === 0) return null;
     const worst = withinRange.reduce((m, r) => (r.price > m.price ? r : m), withinRange[0]);
     return worst.price > nb.price ? worst.price - nb.price : null;
@@ -1219,7 +1245,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                   key={r.store_id + r.product_id}
                   result={r}
                   isCheapest={`${r.store_id}::${r.product_id}` === cheapestKey}
-                  savingsAmount={bestWithin5km && bestWithin5km.key === `${r.store_id}::${r.product_id}` ? bestWithin5km.savings : undefined}
+                  savingsAmount={savingsFor(r)}
                   rating={ratings[r.store_id]}
                   variant="card"
                 />
@@ -1241,7 +1267,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                     key={r.store_id + r.product_id}
                     result={r}
                     isCheapest={`${r.store_id}::${r.product_id}` === cheapestKey}
-                    savingsAmount={bestWithin5km && bestWithin5km.key === `${r.store_id}::${r.product_id}` ? bestWithin5km.savings : undefined}
+                    savingsAmount={savingsFor(r)}
                     rating={ratings[r.store_id]}
                   />
                 ))}
