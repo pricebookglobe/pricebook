@@ -763,6 +763,22 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         })()
       : null;
   const atStore = sorted.find((r) => r.distance_m <= AT_STORE_METERS) ?? null;
+
+  // "Save: X" line — compares the cheapest price within 5km of the shopper
+  // to the priciest option in that same 5km radius, so the best-price row
+  // shows exactly how much choosing it saves versus the worse nearby
+  // option. Only computed (and only shown, "if exist") when there's an
+  // actual spread to save against — a single store within 5km, or several
+  // all at the same price, has nothing meaningful to show here.
+  const bestWithin5km = (() => {
+    const withinRange = sorted.filter((r) => r.distance_m <= 5000);
+    if (withinRange.length < 2) return null;
+    const best = withinRange.reduce((m, r) => (r.price < m.price ? r : m), withinRange[0]);
+    const worst = withinRange.reduce((m, r) => (r.price > m.price ? r : m), withinRange[0]);
+    const savings = worst.price - best.price;
+    if (savings <= 0) return null;
+    return { key: `${best.store_id}::${best.product_id}`, savings, currency: best.currency };
+  })();
   // Always show the full list of every store carrying the item — it used
   // to be hidden behind a "See best prices nearby too" link whenever you
   // were detected as standing at a store, but the shopper should be able
@@ -1163,6 +1179,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                   key={r.store_id + r.product_id}
                   result={r}
                   isCheapest={`${r.store_id}::${r.product_id}` === cheapestKey}
+                  savingsAmount={bestWithin5km && bestWithin5km.key === `${r.store_id}::${r.product_id}` ? bestWithin5km.savings : undefined}
                   rating={ratings[r.store_id]}
                   variant="card"
                 />
@@ -1184,6 +1201,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                     key={r.store_id + r.product_id}
                     result={r}
                     isCheapest={`${r.store_id}::${r.product_id}` === cheapestKey}
+                    savingsAmount={bestWithin5km && bestWithin5km.key === `${r.store_id}::${r.product_id}` ? bestWithin5km.savings : undefined}
                     rating={ratings[r.store_id]}
                   />
                 ))}

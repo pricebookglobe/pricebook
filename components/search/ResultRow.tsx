@@ -185,14 +185,26 @@ function ActionsMenu({
   );
 }
 
+// Fluorescent/"phosphoric" orange, distinct from every other color in the
+// app on purpose — the "Save: X" line is meant to pop, not blend into the
+// usual green=cheaper palette, so it reads as a one-off callout rather
+// than another price label. A soft matching glow reinforces that.
+const SAVE_ORANGE = "#FF6A00";
+
 export function ResultRow({
   result,
   isCheapest,
+  savingsAmount,
   rating,
   variant = "row"
 }: {
   result: SearchResult;
   isCheapest: boolean;
+  /** How much cheaper this row is than the priciest option within 5km of
+   *  the shopper, in the same currency as `result.currency` — undefined
+   *  (not shown) when this row isn't the best-within-5km match, or when
+   *  there's no real spread within 5km to save against. */
+  savingsAmount?: number;
   /** This store's review summary (average emoji rating + count), looked up
    *  in a single batched request by the parent screen — undefined while
    *  that request is still in flight. */
@@ -230,6 +242,16 @@ export function ResultRow({
               )}
               {t("Price")}: {result.price.toFixed(2)} <span className="text-xs font-normal text-ash">{result.currency}</span>
             </p>
+            {/* Savings callout, if this row is the best price within 5km —
+                its own line, right above Open in Maps. */}
+            {savingsAmount != null && (
+              <p
+                className="mt-1.5 font-mono text-[12px] font-bold"
+                style={{ color: SAVE_ORANGE, textShadow: `0 0 6px ${SAVE_ORANGE}80` }}
+              >
+                {t("Save")}: {savingsAmount.toFixed(2)} {result.currency}
+              </p>
+            )}
             {/* (4) Open in Maps + Visit Store Page, on their own line. */}
             <div className="mt-1.5 flex items-center gap-3">
               <a
@@ -278,6 +300,16 @@ export function ResultRow({
             )}
             {t("Price")}: {result.price.toFixed(2)} <span className="text-xs font-normal text-ash">{result.currency}</span>
           </p>
+          {/* Savings callout, if this row is the best price within 5km —
+              its own line, right above Open in Maps. */}
+          {savingsAmount != null && (
+            <p
+              className="mt-1.5 font-mono text-[12px] font-bold"
+              style={{ color: SAVE_ORANGE, textShadow: `0 0 6px ${SAVE_ORANGE}80` }}
+            >
+              {t("Save")}: {savingsAmount.toFixed(2)} {result.currency}
+            </p>
+          )}
           {/* (4) Open in Maps + Visit Store Page, on their own line. */}
           <div className="mt-1.5 flex items-center gap-3">
             <a
