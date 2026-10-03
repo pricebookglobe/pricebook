@@ -15,3 +15,17 @@ export function displayProductName(brand: string | null | undefined, name: strin
   if (trimmedName.toLowerCase().includes(brand.trim().toLowerCase())) return trimmedName;
   return `${brand.trim()} ${trimmedName}`;
 }
+
+/**
+ * The item's size/unit shown next to its name as a bracketed tag, e.g.
+ * "Snickers [75g]" — "" (nothing to render) when either half is missing,
+ * since a size with no unit (or vice versa) isn't meaningful on its own.
+ */
+export function formatSizeTag(size: number | null | undefined, unit: string | null | undefined): string {
+  if (size == null || !unit || !unit.trim()) return "";
+  const trimmedUnit = unit.trim();
+  // Size values come through as numeric (often a float like 75.0) — show
+  // whole numbers cleanly, keep decimals when they're actually meaningful.
+  const sizeStr = Number.isInteger(size) ? String(size) : String(Number(size.toFixed(2)));
+  return `[${sizeStr}${trimmedUnit}]`;
+}

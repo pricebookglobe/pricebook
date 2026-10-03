@@ -6,6 +6,7 @@ import type { SearchResult } from "@/lib/api";
 import { reportPrice } from "@/lib/api";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { formatSizeTag } from "@/lib/productName";
 import { EmojiRating } from "@/components/shared/EmojiRating";
 
 export type StoreRating = { average_rating: number | null; count: number };
@@ -223,7 +224,12 @@ export function ResultRow({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             {/* (1) Item name. */}
-            <p className="truncate font-display text-[14px] font-semibold text-ink">{result.product_name}</p>
+            <p className="truncate font-display text-[14px] font-semibold text-ink">
+              {result.product_name}
+              {formatSizeTag(result.size, result.unit) && (
+                <span className="ml-1 font-mono text-[12px] font-normal text-ash">{formatSizeTag(result.size, result.unit)}</span>
+              )}
+            </p>
             {/* (2) Store name, on its own line, with the review circle + face. */}
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <span className={"h-1.5 w-1.5 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />
@@ -279,7 +285,12 @@ export function ResultRow({
       <tr>
         {/* (1) Item name. */}
         <td className="align-top">
-          <p className="font-medium text-ink">{result.product_name}</p>
+          <p className="font-medium text-ink">
+            {result.product_name}
+            {formatSizeTag(result.size, result.unit) && (
+              <span className="ml-1 font-mono text-[12px] font-normal text-ash">{formatSizeTag(result.size, result.unit)}</span>
+            )}
+          </p>
           {/* (2) Store name, on its own line, with the review circle + face. */}
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <span className={"h-2 w-2 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />

@@ -13,7 +13,7 @@ import { BarcodeScanner } from "@/components/shared/BarcodeScanner";
 import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import { displayProductName } from "@/lib/productName";
+import { displayProductName, formatSizeTag } from "@/lib/productName";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
 import { Capacitor } from "@capacitor/core";
 import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
@@ -1181,6 +1181,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           <div className="mb-2 flex items-baseline justify-between gap-2">
             <h2 className="font-display text-lg font-bold text-ink">
               {displayProductName(result.query.brand, result.query.product_name)}
+              {formatSizeTag(result.query.size, result.query.unit) && (
+                <span className="ml-1.5 font-mono text-sm font-normal text-ash">
+                  {formatSizeTag(result.query.size, result.query.unit)}
+                </span>
+              )}
             </h2>
             <div className="flex items-center gap-2">
               {result.tier && (
