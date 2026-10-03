@@ -1,0 +1,90 @@
+name: Build signed Android release (AAB)
+
+# Builds the signed .aab PriceBook uploads to Google Play — triggered only
+# by hand from the Actions tab (never on push), since every run consumes
+# the release signing key via repo secrets and should be a deliberate
+# "I want a release build now" action, not something that fires on every
+# commit to mobile/.
+#
+# Needs four repository secrets set first (Settings -> Secrets and
+# variables -> Actions -> New repository secret):
+#   ANDROID_KEYSTORE_BASE64   - the upload keystore file, base64-encoded
+#   ANDROID_KEYSTORE_PASSWORD - its store password
+#   ANDROID_KEY_ALIAS         - the key alias inside it (e.g. "pricebook")
+#   ANDROID_KEY_PASSWORD      - its key password
+# See mobile/android/app/keystore.properties.example for what these map to
+# locally — this workflow builds the same keystore.properties from secrets
+# instead of a checked-in file.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    name: Build signed release AAB
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK packages
+        run: |
+          set -e
+          SDK_MANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDK_MANAGER" ]; then
+            SDK_MANAGER=$(find "$ANDROID_SDK_ROOT/cmdline-tools" -maxdepth 2 -name sdkmanager -type f | sort -V | tail -1)
+          fi
+          echo "Using sdkmanager: $SDK_MANAGER"
+          yes | "$SDK_MANAGER" --licenses > /dev/null || true
+          "$SDK_MANAGER" --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install mobile app dependencies
+        run: npm install
+
+      - name: Sync the native Android project
+        run: npx cap sync android
+
+      # Rebuilds the exact two files a local build reads from
+      # mobile/android/app/keystore.properties.example, from secrets
+      # instead of a checked-in file — neither the keystore nor its
+      # passwords are ever written to the repo or build logs.
+      - name: Write the signing key and keystore.properties from secrets
+        working-directory: mobile/android/app
+        run: |
+          set -e
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > pricebook-upload-key.jks
+          cat > keystore.properties <<EOF
+          storeFile=app/pricebook-upload-key.jks
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build the signed release AAB
+        working-directory: mobile/android
+        run: ./gradlew bundleRelease --stacktrace
+
+      - name: Remove the signing key from the runner's workspace
+        if: always()
+        working-directory: mobile/android/app
+        run: rm -f pricebook-upload-key.jks keystore.properties
+
+      - name: Upload the AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: PriceBook-release-aab
+          path: mobile/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error

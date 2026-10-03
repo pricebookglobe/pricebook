@@ -33,8 +33,9 @@ jobs:
           java-version: "17"
 
       # Install exactly the SDK pieces this project's build.gradle asks for
-      # (compileSdk/targetSdk 34), instead of relying on a third-party action
-      # that has been flaky about "wrong version" / license prompts.
+      # (compileSdk/targetSdk 36, as of the Play Store's August 2026 target-
+      # API deadline), instead of relying on a third-party action that has
+      # been flaky about "wrong version" / license prompts.
       - name: Install Android SDK packages
         run: |
           set -e
@@ -44,7 +45,7 @@ jobs:
           fi
           echo "Using sdkmanager: $SDK_MANAGER"
           yes | "$SDK_MANAGER" --licenses > /dev/null || true
-          "$SDK_MANAGER" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          "$SDK_MANAGER" --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Install mobile app dependencies
         run: npm install
