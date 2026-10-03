@@ -94,8 +94,11 @@ export default function PrivacyPolicy() {
 
       <Section title="8. Contact">
         <p>
-          Questions about this policy, or requests to access or delete your data, can be sent to the email address
-          associated with your PriceBook account's support channel, or through the Settings page in the app.
+          Questions about this policy, or requests to access or delete your data, can be sent to{" "}
+          <a href="mailto:support-pricebook@institute-of-ai.org" className="underline hover:text-ink">
+            support-pricebook@institute-of-ai.org
+          </a>
+          , or through the Settings page in the app.
         </p>
       </Section>
 
