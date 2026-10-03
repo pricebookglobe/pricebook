@@ -92,6 +92,12 @@ function PriceCallout({
   const [busy, setBusy] = useState(false);
   const [showNutrition, setShowNutrition] = useState(false);
 
+  // The [75g]-style size tag, placed right after the name's last word — and
+  // a long name (more than three words) drops the Nutrition facts button to
+  // its own line below instead of squeezing both onto one row.
+  const sizeTag = formatSizeTag(result.size, result.unit);
+  const nameIsLong = result.product_name.trim().split(/\s+/).filter(Boolean).length > 3;
+
   async function handleReport(type: "correct_price" | "wrong_price") {
     setBusy(true);
     try {
@@ -121,15 +127,23 @@ function PriceCallout({
     return (
       <div className="mb-3 rounded-lg bg-ink px-4 py-3.5 text-field">
         <p className="font-mono text-[10px] uppercase tracking-wide text-field/50">{label}</p>
-        {/* Item name, with Nutrition facts beside it on the same line. */}
-        <p className="mt-1 flex items-center justify-between gap-2 text-sm">
-          <strong className="text-field">{result.product_name}</strong>
+        {/* Item name (+ size tag right after the last word), with Nutrition
+            facts beside it — dropped to its own line below when the name
+            runs long, instead of squeezing both onto one row. */}
+        <div className={nameIsLong ? "mt-1 flex flex-col gap-1 text-sm" : "mt-1 flex items-center justify-between gap-2 text-sm"}>
+          <strong className="text-field">
+            {result.product_name}
+            {sizeTag && <span className="ml-1.5 font-mono text-xs font-normal text-field/60">{sizeTag}</span>}
+          </strong>
           {result.nutrition_facts && (
-            <button onClick={() => setShowNutrition((s) => !s)} className="shrink-0 text-xs text-field/80 underline">
+            <button
+              onClick={() => setShowNutrition((s) => !s)}
+              className={nameIsLong ? "self-start text-xs text-field/80 underline" : "shrink-0 text-xs text-field/80 underline"}
+            >
               {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
             </button>
           )}
-        </p>
+        </div>
         {/* Store name — itself the link to the store page — on its own line. */}
         <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-field/60">
           <Link href={`/store/${result.store_id}`} className="font-medium text-[#7FE0AE] underline">
@@ -232,18 +246,27 @@ function PriceCallout({
 
   return (
     <div className="mb-3 rounded border border-ink/25 bg-ink/[0.07] px-4 py-3">
-      {/* Item name, with Nutrition facts beside it on the same line. */}
-      <p className="flex items-center justify-between gap-2 text-sm text-ink">
-        <strong>{result.product_name}</strong>
+      {/* Item name (+ size tag right after the last word), with Nutrition
+          facts beside it — dropped to its own line below when the name
+          runs long, instead of squeezing both onto one row. */}
+      <div className={nameIsLong ? "flex flex-col gap-1 text-sm text-ink" : "flex items-center justify-between gap-2 text-sm text-ink"}>
+        <strong>
+          {result.product_name}
+          {sizeTag && <span className="ml-1.5 font-mono text-xs font-normal text-ash">{sizeTag}</span>}
+        </strong>
         {result.nutrition_facts && (
           <button
             onClick={() => setShowNutrition((s) => !s)}
-            className="shrink-0 text-xs text-ink/70 underline hover:text-ink"
+            className={
+              nameIsLong
+                ? "self-start text-xs text-ink/70 underline hover:text-ink"
+                : "shrink-0 text-xs text-ink/70 underline hover:text-ink"
+            }
           >
             {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
           </button>
         )}
-      </p>
+      </div>
       {/* Store name — itself the link to the store page — on its own line. */}
       <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ash">
         {label}{" "}
