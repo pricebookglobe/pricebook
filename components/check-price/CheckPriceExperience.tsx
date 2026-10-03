@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useGeolocation } from "@/components/shared/GeolocationProvider";
-import { ResultRow, type StoreRating } from "@/components/search/ResultRow";
+import { ResultRow, SAVE_GREEN, type StoreRating } from "@/components/search/ResultRow";
 import { EmojiRating } from "@/components/shared/EmojiRating";
 import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
 import { FreeTextSearch } from "@/components/check-price/FreeTextSearch";
@@ -75,12 +75,17 @@ function PriceCallout({
   label,
   result,
   rating,
-  isNativeApp = false
+  isNativeApp = false,
+  savingsAmount
 }: {
   label: string;
   result: SearchResult;
   rating?: StoreRating;
   isNativeApp?: boolean;
+  /** How much cheaper this result is than what the shopper would otherwise
+   *  pay (their current store if detected, else the priciest nearby
+   *  match) — undefined/omitted hides the line entirely. */
+  savingsAmount?: number;
 }) {
   const { t } = useLanguage();
   const [reported, setReported] = useState<"correct_price" | "wrong_price" | null>(null);
@@ -137,6 +142,14 @@ function PriceCallout({
         <p className="mt-1 font-mono text-2xl text-[#7FE0AE]">
           {t("Price:")} {result.price.toFixed(2)} <span className="text-sm text-field/60">{result.currency}</span>
         </p>
+        {savingsAmount != null && (
+          <p
+            className="mt-1 font-mono text-sm font-bold"
+            style={{ color: SAVE_GREEN, textShadow: `0 0 6px ${SAVE_GREEN}80` }}
+          >
+            {t("Save")}: {savingsAmount.toFixed(2)} {result.currency}
+          </p>
+        )}
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
           {reported ? (
             <span className="font-mono text-[11px] text-[#7FE0AE]">
@@ -251,6 +264,14 @@ function PriceCallout({
       <p className="mt-1 font-mono text-lg text-ink">
         {t("Price:")} <strong>{result.price.toFixed(2)}</strong> <span className="text-xs text-ash">{result.currency}</span>
       </p>
+      {savingsAmount != null && (
+        <p
+          className="mt-1 font-mono text-sm font-bold"
+          style={{ color: SAVE_GREEN, textShadow: `0 0 6px ${SAVE_GREEN}80` }}
+        >
+          {t("Save")}: {savingsAmount.toFixed(2)} {result.currency}
+        </p>
+      )}
       <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
         {reported ? (
           <span className="font-mono text-[11px] text-value">
@@ -779,6 +800,24 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     if (savings <= 0) return null;
     return { key: `${best.store_id}::${best.product_id}`, savings, currency: best.currency };
   })();
+
+  // Same "Save: X" idea, for the "Best price within 5km" callout box
+  // specifically (result.near_best — the single cheapest match within
+  // 5km, independent of the comparison table above). Prefers comparing
+  // against what the shopper's currently paying at their detected store
+  // (the most meaningful baseline — "you'd save X by going here instead
+  // of where you are"); falls back to the priciest match within 5km,
+  // same basis as the table's savings line, when there's no detected
+  // store to compare against.
+  const nearBestSavings = (() => {
+    const nb = result?.near_best;
+    if (!nb) return null;
+    if (atStore && atStore.price > nb.price) return atStore.price - nb.price;
+    const withinRange = sorted.filter((r) => r.distance_m <= 5000);
+    if (withinRange.length === 0) return null;
+    const worst = withinRange.reduce((m, r) => (r.price > m.price ? r : m), withinRange[0]);
+    return worst.price > nb.price ? worst.price - nb.price : null;
+  })();
   // Always show the full list of every store carrying the item — it used
   // to be hidden behind a "See best prices nearby too" link whenever you
   // were detected as standing at a store, but the shopper should be able
@@ -1139,6 +1178,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               result={result.near_best}
               rating={ratings[result.near_best.store_id]}
               isNativeApp={isNativeApp}
+              savingsAmount={nearBestSavings ?? undefined}
             />
           )}
           {cityBestDiffersFromNear && result.city_best && (

@@ -185,11 +185,11 @@ function ActionsMenu({
   );
 }
 
-// Fluorescent/"phosphoric" orange, distinct from every other color in the
-// app on purpose — the "Save: X" line is meant to pop, not blend into the
-// usual green=cheaper palette, so it reads as a one-off callout rather
-// than another price label. A soft matching glow reinforces that.
-const SAVE_ORANGE = "#FF6A00";
+// Fluorescent/"phosphoric" green, deliberately more vivid than the app's
+// normal `value` green — the "Save: X" line is meant to pop as its own
+// callout, not just blend into the usual "cheaper" price color. A soft
+// matching glow reinforces that.
+export const SAVE_GREEN = "#39FF14";
 
 export function ResultRow({
   result,
@@ -247,7 +247,7 @@ export function ResultRow({
             {savingsAmount != null && (
               <p
                 className="mt-1.5 font-mono text-[12px] font-bold"
-                style={{ color: SAVE_ORANGE, textShadow: `0 0 6px ${SAVE_ORANGE}80` }}
+                style={{ color: SAVE_GREEN, textShadow: `0 0 6px ${SAVE_GREEN}80` }}
               >
                 {t("Save")}: {savingsAmount.toFixed(2)} {result.currency}
               </p>
@@ -305,7 +305,7 @@ export function ResultRow({
           {savingsAmount != null && (
             <p
               className="mt-1.5 font-mono text-[12px] font-bold"
-              style={{ color: SAVE_ORANGE, textShadow: `0 0 6px ${SAVE_ORANGE}80` }}
+              style={{ color: SAVE_GREEN, textShadow: `0 0 6px ${SAVE_GREEN}80` }}
             >
               {t("Save")}: {savingsAmount.toFixed(2)} {result.currency}
             </p>
