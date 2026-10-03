@@ -192,6 +192,23 @@ function ActionsMenu({
 // matching glow reinforces that.
 export const SAVE_GREEN = "#39FF14";
 
+// The "Save: X" callout, shared by every spot it appears (table row, app
+// card, and the "Best price within 5km" box) so the flashing box, size and
+// color stay identical everywhere — a bigger, bolder size than the rest of
+// the row's text, set inside a box that visibly flashes (see .save-flash-box
+// in globals.css) while the text itself keeps the steady SAVE_GREEN color.
+export function SaveBadge({ amount, currency, className = "mt-1.5" }: { amount: number; currency: string; className?: string }) {
+  const { t } = useLanguage();
+  return (
+    <p
+      className={`save-flash-box inline-block rounded-md border-2 px-2.5 py-1 font-mono text-base font-extrabold ${className}`}
+      style={{ color: SAVE_GREEN, borderColor: SAVE_GREEN }}
+    >
+      {t("Save")}: {amount.toFixed(2)} {currency}
+    </p>
+  );
+}
+
 export function ResultRow({
   result,
   isCheapest,
@@ -250,14 +267,7 @@ export function ResultRow({
             </p>
             {/* Savings callout, if this row is the best price within 5km —
                 its own line, right above Open in Maps. */}
-            {savingsAmount != null && (
-              <p
-                className="mt-1.5 font-mono text-[12px] font-bold"
-                style={{ color: SAVE_GREEN, textShadow: `0 0 6px ${SAVE_GREEN}80` }}
-              >
-                {t("Save")}: {savingsAmount.toFixed(2)} {result.currency}
-              </p>
-            )}
+            {savingsAmount != null && <SaveBadge amount={savingsAmount} currency={result.currency} />}
             {/* (4) Open in Maps + Visit Store Page, on their own line. */}
             <div className="mt-1.5 flex items-center gap-3">
               <a
@@ -313,14 +323,7 @@ export function ResultRow({
           </p>
           {/* Savings callout, if this row is the best price within 5km —
               its own line, right above Open in Maps. */}
-          {savingsAmount != null && (
-            <p
-              className="mt-1.5 font-mono text-[12px] font-bold"
-              style={{ color: SAVE_GREEN, textShadow: `0 0 6px ${SAVE_GREEN}80` }}
-            >
-              {t("Save")}: {savingsAmount.toFixed(2)} {result.currency}
-            </p>
-          )}
+          {savingsAmount != null && <SaveBadge amount={savingsAmount} currency={result.currency} />}
           {/* (4) Open in Maps + Visit Store Page, on their own line. */}
           <div className="mt-1.5 flex items-center gap-3">
             <a

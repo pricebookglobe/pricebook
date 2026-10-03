@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useGeolocation } from "@/components/shared/GeolocationProvider";
-import { ResultRow, SAVE_GREEN, type StoreRating } from "@/components/search/ResultRow";
+import { ResultRow, SaveBadge, type StoreRating } from "@/components/search/ResultRow";
 import { EmojiRating } from "@/components/shared/EmojiRating";
 import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
 import { FreeTextSearch } from "@/components/check-price/FreeTextSearch";
@@ -142,14 +142,7 @@ function PriceCallout({
         <p className="mt-1 font-mono text-2xl text-[#7FE0AE]">
           {t("Price:")} {result.price.toFixed(2)} <span className="text-sm text-field/60">{result.currency}</span>
         </p>
-        {savingsAmount != null && (
-          <p
-            className="mt-1 font-mono text-sm font-bold"
-            style={{ color: SAVE_GREEN, textShadow: `0 0 6px ${SAVE_GREEN}80` }}
-          >
-            {t("Save")}: {savingsAmount.toFixed(2)} {result.currency}
-          </p>
-        )}
+        {savingsAmount != null && <SaveBadge amount={savingsAmount} currency={result.currency} className="mt-1" />}
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
           {reported ? (
             <span className="font-mono text-[11px] text-[#7FE0AE]">
@@ -264,14 +257,7 @@ function PriceCallout({
       <p className="mt-1 font-mono text-lg text-ink">
         {t("Price:")} <strong>{result.price.toFixed(2)}</strong> <span className="text-xs text-ash">{result.currency}</span>
       </p>
-      {savingsAmount != null && (
-        <p
-          className="mt-1 font-mono text-sm font-bold"
-          style={{ color: SAVE_GREEN, textShadow: `0 0 6px ${SAVE_GREEN}80` }}
-        >
-          {t("Save")}: {savingsAmount.toFixed(2)} {result.currency}
-        </p>
-      )}
+      {savingsAmount != null && <SaveBadge amount={savingsAmount} currency={result.currency} className="mt-1" />}
       <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
         {reported ? (
           <span className="font-mono text-[11px] text-value">
