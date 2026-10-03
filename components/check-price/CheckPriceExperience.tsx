@@ -808,55 +808,65 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // "Save: X" line — compares the cheapest price within 5km of the shopper
   // to the priciest option in that same 5km radius, so the best-price row
   // shows exactly how much choosing it saves versus the worse nearby
-  // option. Identity is name + size + unit + manufacturer (falling back
-  // to brand) — deliberately NOT product_id. product_id is per-listing:
-  // two different merchants independently adding "Snickers" to their own
-  // inventory get two different products rows (and so two different
-  // product_id values) even though it's obviously the same real item —
-  // search already matches both under one query via embedding similarity,
-  // but requiring equal product_id for the savings comparison silently
-  // blocked every cross-merchant match, which is the single most common
-  // real case (that's the bug this replaces — Super2 and Astro both
-  // listing "Snickers" showed no savings at all). Matching on the item's
-  // actual attributes instead catches that case correctly, while still
-  // keeping genuinely different products (e.g. "Ultra Bottled Drinking
-  // Water" vs "Ultra Multivits & Minerals" — different names) apart. Only
-  // shown ("if exist") when there's a real spread between identical
-  // items — a single store within 5km, or several at the same price, has
-  // nothing meaningful to show.
-  function itemIdentity(r: SearchResult): string {
-    const name = (r.product_name || "").trim().toLowerCase();
-    const size = r.size ?? "";
-    const unit = (r.unit || "").trim().toLowerCase();
-    const maker = (r.manufacturer || r.brand || "").trim().toLowerCase();
-    return `${name}::${size}::${unit}::${maker}`;
+  // option. Matching is name-first (never compares two differently-named
+  // items — that's the original bug this whole thing started from:
+  // "Ultra Bottled Drinking Water" vs "Ultra Multivits & Minerals").
+  // Within a name match, size/unit/manufacturer only BLOCK the
+  // comparison when both sides actually have a value and it genuinely
+  // conflicts — a value present on one side and simply missing on the
+  // other does NOT block it. That matters in practice: two merchants
+  // independently listing "Snickers" very often won't both have filled
+  // in size/manufacturer, and treating "unknown" as a mismatch (an
+  // earlier version of this check did, requiring product_id equality,
+  // which is per-listing and even stricter) silently blocked the single
+  // most common real case — comparing the same well-known item across
+  // different stores — rather than just the genuine cross-product bug it
+  // was meant to catch. Only shown ("if exist") when there's a real
+  // spread between matching items — a single store within 5km, or
+  // several at the same price, has nothing meaningful to show.
+  function norm(s: string | number | null | undefined): string {
+    return s == null ? "" : String(s).trim().toLowerCase();
+  }
+  function fieldsConflict(a: string, b: string): boolean {
+    return a !== "" && b !== "" && a !== b;
   }
   function sameItem(a: SearchResult, b: SearchResult): boolean {
-    return itemIdentity(a) === itemIdentity(b);
+    if (norm(a.product_name) !== norm(b.product_name)) return false;
+    if (fieldsConflict(norm(a.size), norm(b.size))) return false;
+    if (fieldsConflict(norm(a.unit), norm(b.unit))) return false;
+    if (fieldsConflict(norm(a.manufacturer || a.brand), norm(b.manufacturer || b.brand))) return false;
+    return true;
   }
   const bestWithin5kmByProduct = (() => {
-    const groups = new Map<string, SearchResult[]>();
+    // Bucketed by name only — sameItem's size/unit/manufacturer leniency
+    // isn't guaranteed transitive (a blank-size listing can match both a
+    // 50g one and a 100g one without those two matching each other), so
+    // grouping has to go through sameItem() against a chosen "best" row
+    // rather than a single shared key standing in for the whole bucket.
+    const nameGroups = new Map<string, SearchResult[]>();
     for (const r of sorted) {
       if (r.distance_m > 5000) continue;
-      const identity = itemIdentity(r);
-      const arr = groups.get(identity) ?? [];
+      const key = norm(r.product_name);
+      const arr = nameGroups.get(key) ?? [];
       arr.push(r);
-      groups.set(identity, arr);
+      nameGroups.set(key, arr);
     }
     const map = new Map<string, { key: string; savings: number }>();
-    for (const [identity, items] of groups) {
+    for (const [name, items] of nameGroups) {
       if (items.length < 2) continue;
       const best = items.reduce((m, r) => (r.price < m.price ? r : m), items[0]);
-      const worst = items.reduce((m, r) => (r.price > m.price ? r : m), items[0]);
+      const comparable = items.filter((r) => sameItem(r, best));
+      if (comparable.length < 2) continue;
+      const worst = comparable.reduce((m, r) => (r.price > m.price ? r : m), comparable[0]);
       const savings = worst.price - best.price;
       if (savings > 0) {
-        map.set(identity, { key: `${best.store_id}::${best.product_id}`, savings });
+        map.set(name, { key: `${best.store_id}::${best.product_id}`, savings });
       }
     }
     return map;
   })();
   function savingsFor(r: SearchResult): number | undefined {
-    const entry = bestWithin5kmByProduct.get(itemIdentity(r));
+    const entry = bestWithin5kmByProduct.get(norm(r.product_name));
     return entry && entry.key === `${r.store_id}::${r.product_id}` ? entry.savings : undefined;
   }
 
