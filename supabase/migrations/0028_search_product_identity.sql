@@ -10,6 +10,16 @@
 -- theory reuse a product_id that doesn't actually share those attributes.
 -- Sending brand/manufacturer/size/unit through lets the client check the
 -- real attributes directly instead of trusting product_id alone.
+--
+-- Postgres won't let CREATE OR REPLACE change a function's return columns
+-- (its error: "cannot change return type of existing function... Row type
+-- defined by OUT parameters is different") — each function has to be
+-- dropped first, by its exact old signature, before being recreated with
+-- the new one.
+drop function if exists search_nearby_products(vector, double precision, double precision, integer, integer, double precision, text, double precision);
+drop function if exists search_nearby_products_by_text(text, double precision, double precision, integer, integer);
+drop function if exists search_nearby_products_by_barcode(text, double precision, double precision, integer, integer);
+
 create or replace function search_nearby_products(
   query_embedding vector(1536),
   user_lat double precision,
