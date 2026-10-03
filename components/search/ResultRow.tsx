@@ -186,24 +186,23 @@ function ActionsMenu({
   );
 }
 
-// Fluorescent/"phosphoric" green, deliberately more vivid than the app's
-// normal `value` green — the "Save: X" line is meant to pop as its own
-// callout, not just blend into the usual "cheaper" price color. A soft
-// matching glow reinforces that.
+// Fluorescent/"phosphoric" green — the "Save: X" line's resting color. Kept
+// as a named export since other code still reaches for it by name; the
+// badge itself now flashes between this and a gold accent (see
+// .save-flash-box in globals.css), rather than sitting on this color alone.
 export const SAVE_GREEN = "#39FF14";
 
 // The "Save: X" callout, shared by every spot it appears (table row, app
 // card, and the "Best price within 5km" box) so the flashing box, size and
 // color stay identical everywhere — a bigger, bolder size than the rest of
-// the row's text, set inside a box that visibly flashes (see .save-flash-box
-// in globals.css) while the text itself keeps the steady SAVE_GREEN color.
+// the row's text, set inside a box whose text/border/background all flash
+// between green and gold on a loop (.save-flash-box in globals.css). The
+// amount/currency span uses currentColor so it flashes along with the label
+// rather than freezing at one color.
 export function SaveBadge({ amount, currency, className = "mt-1.5" }: { amount: number; currency: string; className?: string }) {
   const { t } = useLanguage();
   return (
-    <p
-      className={`save-flash-box inline-block rounded-md border-2 px-2.5 py-1 font-mono text-base font-extrabold ${className}`}
-      style={{ color: SAVE_GREEN, borderColor: SAVE_GREEN }}
-    >
+    <p className={`save-flash-box inline-block rounded-md border-2 px-2.5 py-1 font-mono text-base font-extrabold ${className}`}>
       {t("Save")}: {amount.toFixed(2)} {currency}
     </p>
   );

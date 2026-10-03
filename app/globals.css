@@ -217,25 +217,33 @@ body {
   }
 }
 
-/* The "Save: X" callout's box — background and glow pulse between a dim
-   and a bright phosphoric-green state on a loop, so the box itself reads
-   as flashing while the text inside keeps its own steady SAVE_GREEN color. */
+/* The "Save: X" callout's box — text, border, background and glow all
+   flash on a loop between phosphoric green and a warm gold, so it reads as
+   genuinely alternating colors, not just a single color pulsing in
+   brightness. Text color rides along via `color` (the amount/currency
+   spans inside use currentColor, see ResultRow's SaveBadge). */
 @keyframes save-flash {
-  0%, 100% {
-    background-color: rgba(57, 255, 20, 0.10);
-    box-shadow: 0 0 6px rgba(57, 255, 20, 0.45);
+  0%, 45% {
+    color: #39FF14;
+    border-color: #39FF14;
+    background-color: rgba(57, 255, 20, 0.14);
+    box-shadow: 0 0 8px rgba(57, 255, 20, 0.6);
   }
-  50% {
-    background-color: rgba(57, 255, 20, 0.32);
-    box-shadow: 0 0 16px rgba(57, 255, 20, 0.95);
+  55%, 100% {
+    color: #FFC400;
+    border-color: #FFC400;
+    background-color: rgba(255, 196, 0, 0.16);
+    box-shadow: 0 0 8px rgba(255, 196, 0, 0.6);
   }
 }
 .save-flash-box {
-  animation: save-flash 1s ease-in-out infinite;
+  animation: save-flash 1.2s step-end infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .save-flash-box {
     animation: none;
+    color: #39FF14;
+    border-color: #39FF14;
     background-color: rgba(57, 255, 20, 0.22);
   }
 }
