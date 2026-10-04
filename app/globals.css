@@ -273,18 +273,20 @@ body {
   }
 }
 
-/* "Check Price & Compare" button's label — a slow, smooth opacity
-   breathe so the button draws a little attention as the main call to
-   action, without resizing/scaling anything (which would shift layout
-   or make the button itself look like it's wobbling). Applied to a span
-   wrapping just the text, never the button, so the button's own size/
-   padding never changes. */
+/* "Check Price & Compare" button's label — the text itself slowly grows
+   and shrinks a touch, like breathing, via `transform: scale()` on a span
+   wrapping just the text. A transform never affects layout (unlike
+   changing font-size, padding, etc.), so the BUTTON's own size never
+   moves — only the glyphs visually scale in place — and it composites on
+   its own GPU layer, so it doesn't fight with .btn-shine's sweep
+   (app/globals.css, defined elsewhere) running on the button underneath
+   it at the same time. */
 @keyframes text-breathe {
   0%, 100% {
-    opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.55;
+    transform: scale(1.08);
   }
 }
 .text-breathe {
@@ -294,6 +296,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .text-breathe {
     animation: none;
-    opacity: 1;
+    transform: scale(1);
   }
 }
