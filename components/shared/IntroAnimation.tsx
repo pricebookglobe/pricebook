@@ -76,6 +76,23 @@ export function IntroAnimation({ onFinished }: { onFinished: () => void }) {
           Price<span className="text-mark">Book</span>
         </p>
         <p className="font-display text-sm font-medium tracking-wide text-ash">Track Best Prices</p>
+        {/* This scene is the real "launch screen with just the logo" from the
+            shopper's point of view — the native splash behind it is only up
+            for a frame or two before this takes over, so the Institute of AI
+            credit belongs here, not on the native splash image, to actually
+            be seen. A plain page can make it a real link, unlike the native
+            splash which is a static image shown before any JS (incl. click
+            handling) exists. stopPropagation so tapping the link doesn't
+            also trigger the scene's skip-on-click. */}
+        <a
+          href="https://www.institute-of-ai.org"
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="absolute bottom-10 font-display text-xs text-ash underline"
+        >
+          Product from the Institute of AI
+        </a>
       </div>
 
       {/* Scene 2 — a shopper walks up to a store and the app recognizes it.
