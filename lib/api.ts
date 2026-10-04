@@ -96,29 +96,34 @@ export async function getStoreRanking(storeId: string): Promise<RankingRow[]> {
   return res.json();
 }
 
-export async function findNearestStore(
-  lat: number,
-  lng: number,
-  // The GPS fix's own accuracy radius in meters, when known — lets the
-  // server tell two nearby stores apart with confidence instead of
-  // guessing when a loose fix puts them within each other's margin of
-  // error. Omitted (not just a generous default) when the caller has no
-  // real reading, e.g. a manually-picked city.
-  accuracy?: number | null
-): Promise<{
+export type NearbyStore = {
   store_id: string;
   store_name: string;
   store_photo_url: string | null;
   store_lat: number;
   store_lng: number;
   distance_m: number;
-} | null> {
+};
+
+// Returns every active store within range (nearest first) rather than just
+// the closest one, so the UI can show the auto-detected pick alongside its
+// close neighbors — GPS alone can't reliably tell apart storefronts a few
+// meters apart, so letting the shopper confirm or correct in one tap beats
+// silently committing to a single guess.
+export async function findNearbyStores(
+  lat: number,
+  lng: number,
+  // The GPS fix's own accuracy radius in meters, when known — passed through
+  // for older databases still on the single-store fallback chain (see the
+  // API route); find_nearby_stores itself doesn't use it.
+  accuracy?: number | null
+): Promise<NearbyStore[]> {
   const res = await fetch("/api/stores/nearby-check", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ lat, lng, accuracy: typeof accuracy === "number" ? accuracy : undefined })
   });
   if (!res.ok) throw new Error((await res.json()).error ?? "Couldn't check your location");
-  const { store } = await res.json();
-  return store;
+  const { stores } = await res.json();
+  return stores ?? [];
 }

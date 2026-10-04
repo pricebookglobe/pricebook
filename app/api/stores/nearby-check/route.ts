@@ -9,32 +9,48 @@ export async function POST(req: NextRequest) {
 
   const supabase = createServiceSupabase();
   // 20m: close enough to comfortably cover standing at a store's entrance
-  // or just outside it, but — per 0030 — tight enough that in a row of
-  // several closely-packed storefronts (reported case: ~10 stores, each
-  // only ~5m wide, side by side) it no longer sweeps in half the block.
-  // The RPC always returns the single nearest active store within this
-  // radius now (0030 dropped the old ambiguity veto that used to refuse to
-  // answer at all whenever two stores were close together, which was
-  // firing constantly in a dense row and showing as "unregistered
-  // location" even while standing right at a real, registered store).
+  // or just outside it, but tight enough that in a row of several
+  // closely-packed storefronts (reported case: ~10 stores, each only ~5m
+  // wide, side by side) it no longer sweeps in half the block.
   //
-  // accuracy_m is still passed through for signature compatibility with a
-  // database that hasn't run migration 0030 yet (see the fallback below),
-  // but 0030's version of the function no longer uses it.
+  // accuracy_m is only used by the old single-store fallback chain below,
+  // for a database that hasn't run migration 0031 yet.
   const accuracyM = typeof accuracy === "number" && Number.isFinite(accuracy) ? Math.min(Math.max(accuracy, 1), 5) : undefined;
 
   // This repo's migrations are applied by hand, one at a time, in the
-  // Supabase SQL editor (see README) — so the live find_nearest_store may
-  // still be running an older signature than what this code assumes
-  // (missing accuracy_m from 0027, or even missing store_photo_url /
-  // store_lat / store_lng from 0025 / 0026). Calling an RPC with a named
-  // parameter the live function doesn't have fails outright rather than
-  // being ignored, so this falls back through progressively older
+  // Supabase SQL editor (see README) — so the live database may still be
+  // missing recent functions/columns. Calling an RPC with a named parameter
+  // or function name the live database doesn't have fails outright rather
+  // than being ignored, so this falls back through progressively older
   // signatures instead of just erroring — a shopper gets the best match
   // the live database can actually provide, rather than "couldn't check
   // your location" because of a migration that hasn't been run yet.
-  let data: any = null;
+  //
+  // 0031 added find_nearby_stores, which returns every active store within
+  // range (nearest first) instead of just the closest one — this is what
+  // lets the UI show "You're at X — not right? pick a neighbor" instead of
+  // silently committing to a single guess. Tried first; falls back to the
+  // single-store find_nearest_store chain below for a database that hasn't
+  // run 0031 yet, so a shopper still gets a best-guess match rather than
+  // "couldn't check your location" because of a migration that hasn't been
+  // applied.
+  let stores: any[] | null = null;
   let error: any = null;
+
+  ({ data: stores, error } = await supabase.rpc("find_nearby_stores", {
+    user_lat: lat,
+    user_lng: lng,
+    max_meters: 20
+  }));
+
+  if (!error) {
+    return NextResponse.json({ stores: stores ?? [], store: stores?.[0] ?? null });
+  }
+
+  // --- Fallback chain for a database still on 0030 or earlier: only ever
+  // produces a single store, wrapped in a one-item list so the response
+  // shape is the same either way. ---
+  let data: any = null;
 
   ({ data, error } = await supabase.rpc("find_nearest_store", {
     user_lat: lat,
@@ -64,5 +80,6 @@ export async function POST(req: NextRequest) {
   }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ store: data?.[0] ?? null });
+  const store = data?.[0] ?? null;
+  return NextResponse.json({ stores: store ? [store] : [], store });
 }

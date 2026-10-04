@@ -8,7 +8,7 @@ import { ResultRow, SaveBadge, ItemName, type StoreRating } from "@/components/s
 import { EmojiRating } from "@/components/shared/EmojiRating";
 import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
 import { FreeTextSearch } from "@/components/check-price/FreeTextSearch";
-import { searchProducts, findNearestStore, reportPrice, type SearchResponse, type SearchResult } from "@/lib/api";
+import { searchProducts, findNearbyStores, reportPrice, type SearchResponse, type SearchResult, type NearbyStore } from "@/lib/api";
 import { BarcodeScanner } from "@/components/shared/BarcodeScanner";
 import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
@@ -405,18 +405,14 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
-  const [locationCheck, setLocationCheck] = useState<
-    {
-      store: {
-        store_id: string;
-        store_name: string;
-        store_photo_url: string | null;
-        store_lat: number;
-        store_lng: number;
-        distance_m: number;
-      } | null;
-    } | null
-  >(null);
+  const [locationCheck, setLocationCheck] = useState<{ stores: NearbyStore[] } | null>(null);
+  // A shopper's own correction always wins over the next GPS-driven refresh
+  // — set the moment they tap a different store in the nearby list, and
+  // cleared on startNewCheck (a genuinely new location check). The 10s
+  // background poll below still refreshes the underlying list/distances
+  // while a manual pick is active; it just stops being the thing that
+  // decides which store is "the" one.
+  const [manualStoreId, setManualStoreId] = useState<string | null>(null);
   const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
 
   // Mirror of the latest coords for the background polling effect below to
@@ -482,8 +478,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         if (!silent) setError(t("Turn on location so we can tell where you are."));
         return;
       }
-      const store = await findNearestStore(coords.lat, coords.lng, accuracy);
-      setLocationCheck({ store });
+      const stores = await findNearbyStores(coords.lat, coords.lng, accuracy);
+      setLocationCheck({ stores });
     } catch (e: any) {
       if (!silent) setError(e.message ?? "Couldn't check your location.");
     } finally {
@@ -569,6 +565,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     setResult(null);
     setError(null);
     setLocationCheck(null);
+    setManualStoreId(null);
     setUseGuidedForm(false);
     setMode(initialMode);
     setCheckPriceRevealed(true);
@@ -811,6 +808,20 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     return closest;
   })();
 
+  // The pre-search "You are at" panel's own store list — separate from
+  // atStore above (which only exists once there's a search result to match
+  // against). nearbyStores is every active store within 20m, nearest first;
+  // the shown "primary" store is normally just the nearest one, UNLESS the
+  // shopper has manually corrected it (manualStoreId), in which case their
+  // pick wins even though the 10s background poll keeps refreshing the
+  // underlying list/distances. If a manual pick ever falls out of the
+  // refreshed list (moved out of range, store deactivated, etc.) this falls
+  // back to the nearest one rather than showing a store that's no longer a
+  // real candidate.
+  const nearbyStores = locationCheck?.stores ?? [];
+  const primaryStore = (manualStoreId && nearbyStores.find((s) => s.store_id === manualStoreId)) || nearbyStores[0] || null;
+  const alternativeStores = nearbyStores.filter((s) => s.store_id !== primaryStore?.store_id);
+
   // "Save: X" line — compares the cheapest price within 5km of the shopper
   // to the priciest option in that same 5km radius, so the best-price row
   // shows exactly how much choosing it saves versus the worse nearby
@@ -984,7 +995,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </p>
           ) : locationCheck ? (
             <>
-              {locationCheck.store ? (
+              {primaryStore ? (
                 // Registered store: the map is always centered on the
                 // SHOPPER's own live GPS position (never the store's saved
                 // coordinates — those can be wrong or stale, and showing
@@ -1005,11 +1016,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                       />
                     )}
                   </div>
-                  {locationCheck.store.store_photo_url ? (
+                  {primaryStore.store_photo_url ? (
                     <div className="overflow-hidden rounded border border-line">
                       <img
-                        src={locationCheck.store.store_photo_url}
-                        alt={locationCheck.store.store_name}
+                        src={primaryStore.store_photo_url}
+                        alt={primaryStore.store_name}
                         className="h-[220px] w-full object-cover"
                       />
                     </div>
@@ -1034,9 +1045,12 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 )
               )}
               <p className={`text-center text-sm text-ink ${coords ? "bg-field-raised px-3 py-2" : ""}`}>
-                {locationCheck.store ? (
+                {primaryStore ? (
                   <>
-                    {t("You are at")} <strong>{locationCheck.store.store_name}</strong>
+                    {t("You are at")} <strong>{primaryStore.store_name}</strong>
+                    {manualStoreId && manualStoreId === primaryStore.store_id && (
+                      <span className="ml-1.5 text-xs text-ash">({t("your correction")})</span>
+                    )}
                   </>
                 ) : coords ? (
                   t("You are at an unregistered location")
@@ -1044,6 +1058,37 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                   t("Couldn't determine your location.")
                 )}
               </p>
+
+              {/* Nearby alternatives — GPS alone can't reliably tell two
+                  storefronts a few meters apart; this is the one-tap way to
+                  correct the auto-pick instead of distrusting the feature
+                  outright. Only shown when there's actually more than one
+                  candidate within range. */}
+              {alternativeStores.length > 0 && (
+                <div className="mt-3 rounded border border-line bg-field-raised px-3 py-3">
+                  <p className="mb-2 text-sm text-ink">{t("Not the store you're in? Select the correct one nearby:")}</p>
+                  <ul className="flex flex-col gap-1.5">
+                    {alternativeStores.map((s) => (
+                      <li key={s.store_id}>
+                        <button
+                          type="button"
+                          onClick={() => setManualStoreId(s.store_id)}
+                          className="flex w-full items-center justify-between gap-2 rounded border border-line bg-field px-3 py-2 text-left text-sm text-ink transition-colors hover:border-value active:bg-value/10"
+                        >
+                          <span className="truncate">{s.store_name}</span>
+                          <span className="whitespace-nowrap font-mono text-xs text-ash">{Math.round(s.distance_m)}m</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {primaryStore && (
+                <p className="mt-2 text-center text-xs text-ash">
+                  {t("GPS is typically accurate to 5–20 meters, so in tightly packed stores the detected store may not always be exact.")}
+                </p>
+              )}
             </>
           ) : (
             <p className="text-sm text-ash">{t("Finding your location…")}</p>
