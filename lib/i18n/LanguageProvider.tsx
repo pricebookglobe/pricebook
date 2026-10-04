@@ -25,8 +25,15 @@ export function useLanguage() {
   return useContext(LanguageContext);
 }
 
+// Bumped whenever UI_STRINGS gains new entries that already-cached
+// languages need to pick up (e.g. adding "Prices" for the watermark rain) —
+// changing this invalidates every previously-cached translation set, so the
+// next visit re-fetches the full, current string list instead of silently
+// keeping old, incomplete translations forever.
+const I18N_CACHE_VERSION = "2";
+
 function cacheKey(lang: string) {
-  return `pb_i18n_${lang.trim().toLowerCase()}`;
+  return `pb_i18n_${I18N_CACHE_VERSION}_${lang.trim().toLowerCase()}`;
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
