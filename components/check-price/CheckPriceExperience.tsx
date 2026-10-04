@@ -1343,7 +1343,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               "No store nearby carries this yet" message below already
               covers that. */}
           {primaryStore && sorted.length > 0 && !sorted.some((r) => r.store_id === primaryStore.store_id) && (
-            <p className="mb-3 text-sm text-ash">
+            <p className="mb-3 text-sm font-bold text-red-600">
               {t("{store} doesn't carry this item.").replace("{store}", primaryStore.store_name)}
             </p>
           )}
