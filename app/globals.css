@@ -272,3 +272,28 @@ body {
     background-color: #FBBF24;
   }
 }
+
+/* "Check Price & Compare" button's label — a slow, smooth opacity
+   breathe so the button draws a little attention as the main call to
+   action, without resizing/scaling anything (which would shift layout
+   or make the button itself look like it's wobbling). Applied to a span
+   wrapping just the text, never the button, so the button's own size/
+   padding never changes. */
+@keyframes text-breathe {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+.text-breathe {
+  display: inline-block;
+  animation: text-breathe 2.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .text-breathe {
+    animation: none;
+    opacity: 1;
+  }
+}

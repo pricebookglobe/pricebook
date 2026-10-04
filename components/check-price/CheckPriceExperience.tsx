@@ -1050,7 +1050,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               : "btn-shine mb-6 w-full rounded border border-value bg-value px-4 py-6 font-display text-[20px] font-bold text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
           }
         >
-          {t("Check Price & Compare")}
+          <span className="text-breathe">{t("Check Price & Compare")}</span>
         </button>
       )}
 
