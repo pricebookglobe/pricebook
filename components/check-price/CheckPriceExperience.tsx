@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Barcode, Camera as CameraIcon } from "lucide-react";
+import { Camera as CameraIcon } from "lucide-react";
 import { useGeolocation } from "@/components/shared/GeolocationProvider";
 import { ResultRow, SaveBadge, ItemName, type StoreRating } from "@/components/search/ResultRow";
 import { EmojiRating } from "@/components/shared/EmojiRating";
@@ -1210,11 +1210,38 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             >
               {/* Icon instead of the word, by request — applies the same
                   everywhere this button renders (native app and website
-                  both use this one shared component/className). */}
-              <Barcode size={22} strokeWidth={2} aria-hidden="true" />
+                  both use this one shared component/className). A custom
+                  glyph rather than lucide's Barcode icon (too few, too
+                  evenly-spaced bars to read as a real barcode) — 18 bars
+                  of uneven widths, same irregular look as the barcode in
+                  the app's own logo/watermark, well over the "at least 10
+                  bars" ask. */}
+              <svg width="26" height="22" viewBox="0 0 120 78" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <g fill="currentColor">
+                  <rect x="2" y="0" width="3" height="78" />
+                  <rect x="8" y="0" width="5" height="78" />
+                  <rect x="16" y="0" width="2" height="78" />
+                  <rect x="21" y="0" width="4" height="78" />
+                  <rect x="28" y="0" width="3" height="78" />
+                  <rect x="34" y="0" width="6" height="78" />
+                  <rect x="43" y="0" width="2" height="78" />
+                  <rect x="48" y="0" width="4" height="78" />
+                  <rect x="55" y="0" width="3" height="78" />
+                  <rect x="61" y="0" width="5" height="78" />
+                  <rect x="69" y="0" width="2" height="78" />
+                  <rect x="74" y="0" width="4" height="78" />
+                  <rect x="81" y="0" width="3" height="78" />
+                  <rect x="87" y="0" width="6" height="78" />
+                  <rect x="96" y="0" width="2" height="78" />
+                  <rect x="101" y="0" width="4" height="78" />
+                  <rect x="108" y="0" width="3" height="78" />
+                  <rect x="114" y="0" width="4" height="78" />
+                </g>
+              </svg>
             </button>
             <button onClick={handleSnap} className={`${outlineButton} flex items-center justify-center`} aria-label={t("Snap")}>
-              <CameraIcon size={22} strokeWidth={2} aria-hidden="true" />
+              {/* Slightly bigger than the barcode glyph, by request. */}
+              <CameraIcon size={28} strokeWidth={2} aria-hidden="true" />
             </button>
             <button onClick={() => setMode("text")} className={`${outlineButton}${isNativeApp ? " col-span-2" : ""}`}>
               {t("Enter details")}
