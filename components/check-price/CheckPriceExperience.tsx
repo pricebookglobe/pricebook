@@ -423,6 +423,12 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   useEffect(() => {
     coordsRef.current = coords;
   }, [coords]);
+  // Same pattern, for the background poll below to read the current manual
+  // override without being in its dependency array.
+  const manualStoreIdRef = useRef(manualStoreId);
+  useEffect(() => {
+    manualStoreIdRef.current = manualStoreId;
+  }, [manualStoreId]);
   const [scanningBarcode, setScanningBarcode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [useGuidedForm, setUseGuidedForm] = useState(false);
@@ -480,6 +486,12 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       }
       const stores = await findNearbyStores(coords.lat, coords.lng, accuracy);
       setLocationCheck({ stores });
+      // A manual correction stops being meaningful once that store isn't
+      // even a candidate anymore (walked out of range, deactivated, etc.) —
+      // clear it so the display falls back to the nearest real candidate
+      // instead of silently keeping a "your correction" tag on a store that
+      // just disappeared, and so the poll above speeds back up to 10s.
+      setManualStoreId((current) => (current && !stores.some((s) => s.store_id === current) ? null : current));
     } catch (e: any) {
       if (!silent) setError(e.message ?? "Couldn't check your location.");
     } finally {
@@ -509,29 +521,39 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coords, initialMode, locationCheck, locating]);
 
-  // Keeps "you are at [store]" current on its own, on a flat 10-second
-  // cadence, the whole time the Check Price tab is open — including while
-  // looking at results, not just on the landing panel — so walking from
-  // store to store (or out of a store, or into an unregistered spot)
-  // updates automatically rather than needing a manual refresh. Previously
-  // this slowed to 45s or paused outright once "confidently" at a store and
-  // stopped polling at all once results were on screen — for someone
-  // testing storefront-by-storefront in a dense row, that read as "I have
-  // to tap Check Price again for it to notice I moved." The only thing
-  // still skipped is polling while the app is literally not visible
-  // (backgrounded/screen locked); that resumes with an immediate check the
-  // moment it's visible again.
+  // Keeps "you are at [store]" current on its own the whole time the Check
+  // Price tab is open — including while looking at results, not just on the
+  // landing panel — so walking from store to store (or out of a store, or
+  // into an unregistered spot) updates automatically rather than needing a
+  // manual refresh. Previously this slowed to 45s or paused outright once
+  // "confidently" at a store and stopped polling at all once results were on
+  // screen — for someone testing storefront-by-storefront in a dense row,
+  // that read as "I have to tap Check Price again for it to notice I
+  // moved." The only thing still skipped is polling while the app is
+  // literally not visible (backgrounded/screen locked); that resumes with
+  // an immediate check the moment it's visible again.
+  //
+  // Cadence: 10s normally, but once the shopper has manually corrected the
+  // pick (manualStoreId), their choice already wins over whatever this poll
+  // finds (see primaryStore above) — so polling that fast only burns
+  // battery/network for a list that isn't even being used to decide
+  // anything right now. Backs off to 60s in that case, while still quietly
+  // keeping distances/the candidate list fresh underneath. Snaps back to
+  // 10s the moment manualStoreId clears (startNewCheck, or — see
+  // handleFindMyLocation — if the corrected store ever drops out of range).
   useEffect(() => {
     if (initialMode !== "menu") return;
 
-    const POLL_MS = 10000;
+    const ACTIVE_POLL_MS = 10000;
+    const CORRECTED_POLL_MS = 60000;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let cancelled = false;
 
     function schedule() {
       if (cancelled) return;
       if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(tick, POLL_MS);
+      const delay = manualStoreIdRef.current ? CORRECTED_POLL_MS : ACTIVE_POLL_MS;
+      timeoutId = setTimeout(tick, delay);
     }
 
     async function tick() {
