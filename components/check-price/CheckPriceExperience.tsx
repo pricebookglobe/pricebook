@@ -1075,7 +1075,19 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 // photo sits beside it as the "yes, that's the shop"
                 // confirmation instead.
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="overflow-hidden rounded border border-line">
+                  {/* No border here — the map iframe's own src was being
+                      rebuilt from the RAW coords on every location poll, so
+                      even a meter or two of ordinary GPS jitter (same
+                      actual spot) counted as "moved" and reloaded the whole
+                      embed, blanking it for a moment — and a border around
+                      that blank gap read as a "frame" flashing on/off.
+                      Rounding the coords used in the URL below (a few
+                      decimal places ≈ a few meters) means the src string
+                      only actually changes once the shopper has genuinely
+                      moved, so the map stops reloading (and flashing) on
+                      jitter alone; dropping the border means even a replot
+                      that does happen has nothing outlined around it. */}
+                  <div className="overflow-hidden rounded">
                     {coords && (
                       <iframe
                         title={t("Your location")}
@@ -1083,12 +1095,12 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                         height="220"
                         style={{ border: 0 }}
                         loading="lazy"
-                        src={`https://www.google.com/maps?q=${coords.lat},${coords.lng}&z=17&t=k&output=embed`}
+                        src={`https://www.google.com/maps?q=${coords.lat.toFixed(4)},${coords.lng.toFixed(4)}&z=17&t=k&output=embed`}
                       />
                     )}
                   </div>
                   {primaryStore.store_photo_url ? (
-                    // No border here (by request) — the store photo swaps
+                    // Same reasoning, no border — the store photo swaps
                     // out briefly during an app update or a location
                     // re-check, and a border around an empty gap read as a
                     // visible "frame" flashing on/off; the photo itself
