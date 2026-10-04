@@ -89,8 +89,9 @@ export function IntroAnimation({ onFinished }: { onFinished: () => void }) {
           target="_blank"
           rel="noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="absolute bottom-10 font-display text-xs text-ash underline"
+          className="absolute bottom-10 flex items-center gap-1.5 font-display text-xs text-ash underline"
         >
+          <img src="/institute-of-ai-icon.png" alt="" aria-hidden="true" className="h-4 w-4" />
           Product from the Institute of AI
         </a>
       </div>
