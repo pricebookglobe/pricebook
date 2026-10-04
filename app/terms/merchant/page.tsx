@@ -5,7 +5,11 @@ export default function MerchantTerms() {
     <TermsLayout title="Terms &amp; Conditions — Store Owners" updated="21 September 2026">
       <Section title="1. Agreement to these terms">
         <p>
-          These terms apply to anyone who registers a store on PriceBook. By submitting your registration you
+          PriceBook is a product from the{" "}
+          <a href="https://www.institute-of-ai.org" target="_blank" rel="noreferrer" className="underline hover:text-ink">
+            Institute of AI
+          </a>
+          . These terms apply to anyone who registers a store on PriceBook. By submitting your registration you
           agree to these terms. If you don't agree, please don't register a store.
         </p>
       </Section>

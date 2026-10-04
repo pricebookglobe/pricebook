@@ -5,7 +5,11 @@ export default function PrivacyPolicy() {
     <TermsLayout title="Privacy Policy" updated="3 October 2026">
       <Section title="1. Who this applies to">
         <p>
-          This policy covers PriceBook's website and its Android and iOS apps — all three are the same product,
+          PriceBook is a product from the{" "}
+          <a href="https://www.institute-of-ai.org" target="_blank" rel="noreferrer" className="underline hover:text-ink">
+            Institute of AI
+          </a>
+          . This policy covers PriceBook's website and its Android and iOS apps — all three are the same product,
           just reached different ways. It applies to shoppers, store owners (merchants), and anyone who visits
           without an account.
         </p>

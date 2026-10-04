@@ -126,18 +126,11 @@ function PriceCallout({
       <div className="mb-3 rounded-lg bg-ink px-4 py-3.5 text-field">
         <p className="font-mono text-[10px] uppercase tracking-wide text-field/50">{label}</p>
         {/* Item name — wrapped at three words per line, size tag after the
-            last word — with Nutrition facts dropped below it rather than
-            squeezed onto the same row. */}
-        <div className="mt-1 flex flex-col gap-1 text-sm">
-          <strong>
-            <ItemName name={result.product_name} sizeTag={sizeTag} className="text-field" sizeClassName="text-field/60" />
-          </strong>
-          {result.nutrition_facts && (
-            <button onClick={() => setShowNutrition((s) => !s)} className="self-start text-xs text-field/80 underline">
-              {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
-            </button>
-          )}
-        </div>
+            last word. Nutrition facts now sits beside Open in Maps below,
+            not here. */}
+        <strong className="mt-1 block text-sm">
+          <ItemName name={result.product_name} sizeTag={sizeTag} className="text-field" sizeClassName="text-field/60" />
+        </strong>
         {/* Store name — itself the link to the store page — on its own line. */}
         <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-field/60">
           <Link href={`/store/${result.store_id}`} className="font-medium text-[#7FE0AE] underline">
@@ -176,15 +169,22 @@ function PriceCallout({
             </>
           )}
         </div>
-        {/* Open in Maps, on its own line at the bottom of the box. */}
-        <a
-          href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-2 inline-block text-sm text-[#7FE0AE] underline"
-        >
-          {t("Open in Maps")}
-        </a>
+        {/* Open in Maps + Nutrition facts, side by side at the bottom of the box. */}
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-[#7FE0AE] underline"
+          >
+            {t("Open in Maps")}
+          </a>
+          {result.nutrition_facts && (
+            <button onClick={() => setShowNutrition((s) => !s)} className="text-sm text-[#7FE0AE] underline">
+              {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
+            </button>
+          )}
+        </div>
         {!reported && (
           <p className="mt-1 text-[10px] text-field/40">
             {t("Your answer counts toward this store's total price reports and credibility.")}
@@ -241,18 +241,11 @@ function PriceCallout({
   return (
     <div className="mb-3 rounded border border-ink/25 bg-ink/[0.07] px-4 py-3">
       {/* Item name — wrapped at three words per line, size tag after the
-          last word — with Nutrition facts dropped below it rather than
-          squeezed onto the same row. */}
-      <div className="flex flex-col gap-1 text-sm text-ink">
-        <strong>
-          <ItemName name={result.product_name} sizeTag={sizeTag} />
-        </strong>
-        {result.nutrition_facts && (
-          <button onClick={() => setShowNutrition((s) => !s)} className="self-start text-xs text-ink/70 underline hover:text-ink">
-            {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
-          </button>
-        )}
-      </div>
+          last word. Nutrition facts now sits beside Open in Maps below,
+          not here. */}
+      <strong className="block text-sm text-ink">
+        <ItemName name={result.product_name} sizeTag={sizeTag} />
+      </strong>
       {/* Store name — itself the link to the store page — on its own line. */}
       <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ash">
         {label}{" "}
@@ -292,15 +285,22 @@ function PriceCallout({
           </>
         )}
       </div>
-      {/* Open in Maps, on its own line at the bottom of the box. */}
-      <a
-        href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-2 inline-block text-sm text-ink underline hover:text-ink/80"
-      >
-        {t("Open in Maps")}
-      </a>
+      {/* Open in Maps + Nutrition facts, side by side at the bottom of the box. */}
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <a
+          href={`https://www.google.com/maps/dir/?api=1&destination=${result.store_lat},${result.store_lng}`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-sm text-ink underline hover:text-ink/80"
+        >
+          {t("Open in Maps")}
+        </a>
+        {result.nutrition_facts && (
+          <button onClick={() => setShowNutrition((s) => !s)} className="text-sm text-ink underline hover:text-ink/80">
+            {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
+          </button>
+        )}
+      </div>
       {!reported && (
         <p className="mt-1 text-[10px] text-ash/70">
           {t("Your answer counts toward this store's total price reports and credibility.")}

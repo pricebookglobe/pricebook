@@ -13,7 +13,11 @@ export default function CustomerTerms() {
 
       <Section title="2. What PriceBook is">
         <p>
-          PriceBook helps you find and compare grocery prices at stores near you. Prices come from store owners,
+          PriceBook is a product from the{" "}
+          <a href="https://www.institute-of-ai.org" target="_blank" rel="noreferrer" className="underline hover:text-ink">
+            Institute of AI
+          </a>
+          . It helps you find and compare grocery prices at stores near you. Prices come from store owners,
           from other shoppers reporting what they saw, and from automated extraction of photos and text you
           submit. We do our best to keep this accurate, but we don't independently verify every price, and prices
           can change at any time without notice.
