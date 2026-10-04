@@ -1,29 +1,43 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 // A faint "rain" of small barcode + downward-arrow glyphs (the same mark
 // from the PriceBook shield logo, app/icon.png), mixed with falling copies
 // of the word "Prices" in the same color/size, drifting down the big white
 // content card (AppPage) — many small copies at random horizontal
-// positions, sizes, speeds and starting points, rather than one large
-// centered glyph, so it reads as rain and, with the word falling alongside
-// the arrows, as "prices going down" at a glance.
+// positions and starting points, rather than one large centered glyph, so
+// it reads as rain and, with the word falling alongside the arrows, as
+// "prices going down" at a glance.
 // Purely decorative: pointer-events none, sits behind the page's real
 // content, and is clipped to its parent by that parent having
 // `relative overflow-hidden` (see AppPage.tsx).
 //
-// Sizing/opacity/speed are tuned by explicit request relative to the
-// original single-arrow version: ~80% smaller, a bit darker (still light),
-// and a bit faster than the original 18s drift.
+// Sizing/opacity are tuned by explicit request relative to the original
+// single-arrow version: ~80% smaller, a bit darker (still light).
 const DROP_COUNT = 16;
+
+// Every drop falls at this same rate (pixels of actual travel per second),
+// not a fixed animation-DURATION. A fixed duration animates `top` across a
+// PERCENTAGE of the container's height (see the watermark-drift keyframes
+// in globals.css), so the same duration covers far more actual pixels on a
+// tall card (History's long list) than on a short one (a compact Search
+// Items result) — which is exactly why the rain used to look like it fell
+// at different speeds on different tabs, even though every tab runs the
+// same code. Deriving the duration from the CARD'S OWN measured height
+// instead keeps the real on-screen fall rate identical everywhere.
+const PX_PER_SECOND = 90;
+// Falls a bit over the full 0%-100% of the card (see the -10%/110% start/
+// end in the keyframes) so a drop fully clears the top/bottom before
+// looping rather than popping at the exact edge.
+const TRAVEL_FACTOR = 1.2;
+const FALLBACK_DURATION_S = 8;
 
 type Drop = {
   kind: "arrow" | "text";
   left: number; // percent
   size: number; // px, width of the glyph / font-size of the text
-  duration: number; // seconds for one full fall
   delay: number; // negative seconds, so drops start mid-fall, staggered
   opacity: number;
 };
@@ -40,8 +54,6 @@ function makeDrops(): Drop[] {
     // natural rather than identical copies. The text uses this same size
     // as its font-size, so both kinds read as the same scale falling.
     size: 15 + Math.random() * 8,
-    // Original drift was 18s; noticeably faster, with per-drop variance.
-    duration: 6 + Math.random() * 5,
     delay: -Math.random() * 12,
     opacity: 0.12 + Math.random() * 0.08
   }));
@@ -53,8 +65,29 @@ export function BarcodeArrowWatermark() {
   // around or restart their fall whenever the parent page re-renders.
   const drops = useMemo(makeDrops, []);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [heightPx, setHeightPx] = useState<number | null>(null);
+
+  // Tracks the card's actual rendered height (it varies per screen/tab —
+  // Check Price's landing panel, a short Search Items result, History's
+  // long list — and can change as content loads in), so the duration
+  // below always reflects the real height right now, not whatever it was
+  // on first mount.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const h = entries[0]?.contentRect.height;
+      if (h) setHeightPx(h);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const durationS = heightPx ? (heightPx * TRAVEL_FACTOR) / PX_PER_SECOND : FALLBACK_DURATION_S;
+
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+    <div ref={containerRef} aria-hidden="true" className="pointer-events-none absolute inset-0">
       {drops.map((drop, i) => (
         <div
           key={i}
@@ -73,7 +106,7 @@ export function BarcodeArrowWatermark() {
             // since `mark` itself is pinned to match the logo pixel-for-
             // pixel (see tailwind.config.ts).
             color: "#0C8088",
-            animationDuration: `${drop.duration}s`,
+            animationDuration: `${durationS}s`,
             animationDelay: `${drop.delay}s`
           }}
         >
