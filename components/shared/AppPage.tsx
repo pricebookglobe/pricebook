@@ -1,6 +1,5 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { AccountMenu } from "./AccountMenu";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Footer } from "./Footer";
@@ -10,23 +9,30 @@ import { BarcodeArrowWatermark } from "./BarcodeArrowWatermark";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
 import { useAccount } from "@/lib/AccountProvider";
 
-// The falling arrow/"Prices" rain only makes sense where a shopper is
-// actually looking up a price — Check Price and Search Items — not on
-// History (just a past-results list, nothing "going down" right now) or
-// any other screen.
-const PRICE_RAIN_ROUTES = ["/check-price", "/search-items"];
-
-export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.ReactNode; maxWidth?: string }) {
+export function AppPage({
+  children,
+  maxWidth = "max-w-3xl",
+  showPriceRain: wantsPriceRain = false
+}: {
+  children: React.ReactNode;
+  maxWidth?: string;
+  // The falling arrow/"Prices" rain is opt-in, set by the SCREEN itself —
+  // not inferred from the route — since it only belongs on each tab's own
+  // main/landing screen (Check Price's Scan/Snap/Enter-details menu,
+  // Search Items' plain search box), not on every state within that
+  // route (a result, the guided-category picker, a search in flight).
+  // CheckPriceExperience computes that per its own mode/result/busy state
+  // and passes it down; every other screen just leaves this unset (off).
+  showPriceRain?: boolean;
+}) {
   const isNativeApp = useIsNativeApp();
-  const pathname = usePathname();
-  // The falling arrow/"Prices" rain is a shopper-facing touch ("prices are
-  // going down") — it has no meaning for a merchant watching their own
-  // store's listings or for an admin, so it only renders for the
-  // "customer" role, and even then only on the two screens above. Also off
-  // while the profile hasn't loaded yet, rather than flashing it on for a
-  // moment before a merchant/admin's role comes back.
+  // Still gated on the "customer" role regardless of what the screen asks
+  // for — it's a shopper-facing touch ("prices are going down"), with no
+  // meaning for a merchant or admin. Also off while the profile hasn't
+  // loaded yet, rather than flashing it on for a moment before a
+  // merchant/admin's role comes back.
   const { profile } = useAccount();
-  const showPriceRain = profile?.role === "customer" && PRICE_RAIN_ROUTES.some((route) => pathname?.startsWith(route));
+  const showPriceRain = profile?.role === "customer" && wantsPriceRain;
 
   // Inside the packaged Android app only: a slim top bar and a fixed bottom
   // tab bar, styled like a native app, instead of the website's sidebar.

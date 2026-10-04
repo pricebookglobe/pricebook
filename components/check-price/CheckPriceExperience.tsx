@@ -1019,8 +1019,24 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     ? "btn-shine flex-1 rounded-xl bg-ink px-4 py-3.5 font-display text-[14px] font-medium text-white shadow-md transition active:scale-[0.98] active:bg-ink-dark"
     : "btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105";
 
+  // The falling arrow/"Prices" rain is only for each tab's own main/landing
+  // screen — Check Price's Scan/Snap/Enter-details menu, or Search Items'
+  // plain search box — not any screen navigated into from there (the
+  // guided category picker, a result, a search in progress). "Main screen"
+  // is mode-specific per tab: for Check Price (initialMode "menu") that's
+  // the landing menu itself (mode === "menu", before "Check Price &
+  // Compare" reveals it); for Search Items (initialMode "text") there's no
+  // separate landing menu — the search box IS its main screen, so that's
+  // mode === "text" without the guided-form picker swapped in. Either way,
+  // once there's a result on screen or a search is in flight, it's no
+  // longer the main screen.
+  const isMainScreen =
+    (initialMode === "menu" ? mode === "menu" && !checkPriceRevealed : mode === "text" && !useGuidedForm) &&
+    !result &&
+    !busy;
+
   return (
-    <AppPage>
+    <AppPage showPriceRain={isMainScreen}>
       {/* Sticky GPS-correction bar — persists across the landing panel,
           Scan/Snap/Enter details, and results, same lifetime as the 10s/60s
           background poll above, so a shopper can fix a wrong auto-detected
