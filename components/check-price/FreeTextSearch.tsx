@@ -111,7 +111,13 @@ export function FreeTextSearch({
         />
 
         {showSuggestions && (
-          <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-72 overflow-y-auto rounded-lg border border-line bg-field-raised shadow-xl">
+          // max-h-[70vh] (not a fixed px cap) so a long "did you mean" list
+          // actually uses most of the phone screen instead of a short box
+          // that only shows two results — it only scrolls past that, and
+          // suggestion-scroll (globals.css) keeps that scrollbar visibly
+          // on-screen rather than the OS's auto-hiding one, so it's obvious
+          // at a glance that there's more to scroll to.
+          <ul className="suggestion-scroll absolute left-0 right-0 top-full z-20 mt-1 max-h-[70vh] overflow-y-auto rounded-lg border border-line bg-field-raised shadow-xl">
             {suggestions.map((s) => {
               const sizeTag = formatSizeTag(s.size, s.unit);
               return (

@@ -27,8 +27,8 @@ const DROP_COUNT = 16;
 // at different speeds on different tabs, even though every tab runs the
 // same code. Deriving the duration from the CARD'S OWN measured height
 // instead keeps the real on-screen fall rate identical everywhere.
-// Slightly slower than the original 90px/s, by request.
-const PX_PER_SECOND = 70;
+// Slightly slower again, by request (was 90px/s, then 70px/s).
+const PX_PER_SECOND = 55;
 // Falls a bit over the full 0%-100% of the card (see the -10%/110% start/
 // end in the keyframes) so a drop fully clears the top/bottom before
 // looping rather than popping at the exact edge.
