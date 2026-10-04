@@ -35,7 +35,12 @@ export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.
           <MobileTopBar />
 
           <div className={`mx-auto w-full flex-1 px-5 pb-24 ${maxWidth}`}>
-            <div className="relative overflow-hidden rounded-xl border border-line bg-field-raised p-6 shadow-lg sm:p-8">
+            {/* No white card here by request — content sits directly on the
+                page's own app-gradient background. relative+overflow-hidden
+                stays so the rain (BarcodeArrowWatermark) still has a
+                bounded box to fall inside and gets clipped to this column,
+                rather than spilling across the whole screen. */}
+            <div className="relative overflow-hidden p-6 sm:p-8">
               <BarcodeArrowWatermark />
               <div className="relative z-10">{children}</div>
             </div>
@@ -66,7 +71,12 @@ export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.
         </header>
 
         <div className={`mx-auto w-full flex-1 px-5 pb-12 ${maxWidth}`}>
-          <div className="relative overflow-hidden rounded-lg border border-line bg-field-raised p-6 shadow-lg sm:p-8">
+          {/* No white card here by request — content sits directly on the
+              page's own app-gradient background. relative+overflow-hidden
+              stays so the rain (BarcodeArrowWatermark) still has a bounded
+              box to fall inside and gets clipped to this column, rather
+              than spilling across the whole screen. */}
+          <div className="relative overflow-hidden p-6 sm:p-8">
             <BarcodeArrowWatermark />
             <div className="relative z-10">{children}</div>
           </div>
