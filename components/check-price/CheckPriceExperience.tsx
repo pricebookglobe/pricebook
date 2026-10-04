@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Barcode, Camera as CameraIcon } from "lucide-react";
 import { useGeolocation } from "@/components/shared/GeolocationProvider";
 import { ResultRow, SaveBadge, ItemName, type StoreRating } from "@/components/search/ResultRow";
 import { EmojiRating } from "@/components/shared/EmojiRating";
@@ -1204,12 +1205,16 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 }
                 setShowScanner(true);
               }}
-              className={outlineButton}
+              className={`${outlineButton} flex items-center justify-center`}
+              aria-label={t("Scan Barcode")}
             >
-              {t("Scan Barcode")}
+              {/* Icon instead of the word, by request — applies the same
+                  everywhere this button renders (native app and website
+                  both use this one shared component/className). */}
+              <Barcode size={22} strokeWidth={2} aria-hidden="true" />
             </button>
-            <button onClick={handleSnap} className={outlineButton}>
-              {t("Snap")}
+            <button onClick={handleSnap} className={`${outlineButton} flex items-center justify-center`} aria-label={t("Snap")}>
+              <CameraIcon size={22} strokeWidth={2} aria-hidden="true" />
             </button>
             <button onClick={() => setMode("text")} className={`${outlineButton}${isNativeApp ? " col-span-2" : ""}`}>
               {t("Enter details")}
