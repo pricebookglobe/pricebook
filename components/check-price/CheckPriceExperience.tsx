@@ -1216,7 +1216,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                   of uneven widths, same irregular look as the barcode in
                   the app's own logo/watermark, well over the "at least 10
                   bars" ask. */}
-              <svg width="26" height="22" viewBox="0 0 120 78" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <svg width="48" height="28" viewBox="0 0 120 78" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <g fill="currentColor">
                   <rect x="2" y="0" width="3" height="78" />
                   <rect x="8" y="0" width="5" height="78" />
@@ -1240,8 +1240,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               </svg>
             </button>
             <button onClick={handleSnap} className={`${outlineButton} flex items-center justify-center`} aria-label={t("Snap")}>
-              {/* Slightly bigger than the barcode glyph, by request. */}
-              <CameraIcon size={28} strokeWidth={2} aria-hidden="true" />
+              {/* Bigger again, by request. */}
+              <CameraIcon size={36} strokeWidth={2} aria-hidden="true" />
             </button>
             <button onClick={() => setMode("text")} className={`${outlineButton}${isNativeApp ? " col-span-2" : ""}`}>
               {t("Enter details")}
