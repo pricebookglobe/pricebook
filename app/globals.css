@@ -300,12 +300,16 @@ body {
   }
 }
 
-/* Slow downward drift for BarcodeArrowWatermark — loops from just above
-   its container's top edge to just below the bottom edge, linear (a
-   constant, unhurried speed, not easing in/out) so it reads as a steady
-   drift rather than a bounce. Long duration (18s) keeps it subtle; the
-   parent's own overflow-hidden (AppPage.tsx) clips it so it never spills
-   out over the rest of the page. */
+/* Falling-rain drift for BarcodeArrowWatermark — loops from just above its
+   container's top edge to just below the bottom edge, linear (a constant
+   speed, not easing in/out) so each drop reads as steadily falling rather
+   than bouncing. BarcodeArrowWatermark renders many of these at once, each
+   with its own randomized animation-duration/-delay set inline (so they
+   fall at different speeds and start at different points, like rain
+   instead of identical copies moving in lockstep) — the 8s here is just
+   the fallback if that inline duration is ever missing. The parent's own
+   overflow-hidden (AppPage.tsx) clips every drop so none spill out over
+   the rest of the page. */
 @keyframes watermark-drift {
   0% {
     transform: translate(-50%, -20%);
@@ -315,7 +319,7 @@ body {
   }
 }
 .watermark-drift {
-  animation: watermark-drift 18s linear infinite;
+  animation: watermark-drift 8s linear infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .watermark-drift {
