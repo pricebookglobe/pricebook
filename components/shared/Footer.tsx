@@ -20,8 +20,7 @@ export function Footer() {
       <Link href="/privacy" className="underline hover:text-ink">
         Privacy Policy
       </Link>
-      <br className="sm:hidden" />
-      <span className="hidden sm:inline"> · </span>
+      <br />
       Product from the{" "}
       <a
         href="https://www.institute-of-ai.org"
