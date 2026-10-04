@@ -67,22 +67,33 @@ export function LocationCorrectionBar({
               flashing ? "correction-flash-bar" : "bg-correction"
             }`}
           >
-            <span className="flex min-w-0 items-center gap-2 font-display text-sm font-semibold text-white">
-              <MapPin size={16} strokeWidth={2.5} className="shrink-0" />
-              <span className="truncate">
+            <span className="flex min-w-0 items-start gap-2 font-display text-sm font-semibold text-white">
+              <MapPin size={16} strokeWidth={2.5} className="mt-0.5 shrink-0" />
+              <span className="flex min-w-0 flex-col">
                 {flashing ? (
-                  <>
+                  <span className="truncate">
                     {t("Are you still at")} {primaryStore.store_name}?
-                  </>
+                  </span>
                 ) : (
                   <>
-                    {t("You are at")} {primaryStore.store_name}
-                    {isManualOverride ? "" : "."} {!isManualOverride && t("Incorrect?")}
+                    <span className="truncate">
+                      {t("You are at")} {primaryStore.store_name}
+                    </span>
+                    {/* Own line rather than trailing the store name — a
+                        short store name left "Incorrect?" crammed right up
+                        against it on the same line, reading as one run-on
+                        phrase instead of a separate prompt. */}
+                    {!isManualOverride && <span className="font-medium">{t("Incorrect?")}</span>}
                   </>
                 )}
               </span>
             </span>
-            <span className="shrink-0 whitespace-nowrap rounded-full bg-white/20 px-2.5 py-1 font-display text-xs font-bold text-white underline-offset-2">
+            {/* Deliberately NOT amber/white-on-amber (that read as part of
+                the flashing warning color itself, low-contrast against it)
+                — the sidebar's dark ink-green, same as the rest of the
+                app's primary actions, so it reads as a distinct, tappable
+                action sitting on top of the attention-colored bar. */}
+            <span className="shrink-0 whitespace-nowrap self-center rounded-full bg-ink px-2.5 py-1 font-display text-xs font-bold text-white transition-colors">
               {flashing ? "→ " : ""}
               {t("Change location")}
             </span>
