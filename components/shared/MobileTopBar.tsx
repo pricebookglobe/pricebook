@@ -46,7 +46,15 @@ export function MobileTopBar() {
   }
 
   return (
-    <header className="relative z-30 flex items-center justify-between border-b border-line bg-field-raised px-4 py-3">
+    // z-40 — specifically above the Check Price tab's sticky location-
+    // correction bar (z-30, components/check-price/LocationCorrectionBar).
+    // Both are siblings in the native app's layout (AppPage), and with
+    // equal z-index the later-in-DOM one (the correction bar, since it's
+    // inside the page content below this header) would win ties and paint
+    // over this header's own profile dropdown — which is exactly what was
+    // happening: the dropdown's stacking context is rooted here, so it was
+    // getting covered by the bar wherever the two visually overlapped.
+    <header className="relative z-40 flex items-center justify-between border-b border-line bg-field-raised px-4 py-3">
       <Link href="/" className="flex items-center">
         <img src="/pricebook-icon-dark.png" alt="PriceBook" className="h-10 w-auto" />
       </Link>
