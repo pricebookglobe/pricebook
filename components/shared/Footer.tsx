@@ -12,16 +12,7 @@ export function Footer() {
 
   return (
     <footer className="mt-auto px-5 py-6 text-center text-xs text-ash">
-      © {new Date().getFullYear()} PriceBook · Product from the{" "}
-      <a
-        href="https://www.institute-of-ai.org"
-        target="_blank"
-        rel="noreferrer"
-        className="underline hover:text-ink"
-      >
-        Institute of AI
-      </a>
-      <br />
+      © {new Date().getFullYear()} PriceBook ·{" "}
       <Link href={termsHref} className="underline hover:text-ink">
         Terms &amp; Conditions
       </Link>{" "}

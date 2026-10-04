@@ -33,14 +33,10 @@ export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.
         <div className="relative z-10 flex min-h-screen flex-col">
           <MobileTopBar />
 
-          <div className={`mx-auto w-full flex-1 px-5 pb-6 ${maxWidth}`}>
+          <div className={`mx-auto w-full flex-1 px-5 pb-24 ${maxWidth}`}>
             <div className="rounded-xl border border-line bg-field-raised p-6 shadow-lg sm:p-8">
               {children}
             </div>
-          </div>
-
-          <div className="pb-24">
-            <Footer />
           </div>
 
           <MobileTabBar />
