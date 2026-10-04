@@ -309,13 +309,21 @@ body {
    instead of identical copies moving in lockstep) — the 8s here is just
    the fallback if that inline duration is ever missing. The parent's own
    overflow-hidden (AppPage.tsx) clips every drop so none spill out over
-   the rest of the page. */
+   the rest of the page.
+   Animates `top`, not `transform: translateY()` — a percentage inside
+   `transform` resolves against the ELEMENT'S OWN size (so a 20px-tall
+   glyph only ever moved ~80px, never reaching the bottom of a tall card),
+   while `top` on an absolutely positioned element resolves against its
+   containing block's height, i.e. the full card. Horizontal centering
+   over each drop's `left` point stays a separate, un-animated
+   `translateX(-50%)` set inline (BarcodeArrowWatermark.tsx), since this
+   keyframe only ever touches `top`. */
 @keyframes watermark-drift {
   0% {
-    transform: translate(-50%, -20%);
+    top: -10%;
   }
   100% {
-    transform: translate(-50%, 420%);
+    top: 110%;
   }
 }
 .watermark-drift {

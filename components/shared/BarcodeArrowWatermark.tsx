@@ -58,9 +58,13 @@ export function BarcodeArrowWatermark() {
       {drops.map((drop, i) => (
         <div
           key={i}
-          className="watermark-drift absolute top-0 whitespace-nowrap font-display font-bold"
+          className="watermark-drift absolute whitespace-nowrap font-display font-bold"
           style={{
             left: `${drop.left}%`,
+            // Horizontal centering only — the animation itself drives
+            // `top` (see the watermark-drift keyframes), so this transform
+            // stays fixed rather than being part of the animated property.
+            transform: "translateX(-50%)",
             width: drop.kind === "arrow" ? `${drop.size}px` : "auto",
             fontSize: drop.kind === "text" ? `${drop.size}px` : undefined,
             opacity: drop.opacity,
