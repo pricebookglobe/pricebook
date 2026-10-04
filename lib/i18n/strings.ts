@@ -207,7 +207,7 @@ export const UI_STRINGS = [
   "Store details",
   "Store name",
   "Store logo",
-  "Store front photo",
+  "Store logo or store front image",
   "CR certificate",
   "A certificate is currently on file.",
   "No certificate on file.",

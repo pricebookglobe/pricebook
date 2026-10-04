@@ -348,7 +348,7 @@ export default function SettingsPage() {
           </label>
 
           <label className="text-sm text-ash">
-            {t("Store front photo")}
+            {t("Store logo or store front image")}
             {store.store_photo_url && (
               <img src={store.store_photo_url} alt="" className="mt-1 h-20 w-full rounded border border-line object-cover" />
             )}

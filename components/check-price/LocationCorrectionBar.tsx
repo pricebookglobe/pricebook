@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin, X } from "lucide-react";
+import { MapPin, Store, X } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { NearbyStore } from "@/lib/api";
 
@@ -105,9 +105,23 @@ export function LocationCorrectionBar({
                           : "border-line bg-field hover:border-value active:bg-value/10"
                       }`}
                     >
-                      <span className="flex min-w-0 flex-col">
-                        <span className="truncate font-display text-sm font-semibold text-ink">{s.store_name}</span>
-                        {isCurrent && <span className="font-display text-xs font-medium text-correction-dark">{t("Current")}</span>}
+                      <span className="flex min-w-0 items-center gap-3">
+                        {s.store_photo_url ? (
+                          <img
+                            src={s.store_photo_url}
+                            alt=""
+                            aria-hidden="true"
+                            className="h-10 w-10 shrink-0 rounded-md border border-line object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-dashed border-line text-ash">
+                            <Store size={16} strokeWidth={2} />
+                          </span>
+                        )}
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate font-display text-sm font-semibold text-ink">{s.store_name}</span>
+                          {isCurrent && <span className="font-display text-xs font-medium text-correction-dark">{t("Current")}</span>}
+                        </span>
                       </span>
                       <span className="shrink-0 whitespace-nowrap rounded-full bg-field-raised px-2.5 py-1 font-mono text-xs text-ash">
                         {Math.round(s.distance_m)}m

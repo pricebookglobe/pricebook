@@ -274,7 +274,7 @@ export default function MerchantSignup() {
         </div>
 
         <label className="text-sm text-ash">
-          Photo of the store (front / location) <span className="text-red-600">*</span>
+          {t("Store logo or store front image")} <span className="text-red-600">*</span>
           <input required type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
             className="mt-1 w-full text-sm text-ink" />
         </label>
