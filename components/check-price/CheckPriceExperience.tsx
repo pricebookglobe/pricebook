@@ -9,6 +9,7 @@ import { EmojiRating } from "@/components/shared/EmojiRating";
 import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
 import { FreeTextSearch } from "@/components/check-price/FreeTextSearch";
 import { searchProducts, findNearbyStores, reportPrice, type SearchResponse, type SearchResult, type NearbyStore } from "@/lib/api";
+import { LocationCorrectionBar } from "./LocationCorrectionBar";
 import { BarcodeScanner } from "@/components/shared/BarcodeScanner";
 import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
@@ -988,6 +989,21 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
   return (
     <AppPage>
+      {/* Sticky GPS-correction bar — persists across the landing panel,
+          Scan/Snap/Enter details, and results, same lifetime as the 10s/60s
+          background poll above, so a shopper can fix a wrong auto-detected
+          store from anywhere on this tab, not just right when a fix first
+          comes in. Renders nothing of its own when there's no alternative
+          to switch to. */}
+      {initialMode === "menu" && primaryStore && (
+        <LocationCorrectionBar
+          primaryStore={primaryStore}
+          alternativeStores={alternativeStores}
+          isManualOverride={manualStoreId === primaryStore.store_id}
+          onSelect={setManualStoreId}
+        />
+      )}
+
       <p className="mb-4 text-sm font-bold text-ink">{t("Track best prices, near you first.")}</p>
 
       {mode === "menu" && !checkPriceRevealed && (
@@ -1070,9 +1086,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 {primaryStore ? (
                   <>
                     {t("You are at")} <strong>{primaryStore.store_name}</strong>
-                    {manualStoreId && manualStoreId === primaryStore.store_id && (
-                      <span className="ml-1.5 text-xs text-ash">({t("your correction")})</span>
-                    )}
                   </>
                 ) : coords ? (
                   t("You are at an unregistered location")
@@ -1080,37 +1093,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                   t("Couldn't determine your location.")
                 )}
               </p>
-
-              {/* Nearby alternatives — GPS alone can't reliably tell two
-                  storefronts a few meters apart; this is the one-tap way to
-                  correct the auto-pick instead of distrusting the feature
-                  outright. Only shown when there's actually more than one
-                  candidate within range. */}
-              {alternativeStores.length > 0 && (
-                <div className="mt-3 rounded border border-line bg-field-raised px-3 py-3">
-                  <p className="mb-2 text-sm text-ink">{t("Not the store you're in? Select the correct one nearby:")}</p>
-                  <ul className="flex flex-col gap-1.5">
-                    {alternativeStores.map((s) => (
-                      <li key={s.store_id}>
-                        <button
-                          type="button"
-                          onClick={() => setManualStoreId(s.store_id)}
-                          className="flex w-full items-center justify-between gap-2 rounded border border-line bg-field px-3 py-2 text-left text-sm text-ink transition-colors hover:border-value active:bg-value/10"
-                        >
-                          <span className="truncate">{s.store_name}</span>
-                          <span className="whitespace-nowrap font-mono text-xs text-ash">{Math.round(s.distance_m)}m</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {primaryStore && (
-                <p className="mt-2 text-center text-xs text-ash">
-                  {t("GPS is typically accurate to 5–20 meters, so in tightly packed stores the detected store may not always be exact.")}
-                </p>
-              )}
+              {/* Picking an alternative, and the GPS accuracy disclaimer,
+                  both now live in the sticky correction bar's bottom sheet
+                  (rendered near the top of the page, below) instead of
+                  inline here — that bar stays visible the whole time the
+                  Check Price tab is open, not just on this landing panel,
+                  so the correction flow is reachable from Scan/Snap/results
+                  too, not only right after a fresh GPS fix. */}
             </>
           ) : (
             <p className="text-sm text-ash">{t("Finding your location…")}</p>

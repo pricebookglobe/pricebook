@@ -22,6 +22,15 @@ import plugin from "tailwindcss/plugin";
 //            the supplied logo pixel-for-pixel, kept separate from `value`
 //            so re-tuning button colors never drifts the logo's own colors
 // - line:    hairline dividers for the price-ledger rows
+// - correction: the ONE deliberate, narrow exception to "no orange anywhere"
+//            above — a warm amber reserved exclusively for the GPS
+//            location-correction banner/sheet (CheckPriceExperience). It
+//            exists so "the store we auto-detected might be wrong, tap to
+//            fix it" reads as its own distinct category at a glance, not as
+//            an error (flag/red) or a price callout (value/green). Do not
+//            reach for this token anywhere else in the product — introduce
+//            a new one instead if another "distinct, attention-grabbing but
+//            not an error" need ever comes up.
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
@@ -45,7 +54,12 @@ const config: Config = {
         flag: "#64748B",
         mark: "#13BDC4",
         line: "#E4E2DA",
-        ash: "#5B6472"
+        ash: "#5B6472",
+        correction: {
+          DEFAULT: "#D97706",
+          soft: "#FEF3C7",
+          dark: "#92400E"
+        }
       },
       fontFamily: {
         display: ["'Space Grotesk'", "ui-sans-serif", "system-ui"],
