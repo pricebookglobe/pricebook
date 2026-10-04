@@ -299,3 +299,26 @@ body {
     transform: scale(1);
   }
 }
+
+/* Slow downward drift for BarcodeArrowWatermark — loops from just above
+   its container's top edge to just below the bottom edge, linear (a
+   constant, unhurried speed, not easing in/out) so it reads as a steady
+   drift rather than a bounce. Long duration (18s) keeps it subtle; the
+   parent's own overflow-hidden (AppPage.tsx) clips it so it never spills
+   out over the rest of the page. */
+@keyframes watermark-drift {
+  0% {
+    transform: translate(-50%, -20%);
+  }
+  100% {
+    transform: translate(-50%, 420%);
+  }
+}
+.watermark-drift {
+  animation: watermark-drift 18s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .watermark-drift {
+    animation: none;
+  }
+}

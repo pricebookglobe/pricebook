@@ -5,6 +5,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Footer } from "./Footer";
 import { MobileTopBar } from "./MobileTopBar";
 import { MobileTabBar } from "./MobileTabBar";
+import { BarcodeArrowWatermark } from "./BarcodeArrowWatermark";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
 
 export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.ReactNode; maxWidth?: string }) {
@@ -34,8 +35,9 @@ export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.
           <MobileTopBar />
 
           <div className={`mx-auto w-full flex-1 px-5 pb-24 ${maxWidth}`}>
-            <div className="rounded-xl border border-line bg-field-raised p-6 shadow-lg sm:p-8">
-              {children}
+            <div className="relative overflow-hidden rounded-xl border border-line bg-field-raised p-6 shadow-lg sm:p-8">
+              <BarcodeArrowWatermark />
+              <div className="relative z-10">{children}</div>
             </div>
           </div>
 
@@ -64,8 +66,9 @@ export function AppPage({ children, maxWidth = "max-w-3xl" }: { children: React.
         </header>
 
         <div className={`mx-auto w-full flex-1 px-5 pb-12 ${maxWidth}`}>
-          <div className="rounded-lg border border-line bg-field-raised p-6 shadow-lg sm:p-8">
-            {children}
+          <div className="relative overflow-hidden rounded-lg border border-line bg-field-raised p-6 shadow-lg sm:p-8">
+            <BarcodeArrowWatermark />
+            <div className="relative z-10">{children}</div>
           </div>
         </div>
 
