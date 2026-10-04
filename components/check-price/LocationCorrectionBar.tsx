@@ -90,10 +90,12 @@ export function LocationCorrectionBar({
             </span>
             {/* Deliberately NOT amber/white-on-amber (that read as part of
                 the flashing warning color itself, low-contrast against it)
-                — the sidebar's dark ink-green, same as the rest of the
-                app's primary actions, so it reads as a distinct, tappable
-                action sitting on top of the attention-colored bar. */}
-            <span className="shrink-0 whitespace-nowrap self-center rounded-full bg-ink px-2.5 py-1 font-display text-xs font-bold text-white transition-colors">
+                — a dark blue, by request, so it reads as a distinct,
+                tappable action sitting on top of the attention-colored
+                bar. Tailwind's built-in blue-900/950 rather than a new
+                design token: this is a one-off accent for this single
+                button, not a reusable brand color. */}
+            <span className="shrink-0 whitespace-nowrap self-center rounded-full bg-blue-900 px-2.5 py-1 font-display text-xs font-bold text-white transition-colors">
               {flashing ? "→ " : ""}
               {t("Change location")}
             </span>
