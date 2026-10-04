@@ -74,6 +74,11 @@ export type SearchResponse = {
   // store further away than the neighborhood tier ever looks.
   near_best: SearchResult | null;
   city_best: SearchResult | null;
+  // Other products in the same category as the search — could differ in
+  // size, brand, and/or manufacturer from what was actually searched for
+  // (e.g. other chocolate bars for a Toblerone search). Powers the
+  // "Similar items" view, separate from local_results' exact matches.
+  similar_results: SearchResult[];
 };
 
 export async function searchProducts(params: {

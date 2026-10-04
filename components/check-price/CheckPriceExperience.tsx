@@ -443,6 +443,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [showScanner, setShowScanner] = useState(false);
   const [useGuidedForm, setUseGuidedForm] = useState(false);
   const [sortMode, setSortMode] = useState<"price" | "distance">("price");
+  // Toggles the results table between exact matches (sorted/tableRows
+  // below) and "Similar items" — other products in the same category that
+  // could differ in size, brand, and/or manufacturer. Independent of
+  // sortMode, which still orders whichever list is currently shown.
+  const [showSimilar, setShowSimilar] = useState(false);
   // This screen's own per-store review summary cache (average emoji rating
   // + count), keyed by store_id — fetched once per result set, in a single
   // batched request for every store on screen, rather than one request per
@@ -638,6 +643,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     // answer can never sit on screen looking like the new search didn't do
     // anything — the searching indicator below takes its place instead.
     setResult(null);
+    setShowSimilar(false);
     try {
       const supabase = createBrowserSupabase();
       const { data } = await supabase.auth.getSession();
@@ -967,13 +973,24 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     const worst = withinRange.reduce((m, r) => (r.price > m.price ? r : m), withinRange[0]);
     return worst.price > nb.price ? worst.price - nb.price : null;
   })();
+  // "Similar items" — same category, but deliberately NOT the exact
+  // product (could be a different size, brand, and/or manufacturer),
+  // sorted by the same price/distance toggle as the exact-match table.
+  // Kept entirely separate from `sorted`/cheapestKey/atStore/savingsFor
+  // above, which all intentionally stay scoped to exact matches only.
+  const similarSorted = result?.similar_results.length
+    ? [...result.similar_results].sort((a, b) =>
+        sortMode === "price" ? a.price - b.price : a.distance_m - b.distance_m
+      )
+    : [];
   // Always show the full list of every store carrying the item — it used
   // to be hidden behind a "See best prices nearby too" link whenever you
   // were detected as standing at a store, but the shopper should be able
   // to see item name, "you are at this store," nearby best, city best, and
   // the full comparison list (with sorting) all at once, not have to ask
-  // for the list.
-  const tableRows = sorted;
+  // for the list. Swaps to similarSorted while the "Similar items" toggle
+  // is on.
+  const tableRows = showSimilar ? similarSorted : sorted;
 
   // Fetch review summaries for every store on screen in one batched
   // request, whenever the result set changes — covers the comparison
@@ -983,6 +1000,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   useEffect(() => {
     const ids = new Set<string>();
     for (const r of sorted) ids.add(r.store_id);
+    for (const r of similarSorted) ids.add(r.store_id);
     if (result?.near_best) ids.add(result.near_best.store_id);
     if (result?.city_best) ids.add(result.city_best.store_id);
     if (ids.size === 0) {
@@ -1462,25 +1480,39 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             />
           )}
 
-          {tableRows.length > 1 && (
-            <div className="mb-2 flex items-center gap-2 text-sm">
-              <span className="text-ash">{t("Sort by")}:</span>
-              <button
-                onClick={() => setSortMode("price")}
-                className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
-                  sortMode === "price" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-105"
-                }`}
-              >
-                {t("Best price")}
-              </button>
-              <button
-                onClick={() => setSortMode("distance")}
-                className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
-                  sortMode === "distance" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-105"
-                }`}
-              >
-                {t("Nearest")}
-              </button>
+          {(sorted.length > 1 || similarSorted.length > 0) && (
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
+              {sorted.length > 1 && (
+                <>
+                  <span className="text-ash">{t("Sort by")}:</span>
+                  <button
+                    onClick={() => setSortMode("price")}
+                    className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
+                      sortMode === "price" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-105"
+                    }`}
+                  >
+                    {t("Best price")}
+                  </button>
+                  <button
+                    onClick={() => setSortMode("distance")}
+                    className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
+                      sortMode === "distance" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-105"
+                    }`}
+                  >
+                    {t("Nearest")}
+                  </button>
+                </>
+              )}
+              {similarSorted.length > 0 && (
+                <button
+                  onClick={() => setShowSimilar((v) => !v)}
+                  className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
+                    showSimilar ? "bg-blue-800 text-white" : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
+                >
+                  {t("Similar items")}
+                </button>
+              )}
             </div>
           )}
 

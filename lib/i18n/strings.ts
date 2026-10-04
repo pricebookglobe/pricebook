@@ -343,6 +343,7 @@ export const UI_STRINGS = [
   "Sort by",
   "Best price",
   "Nearest",
+  "Similar items",
 
   // Pagination (Search history and elsewhere)
   "Page",

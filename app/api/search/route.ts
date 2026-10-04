@@ -178,6 +178,28 @@ export async function POST(req: NextRequest) {
       cityBest = [...results].sort((a: any, b: any) => a.price - b.price)[0] ?? null;
     }
 
+    // "Similar items" — other products in the same category (could be a
+    // different size, brand, and/or manufacturer than what was searched),
+    // not just other stores selling the exact same thing. Best-effort: a
+    // failure here shouldn't turn a working exact-match search into a 500,
+    // so this never throws past its own catch.
+    let similarResults: any[] = [];
+    try {
+      const excludeIds = Array.from(new Set(cityWide.map((r: any) => r.product_id)));
+      const { data: similarData, error: similarError } = await supabase.rpc("search_similar_products", {
+        query_category: structured.category,
+        user_lat: lat,
+        user_lng: lng,
+        radius_meters: RADII_M.city,
+        match_limit: 50,
+        exclude_product_ids: excludeIds
+      });
+      if (similarError) throw similarError;
+      similarResults = similarData ?? [];
+    } catch (similarErr) {
+      console.error("search_similar_products failed (non-fatal)", similarErr);
+    }
+
     // Log to search history if the caller is logged in — best-effort, never
     // fails the search itself if this insert has a problem. This is wrapped
     // in its own try/catch: previously an unguarded failure here (a stale
@@ -205,7 +227,8 @@ export async function POST(req: NextRequest) {
       local_results: results,
       web_estimate: webEstimate,
       near_best: nearBest,
-      city_best: cityBest
+      city_best: cityBest,
+      similar_results: similarResults
     });
   } catch (err) {
     console.error("search error", err);
