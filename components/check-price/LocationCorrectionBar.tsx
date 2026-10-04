@@ -18,6 +18,7 @@ export function LocationCorrectionBar({
   primaryStore,
   alternativeStores,
   isManualOverride,
+  promptRecheck,
   onSelect
 }: {
   primaryStore: NearbyStore;
@@ -27,6 +28,12 @@ export function LocationCorrectionBar({
   // "the alternatives" across two UI locations.
   alternativeStores: NearbyStore[];
   isManualOverride: boolean;
+  // True for a few seconds right after a background re-check runs while a
+  // manual correction is active (the slow 60s cadence) — swaps the bar's
+  // text to "Are you still at X?" and flashes it, as a periodic nudge
+  // rather than something that needs dismissing (CheckPriceExperience
+  // clears it on its own timer).
+  promptRecheck: boolean;
   onSelect: (storeId: string) => void;
 }) {
   const { t } = useLanguage();
@@ -50,22 +57,38 @@ export function LocationCorrectionBar({
           is open (mirrors how location polling itself stays live across
           the landing panel, Scan/Snap/results — see CheckPriceExperience's
           background poll effect). */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="sticky top-0 z-30 -mx-6 mb-4 flex w-[calc(100%+3rem)] items-center justify-between gap-3 border-b border-correction-dark/20 bg-correction px-4 py-2.5 text-left shadow-sm transition-colors active:bg-correction-dark sm:-mx-8 sm:w-[calc(100%+4rem)]"
-      >
-        <span className="flex min-w-0 items-center gap-2 font-display text-sm font-semibold text-white">
-          <MapPin size={16} strokeWidth={2.5} className="shrink-0" />
-          <span className="truncate">
-            {t("You are at")} {primaryStore.store_name}
-            {isManualOverride ? "" : "."} {!isManualOverride && t("Incorrect?")}
-          </span>
-        </span>
-        <span className="shrink-0 whitespace-nowrap rounded-full bg-white/20 px-2.5 py-1 font-display text-xs font-bold text-white underline-offset-2">
-          {t("Change location")}
-        </span>
-      </button>
+      {(() => {
+        const flashing = isManualOverride && promptRecheck;
+        return (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className={`sticky top-0 z-30 -mx-6 mb-4 flex w-[calc(100%+3rem)] items-center justify-between gap-3 border-b border-correction-dark/20 px-4 py-2.5 text-left shadow-sm transition-colors active:bg-correction-dark sm:-mx-8 sm:w-[calc(100%+4rem)] ${
+              flashing ? "correction-flash-bar" : "bg-correction"
+            }`}
+          >
+            <span className="flex min-w-0 items-center gap-2 font-display text-sm font-semibold text-white">
+              <MapPin size={16} strokeWidth={2.5} className="shrink-0" />
+              <span className="truncate">
+                {flashing ? (
+                  <>
+                    {t("Are you still at")} {primaryStore.store_name}?
+                  </>
+                ) : (
+                  <>
+                    {t("You are at")} {primaryStore.store_name}
+                    {isManualOverride ? "" : "."} {!isManualOverride && t("Incorrect?")}
+                  </>
+                )}
+              </span>
+            </span>
+            <span className="shrink-0 whitespace-nowrap rounded-full bg-white/20 px-2.5 py-1 font-display text-xs font-bold text-white underline-offset-2">
+              {flashing ? "→ " : ""}
+              {t("Change location")}
+            </span>
+          </button>
+        );
+      })()}
 
       {open && (
         <div

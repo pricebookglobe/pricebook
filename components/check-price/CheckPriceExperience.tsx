@@ -414,6 +414,14 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // while a manual pick is active; it just stops being the thing that
   // decides which store is "the" one.
   const [manualStoreId, setManualStoreId] = useState<string | null>(null);
+  // Briefly true right after a background re-check runs WHILE a manual
+  // correction is active (i.e. a 60s-cadence tick, not the normal 10s
+  // ones) — flashes the correction bar with "Are you still at X?" instead
+  // of its steady "You are at X", as a periodic nudge to notice it rather
+  // than something the shopper has to act on. Auto-clears itself a few
+  // seconds later (see the effect below); never set at all once there's no
+  // active correction.
+  const [recheckPrompt, setRecheckPrompt] = useState(false);
   const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
 
   // Mirror of the latest coords for the background polling effect below to
@@ -559,8 +567,18 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
     async function tick() {
       if (cancelled) return;
+      // Captured BEFORE the fetch: only a tick that actually fired on the
+      // slow 60s cadence (i.e. a correction was already active going into
+      // it) should flash the "are you still here?" prompt — not every
+      // ordinary 10s tick, and not a tick that happens to clear the
+      // correction itself (handleFindMyLocation does that when the
+      // corrected store drops out of range).
+      const wasCorrected = !!manualStoreIdRef.current;
       if (document.visibilityState === "visible" && coordsRef.current) {
         await handleFindMyLocationRef.current(true);
+      }
+      if (wasCorrected && manualStoreIdRef.current) {
+        setRecheckPrompt(true);
       }
       schedule();
     }
@@ -580,6 +598,19 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialMode]);
 
+  // Flashes for a few seconds, then settles back to the steady "You are at
+  // X" text on its own — a nudge, not a dialog the shopper has to dismiss.
+  // Also clears itself immediately if the correction it was about ever goes
+  // away (store dropped out of range, or a fresh check started).
+  useEffect(() => {
+    if (!recheckPrompt) return;
+    const timer = setTimeout(() => setRecheckPrompt(false), 8000);
+    return () => clearTimeout(timer);
+  }, [recheckPrompt]);
+  useEffect(() => {
+    if (!manualStoreId) setRecheckPrompt(false);
+  }, [manualStoreId]);
+
   // Explicit reset for "Start a new check": clears the result and every bit
   // of state tied to the last one, and drops back to the Check Price menu
   // (scan/snap/enter details) rather than leaving the old answer showing
@@ -589,6 +620,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     setError(null);
     setLocationCheck(null);
     setManualStoreId(null);
+    setRecheckPrompt(false);
     setUseGuidedForm(false);
     setMode(initialMode);
     setCheckPriceRevealed(true);
@@ -1000,6 +1032,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           primaryStore={primaryStore}
           alternativeStores={alternativeStores}
           isManualOverride={manualStoreId === primaryStore.store_id}
+          promptRecheck={recheckPrompt}
           onSelect={setManualStoreId}
         />
       )}

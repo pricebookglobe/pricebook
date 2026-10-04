@@ -247,3 +247,28 @@ body {
     background-color: rgba(57, 255, 20, 0.22);
   }
 }
+
+/* The sticky location-correction bar's periodic "are you still here?"
+   nudge — alternates the bar's own background between the resting
+   `correction` amber and a brighter highlight, same alternating-color
+   approach as .save-flash-box above (not just a brightness pulse), so it
+   reads as a deliberate attention cue rather than a loading spinner. Only
+   applied for the few seconds CheckPriceExperience sets promptRecheck;
+   LocationCorrectionBar reverts to a plain static bg-correction otherwise. */
+@keyframes correction-flash {
+  0%, 45% {
+    background-color: #D97706; /* correction DEFAULT */
+  }
+  55%, 100% {
+    background-color: #FBBF24; /* brighter amber highlight */
+  }
+}
+.correction-flash-bar {
+  animation: correction-flash 1s step-end infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .correction-flash-bar {
+    animation: none;
+    background-color: #FBBF24;
+  }
+}
