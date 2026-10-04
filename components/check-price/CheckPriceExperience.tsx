@@ -1287,6 +1287,18 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </div>
           </div>
 
+          {/* Explains why the Save/comparison figures below aren't measured
+              against "where you're standing" — only shown once there's
+              something TO compare against elsewhere (sorted.length > 0);
+              if literally no store nearby carries this item, the existing
+              "No store nearby carries this yet" message below already
+              covers that. */}
+          {primaryStore && sorted.length > 0 && !sorted.some((r) => r.store_id === primaryStore.store_id) && (
+            <p className="mb-3 text-sm text-ash">
+              {t("{store} doesn't carry this item.").replace("{store}", primaryStore.store_name)}
+            </p>
+          )}
+
           {sorted.length === 0 && (
             <p className="text-sm text-ash">
               {t("No store nearby carries this yet.")}

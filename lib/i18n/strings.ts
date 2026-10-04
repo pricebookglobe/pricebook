@@ -137,6 +137,7 @@ export const UI_STRINGS = [
   "The Price:",
   "You are at an unregistered location",
   "GPS is typically accurate to 5–20 meters, so in tightly packed stores the detected store may not always be exact.",
+  "{store} doesn't carry this item.",
   "Incorrect?",
   "Are you still at",
   "Change location",

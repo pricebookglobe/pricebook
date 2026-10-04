@@ -1,3 +1,31 @@
+export type ProductSuggestion = {
+  product_id: string;
+  product_name: string;
+  brand: string | null;
+  size: number | null;
+  unit: string | null;
+  image_url: string | null;
+};
+
+// Typeahead for FreeTextSearch — see app/api/products/suggestions/route.ts
+// and migration 0032 for what this actually queries. Never throws: a
+// suggestions dropdown failing to load shouldn't block typing or searching,
+// so this resolves to an empty list on any error instead.
+export async function suggestProducts(text: string): Promise<ProductSuggestion[]> {
+  try {
+    const res = await fetch("/api/products/suggestions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
+    if (!res.ok) return [];
+    const { suggestions } = await res.json();
+    return suggestions ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export type NutritionFacts = {
   serving_size: string | null;
   calories: number | null;
