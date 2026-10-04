@@ -8,24 +8,19 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createServiceSupabase();
-  // 100m: close enough that a shopper standing at a store's entrance or
-  // parking lot still matches, but tight enough that with several stores
-  // registered in the same area, one that's actually a different store
-  // down the street doesn't get claimed as "you're here." The RPC itself
-  // already returns only the single nearest store within the radius, so a
-  // crowded area naturally resolves to whichever one is actually closest.
+  // 20m: close enough to comfortably cover standing at a store's entrance
+  // or just outside it, but — per 0030 — tight enough that in a row of
+  // several closely-packed storefronts (reported case: ~10 stores, each
+  // only ~5m wide, side by side) it no longer sweeps in half the block.
+  // The RPC always returns the single nearest active store within this
+  // radius now (0030 dropped the old ambiguity veto that used to refuse to
+  // answer at all whenever two stores were close together, which was
+  // firing constantly in a dense row and showing as "unregistered
+  // location" even while standing right at a real, registered store).
   //
-  // accuracy_m is the device's own reported GPS accuracy, when the caller
-  // has one — the RPC uses it to tell two close-together stores apart with
-  // confidence (returning no match rather than a guess when it can't).
-  // Capped at 5m even when the device reports a much looser fix (ordinary
-  // phone GPS is routinely 15-50m, especially indoors or in a city
-  // street): using that raw, looser number as the disambiguation radius
-  // was too aggressive and started throwing away perfectly good matches
-  // in any area with two stores anywhere near each other — the real cause
-  // of the storefront photo "disappearing" (no match at all means no
-  // store, no photo, just the map). 5m is enough to separate two stores
-  // that aren't right on top of each other, which is all this is for.
+  // accuracy_m is still passed through for signature compatibility with a
+  // database that hasn't run migration 0030 yet (see the fallback below),
+  // but 0030's version of the function no longer uses it.
   const accuracyM = typeof accuracy === "number" && Number.isFinite(accuracy) ? Math.min(Math.max(accuracy, 1), 5) : undefined;
 
   // This repo's migrations are applied by hand, one at a time, in the
@@ -44,7 +39,7 @@ export async function POST(req: NextRequest) {
   ({ data, error } = await supabase.rpc("find_nearest_store", {
     user_lat: lat,
     user_lng: lng,
-    max_meters: 100,
+    max_meters: 20,
     ...(accuracyM !== undefined ? { accuracy_m: accuracyM } : {})
   }));
 
@@ -54,7 +49,7 @@ export async function POST(req: NextRequest) {
     ({ data, error } = await supabase.rpc("find_nearest_store", {
       user_lat: lat,
       user_lng: lng,
-      max_meters: 100
+      max_meters: 20
     }));
   }
 

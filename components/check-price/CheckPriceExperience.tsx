@@ -25,9 +25,28 @@ const TIER_LABEL: Record<string, string> = {
 };
 
 // Kept in step with find_nearest_store's own max_meters (see
-// supabase/migrations/0027_nearest_store_accuracy.sql) so a store counts
-// as "you're here" the same way everywhere in the app.
-const AT_STORE_METERS = 100;
+// supabase/migrations/0030_nearest_store_tighter.sql) so a store counts as
+// "you're here" the same way everywhere in the app. Lowered from 100 to 20:
+// 100m was wide enough to sweep in an entire row of closely-packed stores
+// (reported case: ~10 storefronts, each only ~5m wide, side by side) and
+// meant "you're here" was really "you're somewhere along this block,"
+// decided by whichever store happened to be cheapest or first in the
+// result list rather than which one was actually nearest. 20m is still
+// generous next to typical outdoor GPS accuracy (5-15m) while no longer
+// spanning several doors down the row.
+const AT_STORE_METERS = 20;
+
+// Haversine distance in meters — module-level (not re-declared per effect)
+// so both the live "which store am I at" calculation below and the
+// background polling effect can share one implementation.
+function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371000;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const s =
+    Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
 
 // This component used to cache its last result in sessionStorage (keyed
 // per screen — "menu" for /check-price, "text" for /search-items) and
@@ -400,19 +419,14 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   >(null);
   const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
 
-  // Mirrors of the latest coords/locationCheck for the background polling
-  // effect below to read without being in its dependency array — that
-  // effect manages its own timer loop and must NOT restart every time a
-  // new GPS fix or location-check result comes in, or it would re-poll
-  // immediately on every update instead of backing off as intended.
+  // Mirror of the latest coords for the background polling effect below to
+  // read without being in its dependency array — that effect manages its
+  // own timer loop and must NOT restart every time a new GPS fix comes in,
+  // or it would tear down and recreate its timer on every single update.
   const coordsRef = useRef(coords);
   useEffect(() => {
     coordsRef.current = coords;
   }, [coords]);
-  const locationCheckRef = useRef(locationCheck);
-  useEffect(() => {
-    locationCheckRef.current = locationCheck;
-  }, [locationCheck]);
   const [scanningBarcode, setScanningBarcode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [useGuidedForm, setUseGuidedForm] = useState(false);
@@ -499,71 +513,37 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coords, initialMode, locationCheck, locating]);
 
-  // Keeps "you are at [store]" current while the panel is on screen —
-  // someone can easily walk from an unregistered spot into a store (or the
-  // other way round) without ever tapping anything, so this re-checks on
-  // its own rather than requiring a manual refresh. Scales how often it
-  // actually hits the network instead of polling on a flat timer, since a
-  // flat 10s poll means real cost (a DB round trip) for no benefit the
-  // moment someone's phone is in their pocket or they've stopped moving:
-  //  - paused completely while the app isn't visible (another app in
-  //    front, screen locked) — resumes with an immediate check the instant
-  //    it's visible again, so nothing feels delayed on return
-  //  - the full 10s cadence only while the device has genuinely moved
-  //    since the last check; a slower 45s cadence while it's stayed in
-  //    roughly the same spot, since the answer can't have changed
-  //  - paused while confidently "at" a store and still within its radius —
-  //    walking out resumes the fast cadence for the next check
+  // Keeps "you are at [store]" current on its own, on a flat 10-second
+  // cadence, the whole time the Check Price tab is open — including while
+  // looking at results, not just on the landing panel — so walking from
+  // store to store (or out of a store, or into an unregistered spot)
+  // updates automatically rather than needing a manual refresh. Previously
+  // this slowed to 45s or paused outright once "confidently" at a store and
+  // stopped polling at all once results were on screen — for someone
+  // testing storefront-by-storefront in a dense row, that read as "I have
+  // to tap Check Price again for it to notice I moved." The only thing
+  // still skipped is polling while the app is literally not visible
+  // (backgrounded/screen locked); that resumes with an immediate check the
+  // moment it's visible again.
   useEffect(() => {
-    if (initialMode !== "menu" || checkPriceRevealed) return;
+    if (initialMode !== "menu") return;
 
-    const FAST_MS = 10000;
-    const SLOW_MS = 45000;
-    const MOVED_THRESHOLD_M = 15; // below this, treated as GPS noise, not real movement
-
+    const POLL_MS = 10000;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let cancelled = false;
-    let lastPolledCoords: { lat: number; lng: number } | null = null;
 
-    function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
-      const R = 6371000;
-      const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-      const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-      const s =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-      return 2 * R * Math.asin(Math.sqrt(s));
-    }
-
-    function schedule(delay: number) {
+    function schedule() {
       if (cancelled) return;
       if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(tick, delay);
+      timeoutId = setTimeout(tick, POLL_MS);
     }
 
     async function tick() {
       if (cancelled) return;
-      const liveCoords = coordsRef.current;
-      if (document.visibilityState !== "visible" || !liveCoords) {
-        // Backgrounded or no fix yet — nothing to poll. visibilitychange
-        // below fires an immediate check as soon as it's visible again,
-        // so this isn't "missing" an update, just not wasting one now.
-        schedule(FAST_MS);
-        return;
-      }
-
-      const knownStore = locationCheckRef.current?.store;
-      const atKnownStore =
-        !!knownStore &&
-        distanceMeters(liveCoords, { lat: knownStore.store_lat, lng: knownStore.store_lng }) <= AT_STORE_METERS;
-      const moved = !lastPolledCoords || distanceMeters(liveCoords, lastPolledCoords) > MOVED_THRESHOLD_M;
-
-      if (!atKnownStore && moved) {
-        lastPolledCoords = { lat: liveCoords.lat, lng: liveCoords.lng };
+      if (document.visibilityState === "visible" && coordsRef.current) {
         await handleFindMyLocationRef.current(true);
       }
-
-      schedule(atKnownStore || !moved ? SLOW_MS : FAST_MS);
+      schedule();
     }
 
     function onVisibilityChange() {
@@ -571,7 +551,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     }
 
     document.addEventListener("visibilitychange", onVisibilityChange);
-    schedule(FAST_MS);
+    schedule();
 
     return () => {
       cancelled = true;
@@ -579,7 +559,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialMode, checkPriceRevealed]);
+  }, [initialMode]);
 
   // Explicit reset for "Start a new check": clears the result and every bit
   // of state tied to the last one, and drops back to the Check Price menu
@@ -807,7 +787,29 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           return `${min.store_id}::${min.product_id}`;
         })()
       : null;
-  const atStore = sorted.find((r) => r.distance_m <= AT_STORE_METERS) ?? null;
+  // The store the shopper is actually standing at, picked from LIVE
+  // distance to the device's current GPS fix — not r.distance_m, which is
+  // a snapshot computed server-side at search time and never updates again
+  // on its own, and not sorted's own order (sortMode can be "price", which
+  // used to make this silently pick whichever matching store was cheapest
+  // across the whole area rather than whichever was actually nearest — in
+  // a row of closely-packed stores that meant "You're at" routinely named
+  // a store the shopper wasn't standing anywhere near). Recomputing from
+  // `coords` on every render means this also updates continuously as the
+  // shopper walks, with no polling or manual refresh needed for it at all.
+  const atStore = (() => {
+    if (!coords || sorted.length === 0) return null;
+    let closest: SearchResult | null = null;
+    let closestMeters = Infinity;
+    for (const r of sorted) {
+      const d = distanceMeters(coords, { lat: r.store_lat, lng: r.store_lng });
+      if (d <= AT_STORE_METERS && d < closestMeters) {
+        closest = r;
+        closestMeters = d;
+      }
+    }
+    return closest;
+  })();
 
   // "Save: X" line — compares the cheapest price within 5km of the shopper
   // to the priciest option in that same 5km radius, so the best-price row
