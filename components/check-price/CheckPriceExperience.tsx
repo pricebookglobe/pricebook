@@ -1088,7 +1088,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                     )}
                   </div>
                   {primaryStore.store_photo_url ? (
-                    <div className="overflow-hidden rounded border border-line">
+                    // No border here (by request) — the store photo swaps
+                    // out briefly during an app update or a location
+                    // re-check, and a border around an empty gap read as a
+                    // visible "frame" flashing on/off; the photo itself
+                    // (rounded + clipped, no outline) just fades in and out
+                    // cleanly instead.
+                    <div className="overflow-hidden rounded">
                       <img
                         src={primaryStore.store_photo_url}
                         alt={primaryStore.store_name}

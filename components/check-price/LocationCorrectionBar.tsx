@@ -159,11 +159,15 @@ export function LocationCorrectionBar({
                   >
                     <span className="flex min-w-0 items-center gap-2.5">
                       {s.store_photo_url ? (
+                        // No border here either, matching the big store
+                        // photo on the landing panel — see the comment
+                        // there on why (a flashing "frame" while the photo
+                        // itself briefly isn't there).
                         <img
                           src={s.store_photo_url}
                           alt=""
                           aria-hidden="true"
-                          className="h-8 w-8 shrink-0 rounded-md border border-line object-cover"
+                          className="h-8 w-8 shrink-0 rounded-md object-cover"
                         />
                       ) : (
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-dashed border-line text-ash">
