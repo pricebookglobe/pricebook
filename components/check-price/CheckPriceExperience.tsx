@@ -1049,24 +1049,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         </div>
       )}
 
-      {/* Small branding footer — the starting/landing screen only (before
-          Scan/Snap/Enter details are revealed), not on every screen. */}
-      {mode === "menu" && !checkPriceRevealed && (
-        <div className="mt-6 flex flex-col items-center gap-1 pt-2 text-center">
-          <img src="/institute-of-ai-logo.jpg" alt="Institute of AI" className="h-5 w-auto rounded-sm opacity-90" />
-          <p className="text-[11px] text-ash">
-            {t("Product from the")}{" "}
-            <a
-              href="https://www.institute-of-ai.org"
-              target="_blank"
-              rel="noreferrer"
-              className="underline hover:text-ink"
-            >
-              {t("Institute of AI")}
-            </a>
-          </p>
-        </div>
-      )}
 
       {mode === "menu" && checkPriceRevealed && !busy && !scanningBarcode && (
         <>
