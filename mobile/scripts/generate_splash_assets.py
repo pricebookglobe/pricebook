@@ -17,13 +17,32 @@
 # whole shield — it made every exported size look noisier, not clearer.
 # Plain high-quality (LANCZOS) resampling straight from the trimmed master,
 # with no sharpening pass, is the cleanest result this source supports.
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 RES = f"{ROOT}/mobile/android/app/src/main/res"
 LIGHT_GREEN = (220, 238, 227)  # #DCEEE3 - tailwind value-soft
+INK = (0, 51, 62)  # #00333E - tailwind ink, used for the credit line text
+
+FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+CREDIT_TEXT = "Product from the Institute of AI"
+
+def draw_credit(canvas, w, h):
+    # Plain text near the bottom of the splash — this screen is a static
+    # native image shown before the app's own JS has even loaded, so it
+    # can't be a tappable link the way the in-app credit is; it's here
+    # purely so the Institute of AI is credited from the very first frame.
+    draw = ImageDraw.Draw(canvas)
+    font_size = max(10, round(min(w, h) * 0.032))
+    font = ImageFont.truetype(FONT_PATH, font_size)
+    bbox = draw.textbbox((0, 0), CREDIT_TEXT, font=font)
+    text_w = bbox[2] - bbox[0]
+    text_h = bbox[3] - bbox[1]
+    x = (w - text_w) / 2 - bbox[0]
+    y = h - text_h - round(h * 0.06) - bbox[1]
+    draw.text((x, y), CREDIT_TEXT, font=font, fill=INK)
 
 def load_icon():
     im = Image.open(f"{ROOT}/app/icon.png").convert("RGBA")
@@ -81,6 +100,7 @@ for rel, (w, h) in splash_sizes.items():
     fitted = fit_icon(icon, min(w, h), 0.46)
     pos = ((w - fitted.width) // 2, (h - fitted.height) // 2)
     canvas.paste(fitted, pos, fitted)
+    draw_credit(canvas, w, h)
     path = f"{RES}/{rel}"
     canvas.save(path, quality=95)
     print("wrote", path, canvas.size)

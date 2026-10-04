@@ -16,8 +16,6 @@ export const UI_STRINGS = [
 
   // Homepage / search
   "Track best prices, near you first.",
-  "Product from the",
-  "Institute of AI",
   "Organic whole milk 1L, or a brand name…",
   "Snap",
   "Upload",
