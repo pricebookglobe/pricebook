@@ -1189,7 +1189,22 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           <div className="mb-6 flex items-center justify-between">
             <button
               type="button"
-              onClick={() => setCheckPriceRevealed(false)}
+              onClick={() => {
+                // Previously this only hid the Scan/Snap/Enter details
+                // block (checkPriceRevealed false) — the old result stayed
+                // in state and kept rendering below the landing panel,
+                // showing a stale product/store until a real new search
+                // overwrote it. Back now clears the result/mode too, same
+                // as a fresh visit to this tab, while leaving location
+                // state (locationCheck/manualStoreId) alone — the shopper
+                // hasn't moved, so there's no reason to forget a location
+                // correction just because they backed out of one item.
+                setCheckPriceRevealed(false);
+                setResult(null);
+                setError(null);
+                setMode(initialMode);
+                setUseGuidedForm(false);
+              }}
               className="inline-flex items-center gap-1 rounded border border-flag bg-flag px-3 py-1.5 font-display text-sm text-white transition-colors hover:border-field active:border-ink-dark active:bg-ink-dark"
             >
               {t("Back")}
