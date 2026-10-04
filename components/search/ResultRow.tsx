@@ -11,6 +11,38 @@ import { EmojiRating } from "@/components/shared/EmojiRating";
 
 export type StoreRating = { average_rating: number | null; count: number };
 
+// An item name, hard-wrapped at three words per line (not left to the
+// browser's own reflow) — a name longer than three words breaks after the
+// third word onto a second line, with the [size] tag placed right after
+// the very last word, whichever line that ends up on.
+export function ItemName({
+  name,
+  sizeTag,
+  className,
+  sizeClassName = "text-ash"
+}: {
+  name: string;
+  sizeTag: string;
+  className?: string;
+  sizeClassName?: string;
+}) {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const firstLine = words.slice(0, 3).join(" ");
+  const secondLine = words.length > 3 ? words.slice(3).join(" ") : null;
+  return (
+    <span className={className}>
+      {firstLine}
+      {secondLine && (
+        <>
+          <br />
+          {secondLine}
+        </>
+      )}
+      {sizeTag && <span className={`ml-1 font-mono text-[12px] font-normal ${sizeClassName}`}>{sizeTag}</span>}
+    </span>
+  );
+}
+
 function formatDistance(meters: number): string {
   return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(1)} km`;
 }
@@ -239,13 +271,13 @@ export function ResultRow({
       <div className="rounded-lg border border-line bg-field-raised px-3.5 py-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            {/* (1) Item name. */}
-            <p className="truncate font-display text-[14px] font-semibold text-ink">
-              {result.product_name}
-              {formatSizeTag(result.size, result.unit) && (
-                <span className="ml-1 font-mono text-[12px] font-normal text-ash">{formatSizeTag(result.size, result.unit)}</span>
-              )}
-            </p>
+            {/* (1) Item name — wrapped at three words per line, size tag
+                after the last word. */}
+            <ItemName
+              name={result.product_name}
+              sizeTag={formatSizeTag(result.size, result.unit)}
+              className="block font-display text-[14px] font-semibold leading-tight text-ink"
+            />
             {/* (2) Store name, on its own line, with the review circle + face. */}
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <span className={"h-1.5 w-1.5 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />
@@ -292,14 +324,10 @@ export function ResultRow({
   return (
     <>
       <tr>
-        {/* (1) Item name. */}
+        {/* (1) Item name — wrapped at three words per line, size tag after
+            the last word. */}
         <td className="align-top">
-          <p className="font-medium text-ink">
-            {result.product_name}
-            {formatSizeTag(result.size, result.unit) && (
-              <span className="ml-1 font-mono text-[12px] font-normal text-ash">{formatSizeTag(result.size, result.unit)}</span>
-            )}
-          </p>
+          <ItemName name={result.product_name} sizeTag={formatSizeTag(result.size, result.unit)} className="block font-medium leading-tight text-ink" />
           {/* (2) Store name, on its own line, with the review circle + face. */}
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <span className={"h-2 w-2 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />

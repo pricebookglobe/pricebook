@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useGeolocation } from "@/components/shared/GeolocationProvider";
-import { ResultRow, SaveBadge, type StoreRating } from "@/components/search/ResultRow";
+import { ResultRow, SaveBadge, ItemName, type StoreRating } from "@/components/search/ResultRow";
 import { EmojiRating } from "@/components/shared/EmojiRating";
 import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
 import { FreeTextSearch } from "@/components/check-price/FreeTextSearch";
@@ -92,11 +92,9 @@ function PriceCallout({
   const [busy, setBusy] = useState(false);
   const [showNutrition, setShowNutrition] = useState(false);
 
-  // The [75g]-style size tag, placed right after the name's last word — and
-  // a long name (more than three words) drops the Nutrition facts button to
-  // its own line below instead of squeezing both onto one row.
+  // The [75g]-style size tag, placed right after the name's last word by
+  // ItemName (which also hard-wraps the name at three words per line).
   const sizeTag = formatSizeTag(result.size, result.unit);
-  const nameIsLong = result.product_name.trim().split(/\s+/).filter(Boolean).length > 3;
 
   async function handleReport(type: "correct_price" | "wrong_price") {
     setBusy(true);
@@ -127,19 +125,15 @@ function PriceCallout({
     return (
       <div className="mb-3 rounded-lg bg-ink px-4 py-3.5 text-field">
         <p className="font-mono text-[10px] uppercase tracking-wide text-field/50">{label}</p>
-        {/* Item name (+ size tag right after the last word), with Nutrition
-            facts beside it — dropped to its own line below when the name
-            runs long, instead of squeezing both onto one row. */}
-        <div className={nameIsLong ? "mt-1 flex flex-col gap-1 text-sm" : "mt-1 flex items-center justify-between gap-2 text-sm"}>
-          <strong className="text-field">
-            {result.product_name}
-            {sizeTag && <span className="ml-1.5 font-mono text-xs font-normal text-field/60">{sizeTag}</span>}
+        {/* Item name — wrapped at three words per line, size tag after the
+            last word — with Nutrition facts dropped below it rather than
+            squeezed onto the same row. */}
+        <div className="mt-1 flex flex-col gap-1 text-sm">
+          <strong>
+            <ItemName name={result.product_name} sizeTag={sizeTag} className="text-field" sizeClassName="text-field/60" />
           </strong>
           {result.nutrition_facts && (
-            <button
-              onClick={() => setShowNutrition((s) => !s)}
-              className={nameIsLong ? "self-start text-xs text-field/80 underline" : "shrink-0 text-xs text-field/80 underline"}
-            >
+            <button onClick={() => setShowNutrition((s) => !s)} className="self-start text-xs text-field/80 underline">
               {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
             </button>
           )}
@@ -246,23 +240,15 @@ function PriceCallout({
 
   return (
     <div className="mb-3 rounded border border-ink/25 bg-ink/[0.07] px-4 py-3">
-      {/* Item name (+ size tag right after the last word), with Nutrition
-          facts beside it — dropped to its own line below when the name
-          runs long, instead of squeezing both onto one row. */}
-      <div className={nameIsLong ? "flex flex-col gap-1 text-sm text-ink" : "flex items-center justify-between gap-2 text-sm text-ink"}>
+      {/* Item name — wrapped at three words per line, size tag after the
+          last word — with Nutrition facts dropped below it rather than
+          squeezed onto the same row. */}
+      <div className="flex flex-col gap-1 text-sm text-ink">
         <strong>
-          {result.product_name}
-          {sizeTag && <span className="ml-1.5 font-mono text-xs font-normal text-ash">{sizeTag}</span>}
+          <ItemName name={result.product_name} sizeTag={sizeTag} />
         </strong>
         {result.nutrition_facts && (
-          <button
-            onClick={() => setShowNutrition((s) => !s)}
-            className={
-              nameIsLong
-                ? "self-start text-xs text-ink/70 underline hover:text-ink"
-                : "shrink-0 text-xs text-ink/70 underline hover:text-ink"
-            }
-          >
+          <button onClick={() => setShowNutrition((s) => !s)} className="self-start text-xs text-ink/70 underline hover:text-ink">
             {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
           </button>
         )}
@@ -801,6 +787,15 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     result?.near_best?.image_url ??
     result?.city_best?.image_url ??
     null;
+  // The size tag for the top heading — the search query itself usually has
+  // no size (a Snap/Scan/typed search rarely specifies one), so this falls
+  // back to whichever actual matched listing has one, same priority order
+  // as the product image above.
+  const topSizeSource =
+    result?.query.size != null && result?.query.unit
+      ? result.query
+      : result?.local_results.find((r) => r.size != null && r.unit) ?? result?.near_best ?? result?.city_best ?? null;
+  const topSizeTag = topSizeSource ? formatSizeTag(topSizeSource.size, topSizeSource.unit) : "";
   // Identifies the single cheapest row, not just the cheapest store — a
   // store can now show more than one row (different products matching the
   // same partial-name search), so "store_id" alone could mark more than
@@ -1054,6 +1049,25 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         </div>
       )}
 
+      {/* Small branding footer — the starting/landing screen only (before
+          Scan/Snap/Enter details are revealed), not on every screen. */}
+      {mode === "menu" && !checkPriceRevealed && (
+        <div className="mt-6 flex flex-col items-center gap-1 pt-2 text-center">
+          <img src="/institute-of-ai-logo.jpg" alt="Institute of AI" className="h-5 w-auto rounded-sm opacity-90" />
+          <p className="text-[11px] text-ash">
+            {t("Product from the")}{" "}
+            <a
+              href="https://www.institute-of-ai.org"
+              target="_blank"
+              rel="noreferrer"
+              className="underline hover:text-ink"
+            >
+              {t("Institute of AI")}
+            </a>
+          </p>
+        </div>
+      )}
+
       {mode === "menu" && checkPriceRevealed && !busy && !scanningBarcode && (
         <>
           {snapInterrupted && (
@@ -1189,12 +1203,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           )}
           <div className="mb-2 flex items-baseline justify-between gap-2">
             <h2 className="font-display text-lg font-bold text-ink">
-              {displayProductName(result.query.brand, result.query.product_name)}
-              {formatSizeTag(result.query.size, result.query.unit) && (
-                <span className="ml-1.5 font-mono text-sm font-normal text-ash">
-                  {formatSizeTag(result.query.size, result.query.unit)}
-                </span>
-              )}
+              <ItemName name={displayProductName(result.query.brand, result.query.product_name)} sizeTag={topSizeTag} />
             </h2>
             <div className="flex items-center gap-2">
               {result.tier && (
