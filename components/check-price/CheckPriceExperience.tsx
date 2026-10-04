@@ -1182,7 +1182,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             <img
               src={productImageUrl}
               alt={displayProductName(result.query.brand, result.query.product_name)}
-              className="mb-3 h-40 w-40 rounded-lg border border-line bg-field-raised object-contain"
+              className="mb-3 h-40 w-40 rounded-lg border border-line bg-field-raised object-cover"
             />
           )}
           <div className="mb-2 flex items-baseline justify-between gap-2">
