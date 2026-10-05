@@ -26,29 +26,12 @@ const TIER_LABEL: Record<string, string> = {
   city: "city zone"
 };
 
-// Kept in step with find_nearest_store's own max_meters (see
-// supabase/migrations/0030_nearest_store_tighter.sql) so a store counts as
-// "you're here" the same way everywhere in the app. Lowered from 100 to 20:
-// 100m was wide enough to sweep in an entire row of closely-packed stores
-// (reported case: ~10 storefronts, each only ~5m wide, side by side) and
-// meant "you're here" was really "you're somewhere along this block,"
-// decided by whichever store happened to be cheapest or first in the
-// result list rather than which one was actually nearest. 20m is still
-// generous next to typical outdoor GPS accuracy (5-15m) while no longer
-// spanning several doors down the row.
-const AT_STORE_METERS = 20;
-
-// Haversine distance in meters — module-level (not re-declared per effect)
-// so both the live "which store am I at" calculation below and the
-// background polling effect can share one implementation.
-function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const R = 6371000;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const s =
-    Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(s));
-}
+// "You're at [store]" (atStore, below) is now always derived from
+// primaryStore — the same single "where you are" determination the
+// find_nearest_store/find_nearby_stores migrations and the orange banner
+// already use — rather than its own independent live-GPS distance scan,
+// so there's no longer a separate AT_STORE_METERS radius or haversine
+// helper needed here at all; see primaryStore/atStore below.
 
 // This component used to cache its last result in sessionStorage (keyed
 // per screen — "menu" for /check-price, "text" for /search-items) and
@@ -846,43 +829,34 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           return `${min.store_id}::${min.product_id}`;
         })()
       : null;
-  // The store the shopper is actually standing at, picked from LIVE
-  // distance to the device's current GPS fix — not r.distance_m, which is
-  // a snapshot computed server-side at search time and never updates again
-  // on its own, and not sorted's own order (sortMode can be "price", which
-  // used to make this silently pick whichever matching store was cheapest
-  // across the whole area rather than whichever was actually nearest — in
-  // a row of closely-packed stores that meant "You're at" routinely named
-  // a store the shopper wasn't standing anywhere near). Recomputing from
-  // `coords` on every render means this also updates continuously as the
-  // shopper walks, with no polling or manual refresh needed for it at all.
-  const atStore = (() => {
-    if (!coords || sorted.length === 0) return null;
-    let closest: SearchResult | null = null;
-    let closestMeters = Infinity;
-    for (const r of sorted) {
-      const d = distanceMeters(coords, { lat: r.store_lat, lng: r.store_lng });
-      if (d <= AT_STORE_METERS && d < closestMeters) {
-        closest = r;
-        closestMeters = d;
-      }
-    }
-    return closest;
-  })();
-
-  // The pre-search "You are at" panel's own store list — separate from
-  // atStore above (which only exists once there's a search result to match
-  // against). nearbyStores is every active store within 20m, nearest first;
-  // the shown "primary" store is normally just the nearest one, UNLESS the
-  // shopper has manually corrected it (manualStoreId), in which case their
-  // pick wins even though the 10s background poll keeps refreshing the
-  // underlying list/distances. If a manual pick ever falls out of the
-  // refreshed list (moved out of range, store deactivated, etc.) this falls
-  // back to the nearest one rather than showing a store that's no longer a
-  // real candidate.
+  // The pre-search "You are at" panel's own store list. nearbyStores is
+  // every active store within 20m, nearest first; the shown "primary"
+  // store is normally just the nearest one, UNLESS the shopper has
+  // manually corrected it (manualStoreId), in which case their pick wins
+  // even though the 10s background poll keeps refreshing the underlying
+  // list/distances. If a manual pick ever falls out of the refreshed list
+  // (moved out of range, store deactivated, etc.) this falls back to the
+  // nearest one rather than showing a store that's no longer a real
+  // candidate.
   const nearbyStores = locationCheck?.stores ?? [];
   const primaryStore = (manualStoreId && nearbyStores.find((s) => s.store_id === manualStoreId)) || nearbyStores[0] || null;
   const alternativeStores = nearbyStores.filter((s) => s.store_id !== primaryStore?.store_id);
+
+  // The "You're at [store], price: X" card below is about THIS search
+  // result at the shopper's current/confirmed store — so it has to be
+  // the exact same store as the orange "You are at" banner and the red
+  // "{store} doesn't carry this item" message above, not a separately
+  // re-detected one. An earlier version re-scanned `sorted` by live GPS
+  // distance on its own, independent of primaryStore — which could (and,
+  // per a real report, did) name a DIFFERENT store than the banner
+  // whenever the shopper was within range of two adjacent stores, and
+  // also silently ignored a manual "Change location" correction entirely
+  // (primaryStore respects manualStoreId; that independent GPS scan
+  // never did). Deriving atStore from primaryStore instead makes the two
+  // impossible to disagree, and means this card and the red "doesn't
+  // carry" message above are now strictly mutually exclusive — exactly
+  // one of them shows, for the one store the shopper is actually at.
+  const atStore = primaryStore ? sorted.find((r) => r.store_id === primaryStore.store_id) ?? null : null;
 
   // "Save: X" line — compares the cheapest price within 5km of the shopper
   // to the priciest option in that same 5km radius, so the best-price row
@@ -1480,10 +1454,17 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             />
           )}
 
+          {/* Best price/Nearest sit on the same line as the "Sort by:"
+              label — two buttons is narrow enough for that everywhere.
+              Similar items, when it's also showing (three buttons total),
+              drops to its own line below instead of fighting the other
+              two for space on one row; when it's the only button (no
+              exact-match sort to show), it gets the label on its own
+              line instead. */}
           {(sorted.length > 1 || similarSorted.length > 0) && (
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">
+            <div className="mb-2 text-sm">
               {sorted.length > 1 && (
-                <>
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-ash">{t("Sort by")}:</span>
                   <button
                     onClick={() => setSortMode("price")}
@@ -1501,17 +1482,20 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                   >
                     {t("Nearest")}
                   </button>
-                </>
+                </div>
               )}
               {similarSorted.length > 0 && (
-                <button
-                  onClick={() => setShowSimilar((v) => !v)}
-                  className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
-                    showSimilar ? "bg-blue-800 text-white" : "bg-blue-600 text-white hover:bg-blue-700"
-                  }`}
-                >
-                  {t("Similar items")}
-                </button>
+                <div className={`flex flex-wrap items-center gap-2 ${sorted.length > 1 ? "mt-2" : ""}`}>
+                  {sorted.length <= 1 && <span className="text-ash">{t("Sort by")}:</span>}
+                  <button
+                    onClick={() => setShowSimilar((v) => !v)}
+                    className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
+                      showSimilar ? "bg-blue-800 text-white" : "bg-blue-600 text-white hover:bg-blue-700"
+                    }`}
+                  >
+                    {t("Similar items")}
+                  </button>
+                </div>
               )}
             </div>
           )}
