@@ -178,20 +178,26 @@ export async function POST(req: NextRequest) {
       cityBest = [...results].sort((a: any, b: any) => a.price - b.price)[0] ?? null;
     }
 
-    // "Similar items" — other products in the same category (could be a
-    // different size, brand, and/or manufacturer than what was searched),
-    // not just other stores selling the exact same thing. Best-effort: a
-    // failure here shouldn't turn a working exact-match search into a 500,
-    // so this never throws past its own catch.
+    // "Similar items" — other products that are semantically close to the
+    // search (could be a different size, brand, and/or manufacturer), not
+    // just other stores selling the exact same thing. Reuses the same
+    // embedding already computed for the exact-match search above, just
+    // with a lower similarity floor than SIMILARITY_FALLBACK_THRESHOLD —
+    // products.category turned out to be free text set per-product
+    // ("Snacks" vs "snacks" vs "Confectionery" vs "Candy Bar"), too
+    // inconsistent to filter on directly (see migration 0035). Best-effort:
+    // a failure here shouldn't turn a working exact-match search into a
+    // 500, so this never throws past its own catch.
     let similarResults: any[] = [];
     try {
       const excludeIds = Array.from(new Set(cityWide.map((r: any) => r.product_id)));
       const { data: similarData, error: similarError } = await supabase.rpc("search_similar_products", {
-        query_category: structured.category,
+        query_embedding: embedding,
         user_lat: lat,
         user_lng: lng,
         radius_meters: RADII_M.city,
         match_limit: 50,
+        min_similarity: 0.35,
         exclude_product_ids: excludeIds
       });
       if (similarError) throw similarError;
