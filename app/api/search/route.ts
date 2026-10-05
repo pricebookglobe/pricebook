@@ -188,6 +188,12 @@ export async function POST(req: NextRequest) {
     // inconsistent to filter on directly (see migration 0035). Best-effort:
     // a failure here shouldn't turn a working exact-match search into a
     // 500, so this never throws past its own catch.
+    //
+    // min_similarity started at 0.35, which was too loose in practice —
+    // "Mixed Nuts" showed up as "similar" to a Snickers search. Raised to
+    // 0.6: still comfortably below the 0.75 exact-match floor (so it's
+    // never just repeating local_results), but close enough to it that
+    // what comes back reads as "other chocolate bars," not "other food."
     let similarResults: any[] = [];
     try {
       const excludeIds = Array.from(new Set(cityWide.map((r: any) => r.product_id)));
@@ -197,7 +203,7 @@ export async function POST(req: NextRequest) {
         user_lng: lng,
         radius_meters: RADII_M.city,
         match_limit: 50,
-        min_similarity: 0.35,
+        min_similarity: 0.6,
         exclude_product_ids: excludeIds
       });
       if (similarError) throw similarError;
