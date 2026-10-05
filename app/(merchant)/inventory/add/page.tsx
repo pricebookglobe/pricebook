@@ -273,35 +273,37 @@ export default function AddItemPage() {
                 e.preventDefault();
                 if (textQuery.trim()) extract({ text: textQuery.trim() });
               }}
-              className="flex items-center gap-2 rounded border border-line bg-field-raised px-3 py-2"
+              className="flex flex-col gap-2 rounded border border-line bg-field-raised px-3 py-2"
             >
               <input
                 autoFocus
                 value={textQuery}
                 onChange={(e) => setTextQuery(e.target.value)}
                 placeholder={t("e.g. Al Ain fresh milk 1L")}
-                className="flex-1 bg-transparent text-[15px] text-ink placeholder:text-ash outline-none"
+                className="w-full bg-transparent text-[15px] text-ink placeholder:text-ash outline-none"
                 disabled={extracting}
               />
-              <button
-                type="button"
-                onClick={() => setMode("menu")}
-                disabled={extracting}
-                className="text-sm text-ash underline hover:text-ink disabled:opacity-40"
-              >
-                {t("Cancel")}
-              </button>
-              <button
-                type="submit"
-                disabled={extracting || !textQuery.trim()}
-                className={`rounded-sm px-4 py-1.5 font-display text-sm font-medium transition-colors disabled:opacity-40 ${
-                  textQuery.trim()
-                    ? "btn-shine border border-value bg-value text-white active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-105"
-                    : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white transition-all duration-200 hover:scale-105"
-                }`}
-              >
-                {extracting ? t("Reading…") : t("Identify")}
-              </button>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMode("menu")}
+                  disabled={extracting}
+                  className="text-sm text-ash underline hover:text-ink disabled:opacity-40"
+                >
+                  {t("Cancel")}
+                </button>
+                <button
+                  type="submit"
+                  disabled={extracting || !textQuery.trim()}
+                  className={`rounded-sm px-4 py-1.5 font-display text-sm font-medium transition-colors disabled:opacity-40 ${
+                    textQuery.trim()
+                      ? "btn-shine border border-value bg-value text-white active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white transition-all duration-200 hover:scale-105"
+                      : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white transition-all duration-200 hover:scale-105"
+                  }`}
+                >
+                  {extracting ? t("Reading…") : t("Identify")}
+                </button>
+              </div>
             </form>
           )}
 
