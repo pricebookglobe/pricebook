@@ -1454,51 +1454,73 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             />
           )}
 
-          {/* Best price/Nearest sit on the same line as the "Sort by:"
-              label — two buttons is narrow enough for that everywhere.
-              Similar items, when it's also showing (three buttons total),
-              drops to its own line below instead of fighting the other
-              two for space on one row; when it's the only button (no
-              exact-match sort to show), it gets the label on its own
-              line instead. */}
-          {(sorted.length > 1 || similarSorted.length > 0) && (
-            <div className="mb-2 text-sm">
-              {sorted.length > 1 && (
+          {/* Two buttons (Best price/Nearest, no Similar items yet) sit
+              right on the "Sort by:" label's own line. Once Similar items
+              joins them (three buttons total), the label gets its own
+              line and all three buttons move together onto the line below
+              it, rather than splitting two-up-top/one-below. */}
+          {(() => {
+            const bestPriceButton = (
+              <button
+                key="price"
+                onClick={() => setSortMode("price")}
+                className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
+                  sortMode === "price" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-105"
+                }`}
+              >
+                {t("Best price")}
+              </button>
+            );
+            const nearestButton = (
+              <button
+                key="distance"
+                onClick={() => setSortMode("distance")}
+                className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
+                  sortMode === "distance" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-105"
+                }`}
+              >
+                {t("Nearest")}
+              </button>
+            );
+            const similarButton = (
+              <button
+                key="similar"
+                onClick={() => setShowSimilar((v) => !v)}
+                className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
+                  showSimilar ? "bg-blue-800 text-white" : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
+              >
+                {t("Similar items")}
+              </button>
+            );
+
+            const hasSort = sorted.length > 1;
+            const hasSimilar = similarSorted.length > 0;
+            if (!hasSort && !hasSimilar) return null;
+
+            const allThree = hasSort && hasSimilar;
+            return (
+              <div className="mb-2 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-ash">{t("Sort by")}:</span>
-                  <button
-                    onClick={() => setSortMode("price")}
-                    className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
-                      sortMode === "price" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-105"
-                    }`}
-                  >
-                    {t("Best price")}
-                  </button>
-                  <button
-                    onClick={() => setSortMode("distance")}
-                    className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
-                      sortMode === "distance" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-105"
-                    }`}
-                  >
-                    {t("Nearest")}
-                  </button>
+                  {!allThree && hasSort && (
+                    <>
+                      {bestPriceButton}
+                      {nearestButton}
+                    </>
+                  )}
+                  {!allThree && hasSimilar && similarButton}
                 </div>
-              )}
-              {similarSorted.length > 0 && (
-                <div className={`flex flex-wrap items-center gap-2 ${sorted.length > 1 ? "mt-2" : ""}`}>
-                  {sorted.length <= 1 && <span className="text-ash">{t("Sort by")}:</span>}
-                  <button
-                    onClick={() => setShowSimilar((v) => !v)}
-                    className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
-                      showSimilar ? "bg-blue-800 text-white" : "bg-blue-600 text-white hover:bg-blue-700"
-                    }`}
-                  >
-                    {t("Similar items")}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+                {allThree && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {bestPriceButton}
+                    {nearestButton}
+                    {similarButton}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {tableRows.length > 0 && isNativeApp && (
             <div className="flex flex-col gap-2">
