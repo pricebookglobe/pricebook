@@ -174,42 +174,74 @@ function WebBarcodeScanner({ onDetected, onClose }: { onDetected: (code: string)
     // trusted to do it. Needed because a meaningful slice of Android WebView
     // camera stacks treat facingMode as a loose hint rather than a real
     // selector — "environment" can silently resolve to the front camera on
-    // some devices, something iOS Safari doesn't do.
+    // some devices. Among the back cameras, prefers the plain standard lens
+    // over an Ultra Wide or Telephoto one specifically: a phone with
+    // several rear lenses (most iPhones since the 11) labels them
+    // separately, and "environment" alone doesn't say which one to use —
+    // the non-standard lenses often can't rack focus down to where a
+    // barcode held at a normal scanning distance actually is. That doesn't
+    // throw or error, it just silently never manages to read anything,
+    // which looks exactly like "the scanner keeps running and never finds
+    // a result" even though the camera feed looks completely normal.
     async function findBackCameraDeviceId(): Promise<string | undefined> {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const cams = devices.filter((d) => d.kind === "videoinput");
-        const back = cams.find((d) => /back|rear|environment/i.test(d.label) && !/front/i.test(d.label));
-        return back?.deviceId ?? (cams.length > 1 ? cams[cams.length - 1].deviceId : undefined);
+        const backCams = cams.filter((d) => /back|rear|environment/i.test(d.label) && !/front/i.test(d.label));
+        if (backCams.length === 0) return cams.length > 1 ? cams[cams.length - 1].deviceId : undefined;
+        const standard = backCams.find((d) => !/ultra|tele/i.test(d.label));
+        return (standard ?? backCams[0]).deviceId;
       } catch {
         return undefined;
       }
     }
 
+    // A moderate, not maximal, resolution: zxing decodes by drawing every
+    // frame onto a canvas and reading its raw pixels back in JS, and that
+    // cost scales with frame size. Asking for 1080p can actually make
+    // scanning WORSE on a mid/low-end Android CPU — fewer decode attempts
+    // fit in per second — even though it sounds like it should help
+    // accuracy. 1280x720 is the sweet spot: enough detail to resolve a
+    // barcode held at a normal distance, cheap enough to decode many times
+    // a second.
+    const baseVideo: MediaTrackConstraints = { width: { ideal: 1280 }, height: { ideal: 720 } };
+
+    // Swaps the stream for one from the plain standard back lens if the
+    // facingMode constraint below landed on an Ultra Wide/Telephoto one
+    // instead — see findBackCameraDeviceId above for why that matters.
+    // Only swaps when the replacement actually opens successfully, so a
+    // failed re-request never loses a stream that was already working.
+    async function ensureStandardBackLens(stream: MediaStream): Promise<MediaStream> {
+      const label = stream.getVideoTracks()[0]?.label ?? "";
+      if (!/ultra|tele/i.test(label)) return stream;
+      const deviceId = await findBackCameraDeviceId();
+      if (!deviceId) return stream;
+      try {
+        const better = await navigator.mediaDevices.getUserMedia({ video: { ...baseVideo, deviceId: { exact: deviceId } } });
+        stream.getTracks().forEach((tr) => tr.stop());
+        return better;
+      } catch {
+        return stream;
+      }
+    }
+
     async function openStream(): Promise<MediaStream> {
-      // A moderate, not maximal, resolution: zxing decodes by drawing
-      // every frame onto a canvas and reading its raw pixels back in JS,
-      // and that cost scales with frame size. Asking for 1080p can
-      // actually make scanning WORSE on a mid/low-end Android CPU — fewer
-      // decode attempts fit in per second — even though it sounds like it
-      // should help accuracy. 1280x720 is the sweet spot: enough detail
-      // to resolve a barcode held at a normal distance, cheap enough to
-      // decode many times a second.
-      const baseVideo: MediaTrackConstraints = { width: { ideal: 1280 }, height: { ideal: 720 } };
       try {
         // Try first with an EXACT back-camera requirement — on iOS Safari
-        // "environment" as a plain ideal hint already reliably picks the
+        // "environment" as a plain ideal hint already reliably picks A
         // back camera, but several Android WebView camera stacks need the
         // stronger "exact" form or they can default to the front camera.
-        return await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator.mediaDevices.getUserMedia({
           video: { ...baseVideo, facingMode: { exact: "environment" } }
         });
+        return await ensureStandardBackLens(stream);
       } catch {
         // "exact" is unsupported on this device/browser — fall back to a
         // soft hint, and if even that doesn't reliably land on the back
         // camera, pick it explicitly by enumerating devices.
         try {
-          return await navigator.mediaDevices.getUserMedia({ video: { ...baseVideo, facingMode: "environment" } });
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { ...baseVideo, facingMode: "environment" } });
+          return await ensureStandardBackLens(stream);
         } catch {
           const deviceId = await findBackCameraDeviceId();
           return navigator.mediaDevices.getUserMedia({

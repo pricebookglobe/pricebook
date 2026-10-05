@@ -8,6 +8,8 @@ import type { StructuredProduct, NutritionFacts } from "@/lib/aiVision";
 import { BarcodeScanner } from "@/components/shared/BarcodeScanner";
 import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { Capacitor } from "@capacitor/core";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 
 export default function AddItemPage() {
   const router = useRouter();
@@ -95,6 +97,36 @@ export default function AddItemPage() {
     const imageBase64 = await fileToBase64(file);
     extract({ imageBase64 });
     e.target.value = "";
+  }
+
+  // In the native app, hands off to Capacitor's Camera plugin with
+  // source: Prompt instead of clicking the hidden file input — Prompt
+  // shows the native "Take Photo" / "Choose from Gallery" action sheet,
+  // so a merchant can pick an existing photo of the item instead of
+  // always being forced into taking a brand new one. The web fallback
+  // (cameraInputRef's plain <input type="file" capture>) is unaffected —
+  // browsers already offer that choice on their own file picker.
+  async function handleSnap() {
+    if (!Capacitor.isNativePlatform()) {
+      cameraInputRef.current?.click();
+      return;
+    }
+    try {
+      const photo = await Camera.getPhoto({
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Prompt,
+        quality: 80,
+        saveToGallery: false,
+        width: 1600
+      });
+      if (photo.base64String) extract({ imageBase64: photo.base64String });
+    } catch (e: any) {
+      // The merchant backed out of the camera/gallery picker without
+      // choosing anything — not an error worth surfacing.
+      if (e?.message && !/cancel/i.test(e.message)) {
+        setError(t("Couldn't open the camera."));
+      }
+    }
   }
 
   async function handleBarcodeDetected(barcode: string) {
@@ -249,7 +281,7 @@ export default function AddItemPage() {
               </button>
               <button
                 type="button"
-                onClick={() => cameraInputRef.current?.click()}
+                onClick={handleSnap}
                 className="btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
               >
                 {t("Snap")}

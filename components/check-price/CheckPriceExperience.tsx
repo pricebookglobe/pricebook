@@ -693,7 +693,10 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       try {
         const photo = await Camera.getPhoto({
           resultType: CameraResultType.Base64,
-          source: CameraSource.Camera,
+          // Prompt (not Camera) shows the native "Take Photo" / "Choose
+          // from Gallery" action sheet, so Snap can also be used to pick
+          // an existing photo instead of always forcing a brand new one.
+          source: CameraSource.Prompt,
           quality: 80,
           saveToGallery: false,
           // A modern phone's full-res photo can be 20-50MB raw before
