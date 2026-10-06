@@ -26,7 +26,17 @@ const ITEM_FRACTION = 0.85;
 // problem) rather than silently returning something broken; the caller
 // falls back to uploading the plain, uncut photo instead.
 export async function cutoutProductImage(original: Buffer): Promise<Buffer> {
-  const cutoutBlob = await removeBackground(original, {
+  // removeBackground() wraps whatever it's handed in `new Blob([image])`
+  // with no `type` set when given a plain Buffer/Uint8Array — its internal
+  // decoder then switches on that blob's (empty) MIME type and throws
+  // "Unsupported format: " for every single photo, silently falling back
+  // to the uncut original every time (confirmed in production logs).
+  // Re-encoding through sharp first guarantees real PNG bytes regardless
+  // of whatever format the original photo actually was, and handing it
+  // over as a Blob with an explicit "image/png" type is what the decoder
+  // actually needs to recognize it.
+  const pngBytes = await sharp(original).png().toBuffer();
+  const cutoutBlob = await removeBackground(new Blob([pngBytes], { type: "image/png" }), {
     model: "small",
     output: { format: "image/png", quality: 0.8 }
   });
