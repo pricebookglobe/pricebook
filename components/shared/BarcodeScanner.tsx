@@ -7,23 +7,32 @@ import { useLanguage } from "@/lib/i18n/LanguageProvider";
 // A live camera viewfinder with a targeting box — the barcode has to be
 // framed inside it to scan, same as any real barcode scanner app.
 //
-// This is the zxing-based (@zxing/browser + @zxing/library) in-page
-// scanner, restored after a detour through Quagga2 (@ericblade/quagga2).
-// The ask behind that detour was a scanner built on a "completely distinct"
-// library from the two tried before (the native ML Kit hand-off, and this
-// one) — Quagga2 technically satisfied that, but three rounds of real-device
-// testing in a row each turned up a different way it actually failed in
-// this app (worker creation silently failing with no webpack worker-loader
-// config, decode-area cropping in the wrong coordinate space, no periodic
-// autofocus re-assertion leaving Android permanently blurry, and even after
-// fixing all of that: still unreadable on Android and only readable after
-// several tries on iOS). That's not one bad setting — it's a sign the
-// engine swap itself was the wrong call for this app, not any single
-// tunable. This implementation, by contrast, already has a long history of
-// hard-won real-device fixes behind it (camera selection avoiding Ultra
-// Wide/Telephoto lenses, continuous-autofocus re-assertion, retail format
-// hints, resolution tuning) and was working reliably before any of this.
-// Reliability wins over novelty here.
+// This in-page scanner has been through several engine experiments: a
+// native ML Kit hand-off (crashed — see below), a Quagga2 rewrite (three
+// rounds of real-device testing each turned up a different way it failed:
+// silent Web Worker failure, decode-area cropping in the wrong coordinate
+// space, no periodic autofocus re-assertion leaving Android permanently
+// blurry — and it was still unreliable on Android even after fixing all of
+// that), and a revert back to zxing (@zxing/browser + @zxing/library),
+// which already had a long history of hard-won real-device fixes behind it
+// (camera selection avoiding Ultra Wide/Telephoto lenses,
+// continuous-autofocus re-assertion, retail format hints, resolution
+// tuning). zxing still left Android needing several tries per scan, though
+// — it decodes every frame in JS on the main thread, scanning raw pixels
+// off a canvas, which is inherently slower and less consistent than a real
+// hardware-backed decoder.
+//
+// The current approach: try the browser/OS's own native barcode engine
+// first (Chrome's Shape Detection API, `window.BarcodeDetector` — on
+// Android this is backed directly by Google ML Kit running in Play
+// Services, not another JS library), and only fall back to the
+// battle-tested zxing path above where that native API isn't available
+// (iOS Safari/WKWebView, most desktop browsers). This is a genuinely
+// different kind of fix from the three engine swaps before it: those all
+// replaced one JS-decodes-the-pixels library with another; this instead
+// hands decoding to the OS/browser's own hardware-accelerated engine
+// wherever it exists, and keeps the proven JS fallback everywhere else —
+// so a device without native support loses nothing it had before.
 //
 // Also used on Android instead of handing off to the native app's own ML
 // Kit scanner (a separate full-screen native Activity, driven by
@@ -42,8 +51,16 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
   return <WebBarcodeScanner onDetected={onDetected} onClose={onClose} />;
 }
 
-// A live getUserMedia viewfinder decoded frame-by-frame with zxing — the
-// one scanner used everywhere (Android, iOS/web, desktop).
+// The retail formats an actual product in this app ever carries — used to
+// restrict BOTH decode engines below to just these, instead of either
+// one's default "try every format it knows". Values here are each
+// engine's own name for the same format.
+const RETAIL_FORMATS_NATIVE = ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "itf"];
+
+// A live getUserMedia viewfinder, decoded by whichever engine the device
+// actually has. Camera selection/focus/torch handling below is shared by
+// both engines — it's about getting a good, sharp back-camera feed, not
+// about how a frame gets turned into a barcode.
 function WebBarcodeScanner({ onDetected, onClose }: { onDetected: (code: string) => void; onClose: () => void }) {
   const { t } = useLanguage();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -54,6 +71,7 @@ function WebBarcodeScanner({ onDetected, onClose }: { onDetected: (code: string)
   const [torchOn, setTorchOn] = useState(false);
   const detectedRef = useRef(false);
   const refocusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const nativeLoopActiveRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -152,53 +170,109 @@ function WebBarcodeScanner({ onDetected, onClose }: { onDetected: (code: string)
       }
     }
 
+    // Decodes with the browser/OS's own native barcode engine — Chrome's
+    // Shape Detection API (`window.BarcodeDetector`), which on Android is
+    // backed directly by Google ML Kit running in Play Services: a real
+    // hardware-accelerated decoder maintained by Google, not another JS
+    // library drawing frames to a canvas and scanning pixels in the main
+    // thread like every engine tried here before (zxing included). Where
+    // it's available this should be both faster and far more reliable
+    // than any in-page JS decoder can be on mid/low-end Android hardware.
+    // Returns true if it actually took over decoding, false if the API
+    // isn't there (iOS Safari/WKWebView, most desktop browsers) or didn't
+    // report support for any of the retail formats this app needs, so the
+    // caller knows to fall back to zxing instead.
+    async function startNativeDetector(stream: MediaStream): Promise<boolean> {
+      const DetectorCtor = (window as any).BarcodeDetector;
+      if (!DetectorCtor) return false;
+      let detector: any;
+      try {
+        if (typeof DetectorCtor.getSupportedFormats === "function") {
+          const supported: string[] = await DetectorCtor.getSupportedFormats();
+          const usable = RETAIL_FORMATS_NATIVE.filter((f) => supported.includes(f));
+          if (usable.length === 0) return false;
+          detector = new DetectorCtor({ formats: usable });
+        } else {
+          detector = new DetectorCtor({ formats: RETAIL_FORMATS_NATIVE });
+        }
+      } catch {
+        // Some formats unsupported, or the API refused construction for
+        // some other reason — zxing can still try.
+        return false;
+      }
+
+      nativeLoopActiveRef.current = true;
+      controlsRef.current = {
+        stop: () => {
+          nativeLoopActiveRef.current = false;
+        }
+      };
+
+      async function tick() {
+        if (!nativeLoopActiveRef.current || cancelled || detectedRef.current) return;
+        const video = videoRef.current;
+        if (video && video.readyState >= 2) {
+          try {
+            const results = await detector.detect(video);
+            if (results.length > 0 && !detectedRef.current && !cancelled) {
+              detectedRef.current = true;
+              onDetected(results[0].rawValue);
+              return;
+            }
+          } catch {
+            // A frame that couldn't be decoded isn't an error worth
+            // stopping over — just try the next one.
+          }
+        }
+        if (nativeLoopActiveRef.current && !cancelled) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+      return true;
+    }
+
+    // Falls back to the zxing-based decoder — see the file-level comment
+    // above for why this stayed the known-reliable baseline through
+    // earlier engine experiments. Still used for iOS/desktop, where the
+    // native BarcodeDetector API generally isn't available at all.
+    async function startZxing(stream: MediaStream) {
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      const { BarcodeFormat, DecodeHintType } = await import("@zxing/library");
+
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E,
+        BarcodeFormat.CODE_128,
+        BarcodeFormat.ITF
+      ]);
+
+      const reader = new BrowserMultiFormatReader(hints, {
+        delayBetweenScanAttempts: 50,
+        delayBetweenScanSuccess: 500
+      });
+
+      const controls = await reader.decodeFromStream(stream, videoRef.current ?? undefined, (result) => {
+        if (result && !detectedRef.current && !cancelled) {
+          detectedRef.current = true;
+          onDetected(result.getText());
+        }
+      });
+      if (cancelled) {
+        controls.stop();
+        return;
+      }
+      controlsRef.current = controls;
+    }
+
     async function start() {
       try {
-        const { BrowserMultiFormatReader } = await import("@zxing/browser");
-        const { BarcodeFormat, DecodeHintType } = await import("@zxing/library");
-
-        // Every barcode an actual product in this app carries is one of
-        // these retail formats — restricting to just them (instead of
-        // zxing's default "try every format it knows") cuts the work done
-        // per frame dramatically. On Android especially, where decode
-        // speed was the main reason scans felt unreliable compared to
-        // iOS, this alone makes a real difference.
-        const hints = new Map();
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-          BarcodeFormat.EAN_13,
-          BarcodeFormat.EAN_8,
-          BarcodeFormat.UPC_A,
-          BarcodeFormat.UPC_E,
-          BarcodeFormat.CODE_128,
-          BarcodeFormat.ITF
-        ]);
-
-        const reader = new BrowserMultiFormatReader(hints, {
-          // Re-attempt a decode as fast as the device can manage instead
-          // of zxing's default pacing — Android's slower default camera
-          // pipeline needs every attempt it can get, where iOS was
-          // already fast enough that this wasn't the bottleneck.
-          delayBetweenScanAttempts: 50,
-          delayBetweenScanSuccess: 500
-        });
-
         const stream = await openStream();
         if (cancelled) {
           stream.getTracks().forEach((tr) => tr.stop());
           return;
         }
-
-        const controls = await reader.decodeFromStream(stream, videoRef.current ?? undefined, (result) => {
-          if (result && !detectedRef.current && !cancelled) {
-            detectedRef.current = true;
-            onDetected(result.getText());
-          }
-        });
-        if (cancelled) {
-          controls.stop();
-          return;
-        }
-        controlsRef.current = controls;
 
         // iOS Safari's camera continuously refocuses on its own by
         // default, which is a big part of why scanning already felt
@@ -208,7 +282,9 @@ function WebBarcodeScanner({ onDetected, onClose }: { onDetected: (code: string)
         // the device exposes focusMode as a controllable capability, ask
         // for continuous autofocus explicitly (and keep re-asserting it —
         // see keepRefocusing) rather than relying on whatever the
-        // browser's default happened to be.
+        // browser's default happened to be. Done up front, before either
+        // decode engine starts, since it applies regardless of which one
+        // ends up doing the decoding.
         const track = stream.getVideoTracks()[0];
         if (track) {
           trackRef.current = track;
@@ -221,6 +297,26 @@ function WebBarcodeScanner({ onDetected, onClose }: { onDetected: (code: string)
           }
           setTorchSupported(Boolean((capabilities as { torch?: boolean } | undefined)?.torch));
         }
+
+        // The native detector reads frames straight off the <video>
+        // element, so it needs the stream attached first — zxing's
+        // decodeFromStream does that attachment itself, so it's only
+        // needed here for the native path.
+        const usedNative = await (async () => {
+          const DetectorCtor = (window as any).BarcodeDetector;
+          if (!DetectorCtor) return false;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            try {
+              await videoRef.current.play();
+            } catch {
+              // Autoplay can be blocked in rare cases — the native loop's
+              // own readyState check below just keeps waiting either way.
+            }
+          }
+          return startNativeDetector(stream);
+        })();
+        if (!usedNative) await startZxing(stream);
       } catch (e: any) {
         if (!cancelled) {
           setError(

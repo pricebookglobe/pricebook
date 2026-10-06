@@ -46,18 +46,21 @@ export function ImageSourceSheet({
   const choosePhotoInputRef = useRef<HTMLInputElement>(null);
   const uploadFileInputRef = useRef<HTMLInputElement>(null);
 
-  function base64ToFile(base64: string, format: string): File {
-    const byteChars = atob(base64);
-    const bytes = new Uint8Array(byteChars.length);
-    for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
-    return new File([bytes], `photo.${format || "jpg"}`, { type: `image/${format || "jpeg"}` });
-  }
-
   async function nativePick(source: CameraSource) {
     onClose();
     try {
       const photo = await Camera.getPhoto({
-        resultType: CameraResultType.Base64,
+        // Uri, not Base64 — Base64 forces the plugin to hold the whole
+        // decoded image in memory AND serialize it across the native<->JS
+        // bridge as one giant string, right as the OS is already under
+        // memory pressure from launching the native camera Activity on
+        // top of this app. That combination is a well-documented trigger
+        // for Android's low-memory killer to reclaim the app's process
+        // entirely — reported as the app crashing/resetting when taking a
+        // photo. Uri instead hands back a lightweight file path/blob URL
+        // with no such bridge transfer, which is Capacitor's own
+        // documented recommendation for exactly this crash pattern.
+        resultType: CameraResultType.Uri,
         source,
         quality: 80,
         saveToGallery: false,
@@ -66,7 +69,10 @@ export function ImageSourceSheet({
         // capping the longest edge keeps the capture light on memory.
         width: 1600
       });
-      if (photo.base64String) onPicked(base64ToFile(photo.base64String, photo.format));
+      if (photo.webPath) {
+        const blob = await (await fetch(photo.webPath)).blob();
+        onPicked(new File([blob], `photo.${photo.format || "jpg"}`, { type: blob.type }));
+      }
     } catch (e: any) {
       // The person backed out of the camera/picker without choosing
       // anything — not an error worth surfacing.

@@ -114,13 +114,24 @@ export default function AddItemPage() {
     }
     try {
       const photo = await Camera.getPhoto({
-        resultType: CameraResultType.Base64,
+        // Uri, not Base64 — see CheckPriceExperience's handleSnap for why:
+        // Base64 forces the plugin to hold the whole decoded image in
+        // memory and serialize it across the native<->JS bridge right as
+        // the OS is under memory pressure from launching the camera
+        // Activity, a well-documented trigger for Android's low-memory
+        // killer to reclaim the app entirely (reported as the app
+        // crashing/resetting when taking a photo).
+        resultType: CameraResultType.Uri,
         source: CameraSource.Prompt,
         quality: 80,
         saveToGallery: false,
         width: 1600
       });
-      if (photo.base64String) extract({ imageBase64: photo.base64String });
+      if (photo.webPath) {
+        const blob = await (await fetch(photo.webPath)).blob();
+        const imageBase64 = await fileToBase64(new File([blob], `snap.${photo.format || "jpg"}`, { type: blob.type }));
+        extract({ imageBase64 });
+      }
     } catch (e: any) {
       // The merchant backed out of the camera/gallery picker without
       // choosing anything — not an error worth surfacing.

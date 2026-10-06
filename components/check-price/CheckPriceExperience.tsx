@@ -792,7 +792,18 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     if (Capacitor.isNativePlatform()) {
       try {
         const photo = await Camera.getPhoto({
-          resultType: CameraResultType.Base64,
+          // Uri, not Base64 — Base64 forces the plugin to hold the whole
+          // decoded image in memory AND serialize it across the
+          // native<->JS bridge as one giant string, right as the OS is
+          // already under memory pressure from launching the native
+          // camera Activity on top of this app. That combination is a
+          // well-documented trigger for Android's low-memory killer to
+          // reclaim the app's process entirely — reported here as the app
+          // crashing/resetting on Snap. Uri instead hands back a lightweight
+          // file path/blob URL with no such bridge transfer, which is
+          // Capacitor's own documented recommendation for exactly this
+          // crash pattern.
+          resultType: CameraResultType.Uri,
           // Snap opens the camera directly, by request — no "Take Photo /
           // Choose from Gallery" action sheet first. Picking an existing
           // photo instead of a fresh one now goes through "Upload photo"
@@ -814,7 +825,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         } catch {
           // storage unavailable — nothing to clear
         }
-        if (photo.base64String) runSearch({ imageBase64: photo.base64String });
+        if (photo.webPath) {
+          const blob = await (await fetch(photo.webPath)).blob();
+          const imageBase64 = await fileToBase64(new File([blob], `snap.${photo.format || "jpg"}`, { type: blob.type }));
+          runSearch({ imageBase64 });
+        }
       } catch (e: any) {
         try {
           localStorage.removeItem(snapInFlightKey(initialMode));
