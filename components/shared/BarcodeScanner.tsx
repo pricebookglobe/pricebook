@@ -2,147 +2,43 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X, Zap, ZapOff } from "lucide-react";
-import { Capacitor } from "@capacitor/core";
-import {
-  BarcodeScanner as MlkitBarcodeScanner,
-  BarcodeFormat as MlkitBarcodeFormat,
-  GoogleBarcodeScannerModuleInstallState
-} from "@capacitor-mlkit/barcode-scanning";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 // A live camera viewfinder with a targeting box — the barcode has to be
-// framed inside it to scan, same as any real barcode scanner app. This
-// replaces the earlier "take one photo of whatever's in frame" approach,
-// which had no guide for where to point the camera and could pick up the
-// wrong code (or nothing at all) if the barcode wasn't precisely centered
-// in that single shot.
+// framed inside it to scan, same as any real barcode scanner app.
 //
-// Inside the native app, this hands off entirely to NativeScannerBridge
-// below, which drives the phone's own ML Kit scanner (Android/iOS native
-// camera APIs) instead of a browser getUserMedia stream decoded frame-by-
-// frame in JS. That's what the two earlier rounds of JS-level tuning
-// (format hints, resolution, autofocus retries, camera-selection fallback)
-// couldn't fully fix — Android WebView camera stacks vary enough between
-// devices that no amount of getUserMedia tuning matches a real native
-// scanner. The web build (anyone visiting the site in an ordinary mobile
-// or desktop browser) keeps the original zxing-based implementation below,
-// since there's no native layer to hand off to there.
+// Used to hand off to the native app's own ML Kit scanner on Android (a
+// separate full-screen native Activity, driven by @capacitor-mlkit/
+// barcode-scanning's scan() call) instead of this in-page camera view —
+// the idea being that Android WebView camera stacks vary enough between
+// devices that a real native scanner would be more reliable than JS-level
+// getUserMedia tuning. In practice it was the opposite: that hand-off is
+// exactly the "memory-heavy full-screen Activity" scenario that pushes
+// Android's low-memory killer to reclaim something right as it opens —
+// reported directly as the app crashing back to the splash screen after a
+// scan or two, still happening even after the onRenderProcessGone fix
+// (MainActivity.java) because that fix only catches the WebView's own
+// renderer process being reclaimed, not the ML Kit Activity's own process
+// — a different failure mode entirely, native-side, with no JS hook to
+// catch it at all.
+//
+// Dropping that hand-off and using this same in-page scanner everywhere —
+// Android, iOS/web, desktop — removes that whole crash surface: there's no
+// separate native screen to launch, so nothing for the OS to kill out from
+// under the app. Capacitor's own WebView already forwards getUserMedia's
+// camera permission request to Android's real runtime permission prompt
+// (BridgeWebChromeClient.onPermissionRequest), so this needs no native
+// code of its own to work here. It's also not a downgrade — the format
+// hints, resolution, autofocus-retry, and camera-selection tuning below
+// were already built specifically to close the gap with a real native
+// scanner, and now get the chance to actually be the one scanner in use
+// everywhere instead of only on iOS/web.
 export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: string) => void; onClose: () => void }) {
-  if (Capacitor.isNativePlatform()) {
-    return <NativeScannerBridge onDetected={onDetected} onClose={onClose} />;
-  }
   return <WebBarcodeScanner onDetected={onDetected} onClose={onClose} />;
 }
 
-// Every retail barcode format this app's products can carry — kept as one
-// list shared by both the native and web scanners below.
-const RETAIL_FORMATS_MLKIT = [
-  MlkitBarcodeFormat.Ean13,
-  MlkitBarcodeFormat.Ean8,
-  MlkitBarcodeFormat.UpcA,
-  MlkitBarcodeFormat.UpcE,
-  MlkitBarcodeFormat.Code128,
-  MlkitBarcodeFormat.Itf
-];
-
-// Drives the native app's own full-screen ML Kit scanner UI (the plugin's
-// `scan()` call draws its own camera view and targeting box — nothing of
-// this component's own viewfinder JSX below is used here). On Android this
-// needs the "Google Barcode Scanner" Play Services module, which isn't
-// guaranteed to already be installed on every device; if it's missing,
-// this kicks off the install, waits for it to finish, then starts the scan
-// — so the very first native scan may show a short "Setting up scanner…"
-// delay, and every scan after that is instant.
-function NativeScannerBridge({ onDetected, onClose }: { onDetected: (code: string) => void; onClose: () => void }) {
-  const { t } = useLanguage();
-  const [status, setStatus] = useState<"starting" | "installing" | "error">("starting");
-  const [error, setError] = useState<string | null>(null);
-  const startedRef = useRef(false);
-
-  useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    let cancelled = false;
-
-    async function runScan() {
-      try {
-        if (Capacitor.getPlatform() === "android") {
-          const { available } = await MlkitBarcodeScanner.isGoogleBarcodeScannerModuleAvailable();
-          if (!available) {
-            setStatus("installing");
-            await new Promise<void>((resolve, reject) => {
-              let listenerHandle: { remove: () => void } | undefined;
-              MlkitBarcodeScanner.addListener("googleBarcodeScannerModuleInstallProgress", (event) => {
-                if (event.state === GoogleBarcodeScannerModuleInstallState.COMPLETED) {
-                  listenerHandle?.remove();
-                  resolve();
-                } else if (event.state === GoogleBarcodeScannerModuleInstallState.FAILED) {
-                  listenerHandle?.remove();
-                  reject(new Error("install failed"));
-                }
-              }).then((handle) => {
-                listenerHandle = handle;
-              });
-              MlkitBarcodeScanner.installGoogleBarcodeScannerModule().catch(reject);
-            });
-          }
-        }
-        if (cancelled) return;
-        setStatus("starting");
-        const { barcodes } = await MlkitBarcodeScanner.scan({ formats: RETAIL_FORMATS_MLKIT });
-        if (cancelled) return;
-        const code = barcodes[0]?.rawValue;
-        if (code) onDetected(code);
-        else onClose();
-      } catch (e: any) {
-        if (cancelled) return;
-        setStatus("error");
-        setError(
-          e?.message?.includes("CANCELED") || e?.message?.includes("cancel")
-            ? null // user backed out of the native scanner UI — just close quietly
-            : t("Couldn't open the barcode scanner.")
-        );
-        if (e?.message?.includes("CANCELED") || e?.message?.includes("cancel")) onClose();
-      }
-    }
-
-    runScan();
-    return () => {
-      cancelled = true;
-    };
-  }, [onDetected, onClose, t]);
-
-  // The plugin draws its own full-screen native camera UI on top of
-  // everything else the instant scan() resolves its camera permission
-  // check, so this component itself only needs to render something for the
-  // brief moment before that — the Play Services install wait, or an error
-  // if one comes back.
-  return (
-    <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-black">
-      <button
-        onClick={onClose}
-        aria-label="Close"
-        className="absolute right-4 top-4 z-10 rounded-full bg-white/20 p-2 text-white hover:bg-white/30"
-      >
-        <X size={20} strokeWidth={2} />
-      </button>
-      {status === "installing" && <p className="text-sm text-white">{t("Setting up the barcode scanner…")}</p>}
-      {status === "error" && error && (
-        <div className="px-6 text-center">
-          <p className="text-sm text-white">{error}</p>
-          <button onClick={onClose} className="mt-3 rounded-sm bg-white px-4 py-2 font-display text-sm font-medium text-ink">
-            {t("Close")}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// The original browser-based scanner: a live getUserMedia viewfinder
-// decoded frame-by-frame with zxing. Still used for the website (anyone
-// scanning from an ordinary mobile or desktop browser tab has no native
-// layer to call into).
+// A live getUserMedia viewfinder decoded frame-by-frame with zxing — now
+// the one scanner used everywhere (Android, iOS/web, desktop).
 function WebBarcodeScanner({ onDetected, onClose }: { onDetected: (code: string) => void; onClose: () => void }) {
   const { t } = useLanguage();
   const videoRef = useRef<HTMLVideoElement>(null);
