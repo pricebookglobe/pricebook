@@ -949,6 +949,20 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const primaryStore = (manualStoreId && nearbyStores.find((s) => s.store_id === manualStoreId)) || nearbyStores[0] || null;
   const alternativeStores = nearbyStores.filter((s) => s.store_id !== primaryStore?.store_id);
 
+  // A tight row of storefronts (e.g. 6 stores a few meters apart) sits well
+  // inside ordinary GPS error, so the "closest" candidate among them is
+  // close to a coin flip — the hysteresis above (stabilizeNearbyStores)
+  // keeps that coin-flip pick from flickering, but steady isn't the same
+  // as correct. Rather than silently committing to a guess in that case,
+  // flag it as genuinely ambiguous whenever the top two candidates are
+  // closer to each other than ordinary GPS noise (AMBIGUOUS_GAP_M) — the
+  // bar below then asks directly instead of quietly picking one.
+  const AMBIGUOUS_GAP_M = 6;
+  const isAmbiguous =
+    !manualStoreId &&
+    nearbyStores.length > 1 &&
+    nearbyStores[1].distance_m - nearbyStores[0].distance_m < AMBIGUOUS_GAP_M;
+
   // The "You're at [store], price: X" card below is about THIS search
   // result at the shopper's current/confirmed store — so it has to be
   // the exact same store as the orange "You are at" banner and the red
@@ -1148,6 +1162,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           primaryStore={primaryStore}
           alternativeStores={alternativeStores}
           isManualOverride={manualStoreId === primaryStore.store_id}
+          isAmbiguous={isAmbiguous}
           promptRecheck={recheckPrompt}
           onSelect={setManualStoreId}
         />

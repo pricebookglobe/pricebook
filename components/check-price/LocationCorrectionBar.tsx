@@ -18,6 +18,7 @@ export function LocationCorrectionBar({
   primaryStore,
   alternativeStores,
   isManualOverride,
+  isAmbiguous,
   promptRecheck,
   onSelect
 }: {
@@ -28,6 +29,14 @@ export function LocationCorrectionBar({
   // pick" and "the alternatives" across two UI locations.
   alternativeStores: NearbyStore[];
   isManualOverride: boolean;
+  // True when the top couple of candidates are closer to each other than
+  // ordinary GPS noise — e.g. a row of storefronts a few meters apart —
+  // so the auto-pick is close to a coin flip. Rather than quietly settling
+  // on one, the bar asks outright and opens the picker on its own the
+  // moment this turns true (once per episode — see the effect below),
+  // instead of waiting for the shopper to notice and tap "Incorrect?"
+  // themselves. Never fires while a manual pick is already active.
+  isAmbiguous: boolean;
   // True for a few seconds right after a background re-check runs while a
   // manual correction is active (the slow 60s cadence) — swaps the bar's
   // text to "Are you still at X?" and flashes it, as a periodic nudge
@@ -39,6 +48,23 @@ export function LocationCorrectionBar({
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-opens the picker the moment ambiguity starts, once per episode —
+  // not on every poll while it's still ambiguous, so a shopper who closes
+  // it to think isn't fought by it reopening 10 seconds later. Resets the
+  // moment it clears (resolved, moved away, or manually corrected) so the
+  // next distinct episode prompts again.
+  const autoPromptedRef = useRef(false);
+  useEffect(() => {
+    if (isManualOverride || !isAmbiguous) {
+      autoPromptedRef.current = false;
+      return;
+    }
+    if (!autoPromptedRef.current) {
+      setOpen(true);
+      autoPromptedRef.current = true;
+    }
+  }, [isAmbiguous, isManualOverride]);
 
   // There's genuinely nothing to switch to — GPS found only this one store
   // nearby. The bar still shows "You are at X" (previously it vanished
@@ -86,13 +112,14 @@ export function LocationCorrectionBar({
           background poll effect). */}
       {(() => {
         const flashing = isManualOverride && promptRecheck;
+        const asking = !isManualOverride && isAmbiguous;
         return (
           <button
             type="button"
             onClick={() => hasAlternatives && setOpen((o) => !o)}
             className={`flex w-full items-center justify-between gap-3 border-b border-correction-dark/20 px-4 py-2.5 text-left shadow-sm transition-colors mb-4 ${
               hasAlternatives ? "active:bg-correction-dark" : "cursor-default"
-            } ${flashing ? "correction-flash-bar" : "bg-correction"}`}
+            } ${flashing || asking ? "correction-flash-bar" : "bg-correction"}`}
           >
             <span className="flex min-w-0 items-start gap-2 font-display text-sm font-semibold text-white">
               <MapPin size={16} strokeWidth={2.5} className="mt-0.5 shrink-0" />
@@ -101,6 +128,12 @@ export function LocationCorrectionBar({
                   <span className="truncate">
                     {t("Are you still at")} {primaryStore.store_name}?
                   </span>
+                ) : asking ? (
+                  // Several storefronts are close enough together that the
+                  // auto-pick is little better than a guess — say so
+                  // outright rather than quietly showing one of them as if
+                  // it were confident.
+                  <span className="truncate">{t("Which store are you at?")}</span>
                 ) : (
                   <>
                     <span className="truncate">
@@ -126,7 +159,7 @@ export function LocationCorrectionBar({
               // button, not a reusable brand color.
               <span className="shrink-0 whitespace-nowrap self-center rounded-full bg-blue-900 px-2.5 py-1 font-display text-xs font-bold text-white transition-colors">
                 {flashing ? "→ " : ""}
-                {t("Change location")}
+                {asking ? t("Choose") : t("Change location")}
               </span>
             )}
           </button>
