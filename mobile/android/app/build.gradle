@@ -32,14 +32,34 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    if (hasKeystoreProperties) {
-        signingConfigs {
+    signingConfigs {
+        if (hasKeystoreProperties) {
             release {
                 storeFile rootProject.file(keystoreProperties['storeFile'])
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
             }
+        }
+        // Every debug APK used to be signed with whatever ~/.android/debug.keystore
+        // happened to exist on whatever machine built it — fine locally (that file
+        // persists), but GitHub Actions starts a brand-new container on every run
+        // with no such file, so Android Gradle Plugin silently generated a FRESH,
+        // randomly-keyed one each time. That means every CI-built debug APK was
+        // signed with a different key than the last, and Android refuses to install
+        // an update whose signature doesn't match what's already on the device —
+        // so testing a new CI build over an old one could silently fail (or get
+        // rejected with an easy-to-miss error), leaving the OLD build running with
+        // no visible sign the "fix" was never actually installed. Pointing debug
+        // at this committed, fixed-key keystore (debug-only, not sensitive — same
+        // reasoning Android's own auto-generated one isn't secret either) makes
+        // every debug build, from CI or any machine, share one identical signature,
+        // so each new APK can just install right over the last one.
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
         }
     }
     buildTypes {
@@ -49,6 +69,9 @@ android {
             if (hasKeystoreProperties) {
                 signingConfig signingConfigs.release
             }
+        }
+        debug {
+            signingConfig signingConfigs.debug
         }
     }
     // Required by @capacitor-mlkit/barcode-scanning's ready-to-use scan() UI.

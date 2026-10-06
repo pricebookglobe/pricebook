@@ -52,12 +52,19 @@ captures/
 # Comment next line if keeping position of elements in Navigation Editor is relevant for you
 .idea/navEditor.xml
 
-# Keystore files — the app's actual signing key and its password must
-# never be committed. keystore.properties.example (committed) shows the
-# format; copy it to keystore.properties with the real values.
+# Keystore files — the app's actual signing (release) key and its
+# password must never be committed. keystore.properties.example
+# (committed) shows the format; copy it to keystore.properties with the
+# real values.
 *.jks
 *.keystore
 keystore.properties
+# debug.keystore is the one deliberate exception: it's a fixed, shared,
+# non-secret key used ONLY for debug/test builds (see its own comment in
+# app/build.gradle for why it's committed instead of left to each
+# machine/CI run to generate its own) — Play Store release signing still
+# goes through keystore.properties above, untouched.
+!app/debug.keystore
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
