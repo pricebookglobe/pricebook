@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Camera as CameraIcon, Image as ImageIcon, Tags as CategoryIcon } from "lucide-react";
 import { ImageSourceSheet } from "@/components/shared/ImageSourceSheet";
@@ -382,7 +381,6 @@ function SearchingIndicator() {
 // the search/results logic — and the "you're at this store" detection —
 // only exists in one place.
 export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
-  const router = useRouter();
   const { t } = useLanguage();
   const isNativeApp = useIsNativeApp();
   const { coords, accuracy, status } = useGeolocation();
@@ -1399,17 +1397,16 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 <button
                   type="button"
                   onClick={() => {
-                    // Same full reset the other red "Back" button in this
-                    // file uses — not just hiding this sub-view, but
-                    // actually returning to the previous screen (the
-                    // Scan/Snap/Enter details menu, or the tab's landing
-                    // state when there's no menu to go back to).
+                    // Exactly the same reset the other red "Back" button in
+                    // this file uses, so Cancel lands on the same screen it
+                    // would — the Scan/Snap/Enter details menu for Check
+                    // Price (initialMode "menu"), or the tab's own landing
+                    // state for Search Items (initialMode "text").
                     setCheckPriceRevealed(false);
                     setResult(null);
                     setError(null);
-                    setMode(initialMode === "menu" ? "menu" : initialMode);
+                    setMode(initialMode);
                     setUseGuidedForm(false);
-                    if (initialMode !== "menu") router.push("/check-price");
                   }}
                   className="col-span-2 inline-flex items-center justify-center gap-1 rounded border border-red-600 bg-red-600 px-3 py-2 font-display text-sm font-bold text-white transition-colors hover:border-red-700 hover:bg-red-700 active:border-red-800 active:bg-red-800 sm:col-span-1"
                 >
