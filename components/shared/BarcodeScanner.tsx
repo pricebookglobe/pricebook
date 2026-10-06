@@ -87,25 +87,32 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
                   height: { ideal: 720 },
                   facingMode: "environment",
                   aspectRatio: { ideal: 16 / 9 }
-                },
-                area: {
-                  // Only decode the center band framed by the targeting
-                  // box below — cuts the per-frame work and, just as
-                  // important, avoids false reads from a second barcode
-                  // sitting elsewhere in the camera's field of view (a
-                  // real failure mode on a store shelf with several
-                  // products in frame at once).
-                  top: "25%",
-                  right: "10%",
-                  left: "10%",
-                  bottom: "25%"
                 }
+                // No `area` crop — Quagga2's area coordinates are relative
+                // to the raw camera frame, not to the on-screen video
+                // element (which is zoomed/cropped by object-cover to fill
+                // a portrait phone screen from a landscape 16:9 stream), so
+                // a tight crop here could easily exclude exactly the
+                // region the targeting box is actually showing the
+                // barcode in. Decoding the full frame costs a little more
+                // CPU but can't silently miss a barcode that's clearly
+                // framed on screen.
               },
               locator: {
                 patchSize: "medium",
                 halfSample: true
               },
-              numOfWorkers: 2,
+              // Quagga2 normally decodes in Web Workers, but spinning those
+              // up needs webpack worker-loader configuration this plain
+              // Next.js build doesn't have — without it, worker creation
+              // fails silently: the camera preview opens and runs
+              // perfectly normally, but no frame is ever actually decoded,
+              // which looked exactly like "the scanner just sits there
+              // forever, even on a barcode that's perfectly readable by
+              // eye." numOfWorkers: 0 runs decoding on the main thread
+              // instead, which is the one combination of settings Quagga2
+              // actually runs decode cycles with here.
+              numOfWorkers: 0,
               frequency: 10,
               decoder: {
                 // Every barcode an actual product in this app carries is
