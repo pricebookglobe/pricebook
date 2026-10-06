@@ -2,12 +2,63 @@ package com.pricebook.app;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.webkit.RenderProcessGoneDetail;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import androidx.core.splashscreen.SplashScreen;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    // "App stuck on the splash screen until I restart it" — reported
+    // directly. capacitor.config.ts deliberately turns off the plugin's own
+    // timer (launchAutoHide: false) so that the ONLY thing that ever hides
+    // the native splash is the web app's own JS, once it's loaded enough to
+    // mount and call SplashScreen.hide() (see IntroGate.tsx) — by design,
+    // so there's no gap where the splash disappears before the real app is
+    // actually ready to show something. The entire site is loaded from the
+    // remote server.url (capacitor.config.ts), not bundled into the app, so
+    // that JS call depends on a full network round-trip over whatever
+    // connection the phone has right now, with NO ceiling on how long that
+    // can take and nothing else that will ever hide the splash if it
+    // doesn't — a slow mobile connection, or Render's free tier spinning up
+    // from a cold start (can take tens of seconds), leaves the splash
+    // sitting there with no feedback and no way out except killing the app.
+    //
+    // Two safety nets below, neither of which can fire on the normal/fast
+    // path (both only act if the splash is, in fact, still showing):
+    // 1. onReceivedError below force-hides it the instant the main frame
+    //    definitively fails to load (no connection, DNS failure, etc.) —
+    //    instead of silently sitting on the splash with no sign anything
+    //    is wrong, the shopper now at least sees the WebView's own "no
+    //    internet" page and can pull-to-refresh/retry from there.
+    // 2. SPLASH_TIMEOUT_MS below force-hides it after a generous wait
+    //    regardless of what's happening — covers a connection that's slow
+    //    rather than outright failing (a real "it eventually loads, just
+    //    not quickly" case, which wouldn't fire onReceivedError at all).
+    private static final long SPLASH_TIMEOUT_MS = 15000;
+    // Guards against both the timeout AND onReceivedError firing (or either
+    // firing more than once) — evaluateJavascript below is harmless to call
+    // twice, but there's nothing to gain from it either.
+    private boolean splashForceHidden = false;
+
+    private void forceHideSplashIfStuck() {
+        if (splashForceHidden) return;
+        splashForceHidden = true;
+        WebView webView = getBridge().getWebView();
+        if (webView == null) return;
+        // Defensive: window.Capacitor may not exist yet if the page never
+        // got far enough to load the bridge at all — guarded so this can
+        // never throw even then, it just quietly does nothing in that case
+        // (nothing to hide yet, nothing to break either).
+        webView.evaluateJavascript(
+            "(function(){try{var c=window.Capacitor;if(c&&c.Plugins&&c.Plugins.SplashScreen){c.Plugins.SplashScreen.hide();}}catch(e){}})();",
+            null
+        );
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // Must run before super.onCreate()/setContentView(): this is what
@@ -67,7 +118,17 @@ public class MainActivity extends BridgeActivity {
                         // rather than looping a relaunch on a real bug.
                         return super.onRenderProcessGone(view, detail);
                     }
+
+                    @Override
+                    public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                        super.onReceivedError(view, request, error);
+                        if (request.isForMainFrame()) {
+                            forceHideSplashIfStuck();
+                        }
+                    }
                 }
             );
+
+        new Handler(Looper.getMainLooper()).postDelayed(this::forceHideSplashIfStuck, SPLASH_TIMEOUT_MS);
     }
 }
