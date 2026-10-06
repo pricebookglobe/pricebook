@@ -142,6 +142,7 @@ export const UI_STRINGS = [
   "Are you still at",
   "Change location",
   "Which store are you at?",
+  "Choose which store you're at above",
   "Choose",
   "Select your store",
   "Current",

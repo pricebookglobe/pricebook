@@ -963,6 +963,18 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     nearbyStores.length > 1 &&
     nearbyStores[1].distance_m - nearbyStores[0].distance_m < AMBIGUOUS_GAP_M;
 
+  // Everywhere else on this screen that names "the" store — the landing
+  // panel's photo/"You are at" line, the atStore card, the red "doesn't
+  // carry" message — has to agree with what the bar above is actually
+  // telling the shopper. While isAmbiguous is asking them to pick, those
+  // can't keep silently committing to primaryStore's own guess (that WAS
+  // the bug just reported: the rest of the page kept auto-switching to
+  // "the closest" under the hood while the bar asked a different
+  // question). confirmedStore is primaryStore whenever there's nothing
+  // to ask about, and null while a pick is still pending — every other
+  // "the store" display below reads this instead of primaryStore.
+  const confirmedStore = isAmbiguous ? null : primaryStore;
+
   // The "You're at [store], price: X" card below is about THIS search
   // result at the shopper's current/confirmed store — so it has to be
   // the exact same store as the orange "You are at" banner and the red
@@ -977,7 +989,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // impossible to disagree, and means this card and the red "doesn't
   // carry" message above are now strictly mutually exclusive — exactly
   // one of them shows, for the one store the shopper is actually at.
-  const atStore = primaryStore ? sorted.find((r) => r.store_id === primaryStore.store_id) ?? null : null;
+  const atStore = confirmedStore ? sorted.find((r) => r.store_id === confirmedStore.store_id) ?? null : null;
 
   // "Save: X" line — compares the cheapest price within 5km of the shopper
   // to the priciest option in that same 5km radius, so the best-price row
@@ -1197,7 +1209,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </p>
           ) : locationCheck ? (
             <>
-              {primaryStore ? (
+              {confirmedStore ? (
                 // Registered store: the map is always centered on the
                 // SHOPPER's own live GPS position (never the store's saved
                 // coordinates — those can be wrong or stale, and showing
@@ -1230,7 +1242,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                       />
                     )}
                   </div>
-                  {primaryStore.store_photo_url ? (
+                  {confirmedStore.store_photo_url ? (
                     // Same reasoning, no border — the store photo swaps
                     // out briefly during an app update or a location
                     // re-check, and a border around an empty gap read as a
@@ -1239,8 +1251,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                     // cleanly instead.
                     <div className="overflow-hidden rounded">
                       <img
-                        src={primaryStore.store_photo_url}
-                        alt={primaryStore.store_name}
+                        src={confirmedStore.store_photo_url}
+                        alt={confirmedStore.store_name}
                         className="h-[220px] w-full object-cover"
                       />
                     </div>
@@ -1265,10 +1277,16 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 )
               )}
               <p className={`text-center text-sm text-ink ${coords ? "bg-field-raised px-3 py-2" : ""}`}>
-                {primaryStore ? (
+                {confirmedStore ? (
                   <>
-                    {t("You are at")} <strong>{primaryStore.store_name}</strong>
+                    {t("You are at")} <strong>{confirmedStore.store_name}</strong>
                   </>
+                ) : isAmbiguous ? (
+                  // Several real candidates are too close together to call
+                  // automatically — same situation the sticky bar above is
+                  // already asking about, so this just points there rather
+                  // than guessing a name of its own that could disagree.
+                  t("Choose which store you're at above")
                 ) : coords ? (
                   t("You are at an unregistered location")
                 ) : (
@@ -1488,9 +1506,9 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               if literally no store nearby carries this item, the existing
               "No store nearby carries this yet" message below already
               covers that. */}
-          {primaryStore && sorted.length > 0 && !sorted.some((r) => r.store_id === primaryStore.store_id) && (
+          {confirmedStore && sorted.length > 0 && !sorted.some((r) => r.store_id === confirmedStore.store_id) && (
             <p className="mb-3 text-sm font-bold text-red-600">
-              {t("{store} doesn't carry this item.").replace("{store}", primaryStore.store_name)}
+              {t("{store} doesn't carry this item.").replace("{store}", confirmedStore.store_name)}
             </p>
           )}
 
