@@ -11,9 +11,10 @@ import { toCSV } from "@/lib/csv";
 type UploadResult = { added: number; updated: number; total: number; failed: { row: number; reason: string }[] };
 
 const TEMPLATE_ROWS = [
-  ["item_name", "brand", "size", "unit", "category", "price", "currency", "barcode"],
-  ["Al Ain Fresh Milk", "Al Ain", "1", "L", "dairy", "1.10", "JOD", ""],
-  ["Snickers", "Mars", "50", "g", "snacks", "0.45", "JOD", ""]
+  ["item_name", "brand", "size", "unit", "category", "price", "currency", "barcode", "pack_size"],
+  ["Al Ain Fresh Milk", "Al Ain", "1", "L", "dairy", "1.10", "JOD", "", ""],
+  ["Snickers", "Mars", "50", "g", "snacks", "0.45", "JOD", "", ""],
+  ["Coca-Cola Cans 330ml", "Coca-Cola", "330", "ml", "beverages", "3.00", "JOD", "", "12"]
 ];
 
 export default function BulkUploadPage() {
@@ -139,7 +140,7 @@ export default function BulkUploadPage() {
           <div className="mt-4 rounded border border-line bg-field p-4">
             <p className="text-sm font-medium text-ink">{t("2. Upload your file")}</p>
             <p className="mt-1 text-sm text-ash">
-              {t("Required columns: item_name, category, price. Optional: brand, size, unit, currency (defaults to JOD), barcode.")}
+              {t("Required columns: item_name, category, price. Optional: brand, size, unit, currency (defaults to JOD), barcode, pack_size (how many individual units are sold together — defaults to 1).")}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <button

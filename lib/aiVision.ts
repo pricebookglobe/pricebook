@@ -33,13 +33,28 @@ export type StructuredProduct = {
   product_name: string;
   brand: string | null;
   manufacturer?: string | null;
+  // The size/unit of ONE individual item — a single can, a single bottle,
+  // a single piece — never the pack as a whole. How many of those come in
+  // one listing is pack_size, below.
   size: number | null;
   unit: string | null;
   category: string;
+  // How many individual units this listing actually sells together — a
+  // 6-pack of Coca-Cola cans, a 24-pack of water bottles, a bundle/offer
+  // pack. 1 for a plain single item, which is why it's a number (not
+  // optional/null): "how many are in this pack" always has a real answer.
+  pack_size?: number;
+  // What size/unit measures for this product: a physical weight, volume,
+  // or length, or just a plain unit count (canned drinks sold by the
+  // can, electronics, general packaged goods — anything that isn't
+  // naturally weighed/measured). Optional on the wire since older
+  // callers (the barcode DB path, manual edits) may not always set it;
+  // UI and the create-product API both default it to "units" when absent.
+  size_type?: "weight" | "volume" | "length" | "units";
 };
 
 const EXTRACTION_SHAPE =
-  '{"product_name":"","brand":"","manufacturer":"","size":0,"unit":"","category":""}';
+  '{"product_name":"","brand":"","manufacturer":"","size":0,"unit":"","category":"","pack_size":1,"size_type":""}';
 
 /** Image (base64, no data: prefix) -> structured product JSON via GPT-4o Vision. */
 export async function extractProductFromImage(
@@ -56,7 +71,14 @@ export async function extractProductFromImage(
               type: "text",
               text:
                 "Identify the grocery product in this image. Return ONLY JSON matching this shape, no prose: " +
-                EXTRACTION_SHAPE
+                EXTRACTION_SHAPE +
+                ". size/unit describe ONE individual item (a single can/bottle/piece), never the pack as a " +
+                "whole. pack_size is how many of those individual items this listing sells together — 1 for " +
+                "a single item, or the real count for a visible multi-pack/bundle (a 6-pack of cans is " +
+                'pack_size 6). size_type is one of "weight", "volume", "length", or "units" — weight/volume/' +
+                "length for anything with a real physical measurement (use unit g/kg, ml/L, or cm/m to " +
+                'match), otherwise "units" with unit "pcs" and size 1 (canned drinks sold by the can, ' +
+                "electronics, general packaged goods with no inherent size)."
             },
             {
               type: "image_url",
@@ -96,7 +118,11 @@ export async function parseTextQuery(text: string): Promise<StructuredProduct> {
             `product_name and brand into their standard English/Latin-script form, even if the ` +
             `input used a different script or language (for example "حليب المراعي" -> product_name ` +
             `"Al Ain milk"; "سنيكرز" -> product_name "Snickers"). ` +
-            `Shape: ${EXTRACTION_SHAPE}. If size/unit aren't mentioned, use null.`
+            `Shape: ${EXTRACTION_SHAPE}. If size/unit aren't mentioned, use null. size/unit describe ONE ` +
+            `individual item, never a pack as a whole; pack_size is how many of those the query describes ` +
+            `(1 unless a multi-pack is explicitly mentioned, e.g. "pack of 6 cola cans" -> pack_size 6). ` +
+            `size_type is one of "weight", "volume", "length", or "units" (plain count, for anything with ` +
+            `no real physical measurement — default size 1, unit "pcs").`
         }
       ],
       response_format: { type: "json_object" }

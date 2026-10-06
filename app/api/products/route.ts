@@ -16,7 +16,11 @@ export async function POST(req: NextRequest) {
     .from("products")
     .select("id")
     .ilike("canonical_name", body.product_name)
-    .eq("category", body.category);
+    .eq("category", body.category)
+    // A 6-pack and a 12-pack of the same item are different listings
+    // (different price, different quantity) — same reasoning as size/unit
+    // below, so they dedup as distinct products, not merged into one.
+    .eq("pack_size", body.pack_size ?? 1);
   if (body.brand) query = query.eq("brand", body.brand);
   if (body.size) query = query.eq("size", body.size);
   if (body.unit) query = query.eq("unit", body.unit);
@@ -65,6 +69,8 @@ export async function POST(req: NextRequest) {
       size: body.size,
       unit: body.unit,
       category: body.category,
+      pack_size: body.pack_size ?? 1,
+      size_type: body.size_type ?? "units",
       nutrition_facts: body.nutrition_facts ?? null,
       barcode: body.barcode ?? null
     })

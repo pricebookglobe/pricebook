@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { NutritionFacts } from "@/lib/aiVision";
+import type { SizeType } from "@/lib/productCategorization";
+
+// Open Food Facts gives a unit, not a size type — infer weight/volume/
+// length/units from it so the confirm form's Size Type dropdown starts
+// somewhere sensible instead of always defaulting to Units for a product
+// that's clearly "500 g" or "1 L". Always editable from there regardless.
+function sizeTypeForUnit(unit: string | null): SizeType {
+  if (!unit) return "units";
+  const u = unit.toLowerCase();
+  if (u === "ml" || u === "l") return "volume";
+  if (u === "g" || u === "kg") return "weight";
+  if (u === "cm" || u === "m") return "length";
+  return "units";
+}
 
 // Parses Open Food Facts' free-text "quantity" field ("330 ml", "1L",
 // "500 g", "2 x 250ml"...) into a single number + unit. Best-effort —
@@ -127,7 +141,9 @@ export async function POST(req: NextRequest) {
         manufacturer: null,
         size,
         unit,
-        category: product.categories_tags?.[0]?.replace(/^\w+:/, "").replace(/-/g, " ") ?? "grocery"
+        category: product.categories_tags?.[0]?.replace(/^\w+:/, "").replace(/-/g, " ") ?? "grocery",
+        pack_size: 1,
+        size_type: sizeTypeForUnit(unit)
       },
       image_url: product.image_front_url || product.image_url || null,
       nutrition_facts: extractNutrition(product)

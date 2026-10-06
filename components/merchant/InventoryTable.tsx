@@ -22,10 +22,29 @@ export type InventoryRow = {
   currency: string;
   in_stock: boolean;
   is_hidden: boolean;
-  products: { id: string; canonical_name: string; brand: string | null; image_url: string | null; size?: number | null; unit?: string | null; category?: string | null; nutrition_facts?: NutritionFacts | null };
+  products: {
+    id: string;
+    canonical_name: string;
+    brand: string | null;
+    image_url: string | null;
+    size?: number | null;
+    unit?: string | null;
+    category?: string | null;
+    pack_size?: number | null;
+    nutrition_facts?: NutritionFacts | null;
+  };
   report_positive?: number;
   report_negative?: number;
 };
+
+// "12 × 330 ml" for a multi-pack listing, plain "330 ml" for a single
+// item (pack_size 1 or unset) — the pack count only earns space in the
+// table when it's actually more than one.
+function formatSize(products: InventoryRow["products"]): string {
+  if (!products.size) return "—";
+  const base = `${products.size} ${products.unit ?? ""}`.trim();
+  return products.pack_size && products.pack_size > 1 ? `${products.pack_size} × ${base}` : base;
+}
 
 // Small colored circle with the report count inside — green when mostly
 // correct-price reports, red when mostly wrong-price, amber in between,
@@ -235,7 +254,7 @@ export function InventoryTable({
                     {displayProductName(row.products.brand, row.products.canonical_name)}
                   </p>
                   <p className="mt-0.5 font-mono text-[11px] text-ash">
-                    {row.products.size ? `${row.products.size} ${row.products.unit ?? ""}` : "—"}
+                    {formatSize(row.products)}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <span className={`font-mono text-[11px] ${row.in_stock ? "text-green-600" : "text-flag"}`}>
@@ -286,7 +305,7 @@ export function InventoryTable({
                   </div>
                 </td>
                 <td className="font-mono text-xs text-ash">
-                  {row.products.size ? `${row.products.size} ${row.products.unit ?? ""}` : "—"}
+                  {formatSize(row.products)}
                 </td>
                 <td className="font-mono text-xs">
                   <span className={row.in_stock ? "text-green-600" : "text-flag"}>

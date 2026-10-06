@@ -12,6 +12,37 @@ import { StatusDots } from "@/components/shared/StatusDots";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { Capacitor } from "@capacitor/core";
 import { Camera as CameraIcon } from "lucide-react";
+import { SizeValueInput } from "@/components/shared/SizeValueInput";
+import {
+  CATEGORY_OPTIONS,
+  SIZE_TYPES,
+  SIZE_TYPE_LABELS,
+  SIZE_TYPE_UNITS,
+  defaultUnitForSizeType,
+  inferCategory,
+  inferSizeType,
+  type SizeType
+} from "@/lib/productCategorization";
+import { CATEGORY_TREE } from "@/lib/categories";
+
+// Fills in sensible defaults for whatever a given extraction source
+// (GPT vision/text, or the barcode DB lookup) didn't already provide —
+// pack_size always has a real answer (1, a single item, unless told
+// otherwise), and size_type/unit/size fall back to a name-based guess
+// rather than sitting blank, while staying fully editable afterward.
+function normalizeProduct(p: StructuredProduct): StructuredProduct {
+  const category = p.category || inferCategory(p.product_name)?.subcategory || "";
+  const sizeType: SizeType = p.size_type ?? inferSizeType(p.product_name, category || null);
+  const units = SIZE_TYPE_UNITS[sizeType];
+  return {
+    ...p,
+    category,
+    pack_size: p.pack_size ?? 1,
+    size_type: sizeType,
+    unit: p.unit && units.includes(p.unit) ? p.unit : defaultUnitForSizeType(sizeType),
+    size: p.size ?? (sizeType === "units" ? 1 : null)
+  };
+}
 
 export default function AddItemPage() {
   const router = useRouter();
@@ -39,6 +70,12 @@ export default function AddItemPage() {
   const [scanningBarcode, setScanningBarcode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showInPageCamera, setShowInPageCamera] = useState(false);
+  // Once the admin explicitly picks a Category or Size Type themselves,
+  // further edits to the item name stop silently re-guessing that field —
+  // the auto-detection is a starting point, not something that fights an
+  // explicit override. Reset whenever a fresh product is loaded.
+  const [categoryManuallySet, setCategoryManuallySet] = useState(false);
+  const [sizeTypeManuallySet, setSizeTypeManuallySet] = useState(false);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -72,7 +109,9 @@ export default function AddItemPage() {
       });
       if (!res.ok) throw new Error((await res.json()).error);
       const extracted = await res.json();
-      setProduct(extracted);
+      setCategoryManuallySet(false);
+      setSizeTypeManuallySet(false);
+      setProduct(normalizeProduct(extracted));
       // Runs in the background while the merchant sets a price — not
       // awaited, so it doesn't block the confirm screen from appearing.
       // Barcode-scanned items skip this entirely (they already have real
@@ -153,7 +192,9 @@ export default function AddItemPage() {
         return;
       }
 
-      setProduct(data.structured);
+      setCategoryManuallySet(false);
+      setSizeTypeManuallySet(false);
+      setProduct(normalizeProduct(data.structured));
       setProductImageUrl(data.image_url ?? null);
       setLastImageBase64(null);
       setScannedBarcode(barcode);
@@ -252,6 +293,8 @@ export default function AddItemPage() {
     setNutritionError(null);
     setError(null);
     setScannedBarcode(null);
+    setCategoryManuallySet(false);
+    setSizeTypeManuallySet(false);
   }
 
   return (
@@ -400,7 +443,24 @@ export default function AddItemPage() {
             {t("Item") /* product name label */}
             <input
               value={product.product_name}
-              onChange={(e) => updateProductField("product_name", e.target.value)}
+              onChange={(e) => {
+                const name = e.target.value;
+                setProduct((p) => {
+                  if (!p) return p;
+                  // Re-guesses Category (and, through it, Size Type) as the
+                  // name changes — but only up until the admin has picked
+                  // one themselves. Once either is manually set, editing
+                  // the name here never overwrites that choice again.
+                  let category = p.category;
+                  if (!categoryManuallySet) category = inferCategory(name)?.subcategory ?? category;
+                  let sizeType = p.size_type ?? "units";
+                  if (!sizeTypeManuallySet) sizeType = inferSizeType(name, category || null);
+                  const units = SIZE_TYPE_UNITS[sizeType];
+                  const unit = p.unit && units.includes(p.unit) ? p.unit : defaultUnitForSizeType(sizeType);
+                  const size = sizeType === "units" && p.size == null ? 1 : p.size;
+                  return { ...p, product_name: name, category, size_type: sizeType, unit, size };
+                });
+              }}
               className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
             />
           </label>
@@ -423,27 +483,98 @@ export default function AddItemPage() {
             </label>
             <label className="text-sm text-ash">
               {t("Category")}
-              <input
+              {/* Auto-detected from the item name above (editable any
+                  time) — a plain <select> over the app's existing
+                  category taxonomy (lib/categories.ts), the same list
+                  "Search by category" already uses on the customer side,
+                  so a listing's category always lines up with something a
+                  shopper can actually filter by. If the current value
+                  (from GPT extraction or a barcode-DB lookup) isn't one of
+                  those known subcategories, it's kept as an extra option
+                  at the top instead of being silently replaced. */}
+              <select
                 value={product.category}
-                onChange={(e) => updateProductField("category", e.target.value)}
+                onChange={(e) => {
+                  const category = e.target.value;
+                  setCategoryManuallySet(true);
+                  setProduct((p) => {
+                    if (!p) return p;
+                    let sizeType = p.size_type ?? "units";
+                    if (!sizeTypeManuallySet) sizeType = inferSizeType(p.product_name, category);
+                    const units = SIZE_TYPE_UNITS[sizeType];
+                    const unit = p.unit && units.includes(p.unit) ? p.unit : defaultUnitForSizeType(sizeType);
+                    const size = sizeType === "units" && p.size == null ? 1 : p.size;
+                    return { ...p, category, size_type: sizeType, unit, size };
+                  });
+                }}
+                className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+              >
+                {!product.category && <option value="">{t("Select a category")}</option>}
+                {product.category && !CATEGORY_OPTIONS.some((o) => o.subcategory === product.category) && (
+                  <option value={product.category}>{product.category}</option>
+                )}
+                {CATEGORY_TREE.map((group) => (
+                  <optgroup key={group.name} label={group.name}>
+                    {group.subcategories.map((sub) => (
+                      <option key={sub} value={sub}>
+                        {sub}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm text-ash">
+              {t("Pack Size")}
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={product.pack_size ?? 1}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value, 10);
+                  updateProductField("pack_size", Number.isFinite(n) && n > 0 ? n : 1);
+                }}
                 className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
               />
+              {/* Explains what this field means right where it's filled
+                  in, rather than relying on the name alone — "Pack Size"
+                  reads ambiguous (box dimensions? package weight?)
+                  without this. */}
+              <span className="mt-1 block text-xs normal-case text-ash/80">
+                {t("How many individual units are sold together (e.g. a 6-pack of cans). Size below describes ONE of them.")}
+              </span>
+            </label>
+            <label className="text-sm text-ash">
+              {t("Size Type")}
+              <select
+                value={product.size_type ?? "units"}
+                onChange={(e) => {
+                  const sizeType = e.target.value as SizeType;
+                  setSizeTypeManuallySet(true);
+                  setProduct((p) => {
+                    if (!p) return p;
+                    const size = sizeType === "units" && p.size == null ? 1 : p.size;
+                    return { ...p, size_type: sizeType, unit: defaultUnitForSizeType(sizeType), size };
+                  });
+                }}
+                className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+              >
+                {SIZE_TYPES.map((st) => (
+                  <option key={st} value={st}>
+                    {t(SIZE_TYPE_LABELS[st])}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="text-sm text-ash">
               {t("Size")}
-              <input
-                type="number"
-                value={product.size ?? ""}
-                onChange={(e) => updateProductField("size", e.target.value ? parseFloat(e.target.value) : null)}
-                className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
-              />
-            </label>
-            <label className="text-sm text-ash">
-              {t("Unit")}
-              <input
-                value={product.unit ?? ""}
-                onChange={(e) => updateProductField("unit", e.target.value)}
-                className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+              <SizeValueInput
+                value={product.size}
+                unit={product.unit || defaultUnitForSizeType(product.size_type ?? "units")}
+                options={SIZE_TYPE_UNITS[product.size_type ?? "units"]}
+                onValueChange={(v) => updateProductField("size", v)}
+                onUnitChange={(u) => updateProductField("unit", u)}
               />
             </label>
           </div>

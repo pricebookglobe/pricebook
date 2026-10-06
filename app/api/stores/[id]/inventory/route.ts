@@ -36,7 +36,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const supabase = createServiceSupabase();
   const { data, error } = await supabase
     .from("store_inventory")
-    .select("id, price, currency, in_stock, is_hidden, updated_at, products ( id, canonical_name, brand, size, unit, category, image_url, nutrition_facts )")
+    .select(
+      "id, price, currency, in_stock, is_hidden, updated_at, products ( id, canonical_name, brand, size, unit, category, pack_size, image_url, nutrition_facts )"
+    )
     .eq("store_id", params.id)
     .order("updated_at", { ascending: false });
 

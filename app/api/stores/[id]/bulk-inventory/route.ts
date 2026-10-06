@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceSupabase } from "@/lib/supabaseClient";
 import { parseCSVToObjects } from "@/lib/csv";
 import { embedProductDescription } from "@/lib/aiVision";
+import { inferSizeType } from "@/lib/productCategorization";
 
 // Accepts either a logged-in merchant's Supabase session (the dashboard's
 // own bulk-upload page) OR that store's long-lived API key (an external
@@ -128,6 +129,14 @@ async function handlePost(req: NextRequest, params: { id: string }) {
       const unit = row.unit?.trim() || null;
       const currency = row.currency?.trim() || "JOD";
       const barcode = row.barcode?.trim() || null;
+      // Optional — how many individual units one listing sells together
+      // (a 6-pack of cans). Blank/omitted defaults to 1, a single item,
+      // same as the Add Item form.
+      const packSizeRaw = row.pack_size?.trim();
+      const packSize = packSizeRaw ? parseInt(packSizeRaw, 10) : 1;
+      if (packSizeRaw && (Number.isNaN(packSize) || packSize < 1)) {
+        throw new Error(`pack_size "${packSizeRaw}" is not a valid positive whole number`);
+      }
 
       if (!itemName) throw new Error("item_name is required");
       if (!category) throw new Error("category is required");
@@ -138,18 +147,30 @@ async function handlePost(req: NextRequest, params: { id: string }) {
 
       const size = sizeRaw ? parseFloat(sizeRaw) : null;
       if (sizeRaw && Number.isNaN(size)) throw new Error(`size "${sizeRaw}" is not a valid number`);
+      // No dedicated size_type column in the CSV/API shape (keeping the
+      // required/optional field list short) — inferred from the name and
+      // unit instead, same heuristic the Add Item form starts from.
+      const sizeType = inferSizeType(itemName, category);
 
       // Match an existing product: by barcode first if given (exact,
-      // unambiguous), else by the same name+brand+size+unit+category
-      // combination used everywhere else in the app, so a re-upload of
-      // the same catalog updates prices instead of creating duplicates.
+      // unambiguous), else by the same name+brand+size+unit+category+
+      // pack_size combination used everywhere else in the app, so a
+      // re-upload of the same catalog updates prices instead of creating
+      // duplicates. pack_size is part of that identity because a 6-pack
+      // and a 12-pack of the same item are different listings (different
+      // price, different quantity), not the same product restated.
       let productId: string | null = null;
       if (barcode) {
         const { data } = await supabase.from("products").select("id").eq("barcode", barcode).maybeSingle();
         productId = data?.id ?? null;
       }
       if (!productId) {
-        let query = supabase.from("products").select("id").ilike("canonical_name", itemName).eq("category", category);
+        let query = supabase
+          .from("products")
+          .select("id")
+          .ilike("canonical_name", itemName)
+          .eq("category", category)
+          .eq("pack_size", packSize);
         if (brand) query = query.eq("brand", brand);
         if (size != null) query = query.eq("size", size);
         if (unit) query = query.eq("unit", unit);
@@ -160,7 +181,7 @@ async function handlePost(req: NextRequest, params: { id: string }) {
       if (!productId) {
         const { data: created, error: insertError } = await supabase
           .from("products")
-          .insert({ canonical_name: itemName, brand, manufacturer: null, size, unit, category, barcode })
+          .insert({ canonical_name: itemName, brand, manufacturer: null, size, unit, category, barcode, pack_size: packSize, size_type: sizeType })
           .select("id")
           .single();
         if (insertError) throw new Error(insertError.message);
