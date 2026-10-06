@@ -146,7 +146,7 @@ export default function AddItemPage() {
       }
       if (!data.found) {
         setError(
-          t("That barcode isn't in the product database — try Snap or Enter item details instead.") +
+          t("No information is available in the system for this barcode. Please use Snap or Enter item details instead.") +
             ` (${t("Scanned")}: ${data.scanned_barcode ?? barcode})`
         );
         return;

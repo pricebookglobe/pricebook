@@ -858,7 +858,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       }
       if (!data.found) {
         setError(
-          t("That barcode isn't in the product database — try Camera or Enter details instead.") +
+          t("No information is available in the system for this barcode. Please use Camera or Enter details instead.") +
             ` (${t("Scanned")}: ${data.scanned_barcode ?? barcode})`
         );
         setScanningBarcode(false);
