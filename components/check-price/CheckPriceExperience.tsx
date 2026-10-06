@@ -422,6 +422,100 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   useEffect(() => {
     manualStoreIdRef.current = manualStoreId;
   }, [manualStoreId]);
+
+  // "You're at [store]" was flickering on Android between "unregistered"
+  // and a neighboring store 1-2 positions away in a row of storefronts —
+  // reported directly: "some time it give unregistred store and some time
+  // it give sthe store this is two store back or forward". Root cause:
+  // every 10s poll takes whatever raw GPS fix is current (no smoothing —
+  // see GeolocationProvider) and picks nearbyStores[0], the single closest
+  // match to THAT fix, with nothing holding the pick steady across polls.
+  // Ordinary GPS error (5-50m on budget Android hardware) is routinely
+  // bigger than the ~5m gap between two adjacent storefronts, so which
+  // store comes back "closest" can — and does — change from one 10s poll
+  // to the next even while the shopper hasn't moved at all.
+  //
+  // stabilizeNearbyStores below adds hysteresis on top of the raw RPC
+  // result: once a store is "the" pick, a different candidate (including
+  // no candidate at all, i.e. "unregistered") only takes over once it's
+  // won two consecutive polls in a row, UNLESS the current pick has
+  // dropped out of range entirely while the new top candidate is clearly
+  // closer, or there was no pick yet at all (first-ever fix, which should
+  // still resolve immediately rather than waiting). A single noisy fix can
+  // no longer flip the display; a real move between storefronts still
+  // confirms within ~20s (two poll cycles).
+  const stableStoreIdRef = useRef<string | null>(null);
+  const pendingStoreSwitchRef = useRef<{ id: string | null; count: number }>({ id: null, count: 0 });
+  // What's actually on screen right now — kept separately from the raw RPC
+  // result so that while a switch is still pending (see below) and the
+  // previously-stable store has dropped out of THIS poll's result entirely
+  // (not just off the top), there's still something to keep showing instead
+  // of the display flashing to "unregistered" or a wrong store for one poll
+  // and then flashing back.
+  const lastStableStoresRef = useRef<NearbyStore[]>([]);
+  const SWITCH_CONFIRM_POLLS = 2;
+  const SWITCH_MARGIN_M = 8;
+
+  function moveToFront(stores: NearbyStore[], id: string): NearbyStore[] {
+    const idx = stores.findIndex((s) => s.store_id === id);
+    if (idx <= 0) return stores;
+    const reordered = stores.slice();
+    const [picked] = reordered.splice(idx, 1);
+    reordered.unshift(picked);
+    return reordered;
+  }
+
+  function stabilizeNearbyStores(stores: NearbyStore[]): NearbyStore[] {
+    const stable = stableStoreIdRef.current;
+    const candidateId = stores[0]?.store_id ?? null;
+    const commit = (result: NearbyStore[]) => {
+      lastStableStoresRef.current = result;
+      return result;
+    };
+
+    if (candidateId === stable) {
+      pendingStoreSwitchRef.current = { id: null, count: 0 };
+      return commit(stores);
+    }
+
+    const stillInRange = stable ? stores.find((s) => s.store_id === stable) ?? null : null;
+    const topDistance = stores[0]?.distance_m;
+    // The current pick is still a candidate and not decisively beaten by
+    // the new top one (within GPS-noise margin of each other) — ordinary
+    // jitter between two close-by storefronts, not a real move. Keep
+    // showing the current pick.
+    if (stillInRange && typeof topDistance === "number" && stillInRange.distance_m - topDistance < SWITCH_MARGIN_M) {
+      pendingStoreSwitchRef.current = { id: null, count: 0 };
+      return commit(moveToFront(stores, stable!));
+    }
+
+    // First-ever fix (nothing locked in yet) resolves immediately — only
+    // a SWITCH away from an already-confirmed pick gets held back.
+    if (stable === null) {
+      stableStoreIdRef.current = candidateId;
+      pendingStoreSwitchRef.current = { id: null, count: 0 };
+      return commit(stores);
+    }
+
+    if (pendingStoreSwitchRef.current.id === candidateId) {
+      pendingStoreSwitchRef.current.count += 1;
+    } else {
+      pendingStoreSwitchRef.current = { id: candidateId, count: 1 };
+    }
+
+    if (pendingStoreSwitchRef.current.count >= SWITCH_CONFIRM_POLLS) {
+      stableStoreIdRef.current = candidateId;
+      pendingStoreSwitchRef.current = { id: null, count: 0 };
+      return commit(stores);
+    }
+
+    // Not confirmed yet — if the previous pick is still in this poll's
+    // result (just not on top), keep it showing at the front; if it isn't
+    // in this result at all, fall back to whatever was last on screen
+    // rather than flashing to this poll's (still-unconfirmed) answer.
+    if (stillInRange) return commit(moveToFront(stores, stable));
+    return lastStableStoresRef.current;
+  }
   const [scanningBarcode, setScanningBarcode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [useGuidedForm, setUseGuidedForm] = useState(false);
@@ -476,13 +570,20 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     if (!silent) {
       setLocating(true);
       setLocationCheck(null);
+      // A deliberate fresh check (not the background poll) — nothing to
+      // hold steady from before, so drop any in-progress hysteresis state
+      // rather than have it hold onto a pick from before this reset.
+      stableStoreIdRef.current = null;
+      pendingStoreSwitchRef.current = { id: null, count: 0 };
+      lastStableStoresRef.current = [];
     }
     try {
       if (!coords) {
         if (!silent) setError(t("Turn on location so we can tell where you are."));
         return;
       }
-      const stores = await findNearbyStores(coords.lat, coords.lng, accuracy);
+      const rawStores = await findNearbyStores(coords.lat, coords.lng, accuracy);
+      const stores = stabilizeNearbyStores(rawStores);
       setLocationCheck({ stores });
       // A manual correction stops being meaningful once that store isn't
       // even a candidate anymore (walked out of range, deactivated, etc.) —
@@ -610,6 +711,9 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     setLocationCheck(null);
     setManualStoreId(null);
     setRecheckPrompt(false);
+    stableStoreIdRef.current = null;
+    pendingStoreSwitchRef.current = { id: null, count: 0 };
+    lastStableStoresRef.current = [];
     setUseGuidedForm(false);
     setMode(initialMode);
     setCheckPriceRevealed(true);
