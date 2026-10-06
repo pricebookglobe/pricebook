@@ -1308,7 +1308,20 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       )}
 
 
-      {mode === "menu" && checkPriceRevealed && !busy && !scanningBarcode && (
+      {/* Reported as "scan barcode keeps repeating with no result" — a
+          screen recording showed the search actually succeeding every
+          time (the real Snickers result was sitting right below), but
+          this block's condition never checked for that: busy and
+          scanningBarcode both go back to false the instant a search
+          finishes, successful or not, so the Scan/Snap/Enter-details
+          buttons popped right back up ABOVE the just-arrived result
+          section (which renders separately below, gated only on
+          `result`) — looking exactly like the scan had failed and reset
+          to the start, when the answer was one scroll away the whole
+          time. !result closes that gap: these buttons now stay hidden
+          for as long as there's a result on screen, the same way they
+          already do while busy/scanningBarcode. */}
+      {mode === "menu" && checkPriceRevealed && !busy && !scanningBarcode && !result && (
         <>
           {snapInterrupted && (
             <p className="mb-3 rounded border border-flag/30 bg-flag/10 px-3 py-2 text-sm text-flag">
