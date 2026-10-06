@@ -271,6 +271,9 @@ export default function MerchantSignup() {
             </button>
           </div>
           {coords && <p className="mt-1 font-mono text-xs text-value">{coords.lat.toFixed(5)}, {coords.lng.toFixed(5)} ✓</p>}
+          <p className="mt-1.5 text-xs text-ash">
+            {t("Please stand in the middle of your store before tapping Update Location.")}
+          </p>
         </div>
 
         <label className="text-sm text-ash">

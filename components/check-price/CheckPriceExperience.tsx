@@ -391,21 +391,21 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [error, setError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationCheck, setLocationCheck] = useState<{ stores: NearbyStore[] } | null>(null);
-  // A shopper's own correction always wins over the next GPS-driven refresh
-  // — set the moment they tap a different store in the nearby list, and
-  // cleared on startNewCheck (a genuinely new location check). The 10s
-  // background poll below still refreshes the underlying list/distances
-  // while a manual pick is active; it just stops being the thing that
-  // decides which store is "the" one.
-  const [manualStoreId, setManualStoreId] = useState<string | null>(null);
-  // Briefly true right after a background re-check runs WHILE a manual
-  // correction is active (i.e. a 60s-cadence tick, not the normal 10s
-  // ones) — flashes the correction bar with "Are you still at X?" instead
-  // of its steady "You are at X", as a periodic nudge to notice it rather
-  // than something the shopper has to act on. Auto-clears itself a few
-  // seconds later (see the effect below); never set at all once there's no
-  // active correction.
-  const [recheckPrompt, setRecheckPrompt] = useState(false);
+  // The store currently "anchored" on screen — the one named by the orange
+  // ribbon, the landing panel, and the result screen's "You're at" card.
+  // Both the automatic 20m/100m geofencing logic below AND a shopper's own
+  // "Modify Location" pick write to this one piece of state, so there's a
+  // single source of truth for "the" store rather than two separate ideas
+  // (an auto pick vs. a manual override) that could disagree.
+  const [anchorStoreId, setAnchorStoreId] = useState<string | null>(null);
+  // Set only while the shopper is still within the 20m buffer of the
+  // current anchor AND a different registered store has become the
+  // closest candidate — the ribbon then asks "Seems you have moved to
+  // [this store] — Confirm" instead of switching on its own. Left alone
+  // (no tap), the anchor stays exactly where it was; switching only ever
+  // happens automatically once the shopper has actually left the 20m
+  // buffer (see resolveAnchor below).
+  const [pendingMoveStoreId, setPendingMoveStoreId] = useState<string | null>(null);
   const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
 
   // Mirror of the latest coords for the background polling effect below to
@@ -416,105 +416,94 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   useEffect(() => {
     coordsRef.current = coords;
   }, [coords]);
-  // Same pattern, for the background poll below to read the current manual
-  // override without being in its dependency array.
-  const manualStoreIdRef = useRef(manualStoreId);
-  useEffect(() => {
-    manualStoreIdRef.current = manualStoreId;
-  }, [manualStoreId]);
 
-  // "You're at [store]" was flickering on Android between "unregistered"
-  // and a neighboring store 1-2 positions away in a row of storefronts —
-  // reported directly: "some time it give unregistred store and some time
-  // it give sthe store this is two store back or forward". Root cause:
-  // every 10s poll takes whatever raw GPS fix is current (no smoothing —
-  // see GeolocationProvider) and picks nearbyStores[0], the single closest
-  // match to THAT fix, with nothing holding the pick steady across polls.
-  // Ordinary GPS error (5-50m on budget Android hardware) is routinely
-  // bigger than the ~5m gap between two adjacent storefronts, so which
-  // store comes back "closest" can — and does — change from one 10s poll
-  // to the next even while the shopper hasn't moved at all.
+  // The exact geofencing rules requested:
   //
-  // stabilizeNearbyStores below adds hysteresis on top of the raw RPC
-  // result: once a store is "the" pick, a different candidate (including
-  // no candidate at all, i.e. "unregistered") only takes over once it's
-  // won two consecutive polls in a row, UNLESS the current pick has
-  // dropped out of range entirely while the new top candidate is clearly
-  // closer, or there was no pick yet at all (first-ever fix, which should
-  // still resolve immediately rather than waiting). A single noisy fix can
-  // no longer flip the display; a real move between storefronts still
-  // confirms within ~20s (two poll cycles).
-  const stableStoreIdRef = useRef<string | null>(null);
-  const pendingStoreSwitchRef = useRef<{ id: string | null; count: number }>({ id: null, count: 0 });
-  // What's actually on screen right now — kept separately from the raw RPC
-  // result so that while a switch is still pending (see below) and the
-  // previously-stable store has dropped out of THIS poll's result entirely
-  // (not just off the top), there's still something to keep showing instead
-  // of the display flashing to "unregistered" or a wrong store for one poll
-  // and then flashing back.
-  const lastStableStoresRef = useRef<NearbyStore[]>([]);
-  const SWITCH_CONFIRM_POLLS = 2;
-  const SWITCH_MARGIN_M = 8;
+  // - Always show the registered store that appears closest (unregistered
+  //   stores never even reach this list — find_nearby_stores/
+  //   find_nearest_store already filter to verification_status =
+  //   'approved' only).
+  // - The 20m buffer rule: as long as the shopper stays within 20m of the
+  //   currently-anchored store, they stay anchored there, even if a
+  //   different registered store is now technically closer — that only
+  //   surfaces as a "Seems you have moved to X — Confirm" prompt
+  //   (pendingMoveStoreId below), and nothing actually switches unless the
+  //   shopper taps Confirm.
+  // - Beyond 20m from the anchor AND closer to a different registered
+  //   store: switches automatically, no confirmation needed.
+  // - The 100m single-store rule: when the area has only one registered
+  //   store in range at all (nearby-check now fetches a 100m radius — see
+  //   that route), that store keeps being shown as long as the shopper is
+  //   within 100m of it, rather than the tighter 20m buffer.
+  const anchorStoreIdRef = useRef<string | null>(null);
+  const BUFFER_M = 20;
+  const SINGLE_STORE_RADIUS_M = 100;
 
-  function moveToFront(stores: NearbyStore[], id: string): NearbyStore[] {
-    const idx = stores.findIndex((s) => s.store_id === id);
-    if (idx <= 0) return stores;
-    const reordered = stores.slice();
-    const [picked] = reordered.splice(idx, 1);
-    reordered.unshift(picked);
-    return reordered;
+  // Sets the anchor directly — used by the automatic rules below AND by a
+  // shopper's own "Modify Location" pick, so both write through the same
+  // single place.
+  function setAnchor(storeId: string | null) {
+    anchorStoreIdRef.current = storeId;
+    setAnchorStoreId(storeId);
+    setPendingMoveStoreId(null);
   }
 
-  function stabilizeNearbyStores(stores: NearbyStore[]): NearbyStore[] {
-    const stable = stableStoreIdRef.current;
-    const candidateId = stores[0]?.store_id ?? null;
-    const commit = (result: NearbyStore[]) => {
-      lastStableStoresRef.current = result;
-      return result;
-    };
-
-    if (candidateId === stable) {
-      pendingStoreSwitchRef.current = { id: null, count: 0 };
-      return commit(stores);
+  // Runs on every location poll (the initial fix and every 10s refresh
+  // after it) against that poll's registered-stores-only list, nearest
+  // first. Returns the list unchanged — it's only here for the anchoring
+  // side effects (setAnchor / setPendingMoveStoreId).
+  function resolveAnchor(stores: NearbyStore[]): NearbyStore[] {
+    if (stores.length === 0) {
+      // No registered store anywhere in the 100m fetch radius at all.
+      setAnchor(null);
+      return stores;
     }
 
-    const stillInRange = stable ? stores.find((s) => s.store_id === stable) ?? null : null;
-    const topDistance = stores[0]?.distance_m;
-    // The current pick is still a candidate and not decisively beaten by
-    // the new top one (within GPS-noise margin of each other) — ordinary
-    // jitter between two close-by storefronts, not a real move. Keep
-    // showing the current pick.
-    if (stillInRange && typeof topDistance === "number" && stillInRange.distance_m - topDistance < SWITCH_MARGIN_M) {
-      pendingStoreSwitchRef.current = { id: null, count: 0 };
-      return commit(moveToFront(stores, stable!));
+    const candidate = stores[0];
+    const currentAnchorId = anchorStoreIdRef.current;
+
+    if (currentAnchorId === null) {
+      // First-ever fix — nothing to hold steady against yet, so resolve
+      // immediately to the nearest registered store.
+      setAnchor(candidate.store_id);
+      return stores;
     }
 
-    // First-ever fix (nothing locked in yet) resolves immediately — only
-    // a SWITCH away from an already-confirmed pick gets held back.
-    if (stable === null) {
-      stableStoreIdRef.current = candidateId;
-      pendingStoreSwitchRef.current = { id: null, count: 0 };
-      return commit(stores);
+    if (candidate.store_id === currentAnchorId) {
+      // Still the closest (or the only) registered store — stay anchored,
+      // and no "moved to" prompt is pending.
+      setPendingMoveStoreId(null);
+      return stores;
     }
 
-    if (pendingStoreSwitchRef.current.id === candidateId) {
-      pendingStoreSwitchRef.current.count += 1;
-    } else {
-      pendingStoreSwitchRef.current = { id: candidateId, count: 1 };
+    // The closest candidate is now a different registered store than the
+    // current anchor.
+    const singleStoreArea = stores.length === 1;
+    if (singleStoreArea) {
+      // Only one registered store is in range at all, and it isn't the
+      // current anchor — the anchor must have moved out of range entirely
+      // (fetch radius is 100m), and there's nothing else nearby to ask
+      // about, so just follow it directly.
+      setAnchor(candidate.store_id);
+      return stores;
     }
 
-    if (pendingStoreSwitchRef.current.count >= SWITCH_CONFIRM_POLLS) {
-      stableStoreIdRef.current = candidateId;
-      pendingStoreSwitchRef.current = { id: null, count: 0 };
-      return commit(stores);
+    const anchorStore = stores.find((s) => s.store_id === currentAnchorId) ?? null;
+    const anchorDistance = anchorStore?.distance_m ?? Infinity;
+
+    if (anchorDistance <= BUFFER_M) {
+      // Still within the 20m buffer of the current anchor — a different
+      // store being technically closer doesn't switch anything on its
+      // own; it only raises the "Seems you have moved to X" prompt, and
+      // the shopper has to tap Confirm for it to actually take over.
+      setPendingMoveStoreId(candidate.store_id);
+      return stores;
     }
 
-    // Not confirmed yet — if the previous pick is still in this poll's
-    // result (just not on top), keep it showing at the front; if it isn't
-    // in this result at all, fall back to whatever was last on screen
-    // rather than flashing to this poll's (still-unconfirmed) answer.
-    if (stillInRange) return commit(moveToFront(stores, stable));
-    return lastStableStoresRef.current;
+    // More than 20m from the anchor, and genuinely closer to a different
+    // registered store — switch automatically, no confirmation needed.
+    setAnchor(candidate.store_id);
+    return stores;
   }
   const [scanningBarcode, setScanningBarcode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -570,27 +559,15 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     if (!silent) {
       setLocating(true);
       setLocationCheck(null);
-      // A deliberate fresh check (not the background poll) — nothing to
-      // hold steady from before, so drop any in-progress hysteresis state
-      // rather than have it hold onto a pick from before this reset.
-      stableStoreIdRef.current = null;
-      pendingStoreSwitchRef.current = { id: null, count: 0 };
-      lastStableStoresRef.current = [];
     }
     try {
       if (!coords) {
         if (!silent) setError(t("Turn on location so we can tell where you are."));
         return;
       }
-      const rawStores = await findNearbyStores(coords.lat, coords.lng, accuracy);
-      const stores = stabilizeNearbyStores(rawStores);
+      const stores = await findNearbyStores(coords.lat, coords.lng, accuracy);
+      resolveAnchor(stores);
       setLocationCheck({ stores });
-      // A manual correction stops being meaningful once that store isn't
-      // even a candidate anymore (walked out of range, deactivated, etc.) —
-      // clear it so the display falls back to the nearest real candidate
-      // instead of silently keeping a "your correction" tag on a store that
-      // just disappeared, and so the poll above speeds back up to 10s.
-      setManualStoreId((current) => (current && !stores.some((s) => s.store_id === current) ? null : current));
     } catch (e: any) {
       if (!silent) setError(e.message ?? "Couldn't check your location.");
     } finally {
@@ -632,43 +609,28 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // literally not visible (backgrounded/screen locked); that resumes with
   // an immediate check the moment it's visible again.
   //
-  // Cadence: 10s normally, but once the shopper has manually corrected the
-  // pick (manualStoreId), their choice already wins over whatever this poll
-  // finds (see primaryStore above) — so polling that fast only burns
-  // battery/network for a list that isn't even being used to decide
-  // anything right now. Backs off to 60s in that case, while still quietly
-  // keeping distances/the candidate list fresh underneath. Snaps back to
-  // 10s the moment manualStoreId clears (startNewCheck, or — see
-  // handleFindMyLocation — if the corrected store ever drops out of range).
+  // Cadence: a flat 10s the whole time the Check Price tab is open — the
+  // 20m/100m geofencing rules above need a live poll to notice a real move
+  // at all, whether or not the anchor was just set automatically or via a
+  // shopper's own "Modify Location" pick, so there's no reason to slow this
+  // down once a pick is in place the way an earlier version did.
   useEffect(() => {
     if (initialMode !== "menu") return;
 
-    const ACTIVE_POLL_MS = 10000;
-    const CORRECTED_POLL_MS = 60000;
+    const POLL_MS = 10000;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let cancelled = false;
 
     function schedule() {
       if (cancelled) return;
       if (timeoutId) clearTimeout(timeoutId);
-      const delay = manualStoreIdRef.current ? CORRECTED_POLL_MS : ACTIVE_POLL_MS;
-      timeoutId = setTimeout(tick, delay);
+      timeoutId = setTimeout(tick, POLL_MS);
     }
 
     async function tick() {
       if (cancelled) return;
-      // Captured BEFORE the fetch: only a tick that actually fired on the
-      // slow 60s cadence (i.e. a correction was already active going into
-      // it) should flash the "are you still here?" prompt — not every
-      // ordinary 10s tick, and not a tick that happens to clear the
-      // correction itself (handleFindMyLocation does that when the
-      // corrected store drops out of range).
-      const wasCorrected = !!manualStoreIdRef.current;
       if (document.visibilityState === "visible" && coordsRef.current) {
         await handleFindMyLocationRef.current(true);
-      }
-      if (wasCorrected && manualStoreIdRef.current) {
-        setRecheckPrompt(true);
       }
       schedule();
     }
@@ -688,19 +650,6 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialMode]);
 
-  // Flashes for a few seconds, then settles back to the steady "You are at
-  // X" text on its own — a nudge, not a dialog the shopper has to dismiss.
-  // Also clears itself immediately if the correction it was about ever goes
-  // away (store dropped out of range, or a fresh check started).
-  useEffect(() => {
-    if (!recheckPrompt) return;
-    const timer = setTimeout(() => setRecheckPrompt(false), 8000);
-    return () => clearTimeout(timer);
-  }, [recheckPrompt]);
-  useEffect(() => {
-    if (!manualStoreId) setRecheckPrompt(false);
-  }, [manualStoreId]);
-
   // Explicit reset for "Start a new check": clears the result and every bit
   // of state tied to the last one, and drops back to the Check Price menu
   // (scan/snap/enter details) rather than leaving the old answer showing
@@ -709,11 +658,9 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     setResult(null);
     setError(null);
     setLocationCheck(null);
-    setManualStoreId(null);
-    setRecheckPrompt(false);
-    stableStoreIdRef.current = null;
-    pendingStoreSwitchRef.current = { id: null, count: 0 };
-    lastStableStoresRef.current = [];
+    anchorStoreIdRef.current = null;
+    setAnchorStoreId(null);
+    setPendingMoveStoreId(null);
     setUseGuidedForm(false);
     setMode(initialMode);
     setCheckPriceRevealed(true);
@@ -937,59 +884,38 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         })()
       : null;
   // The pre-search "You are at" panel's own store list. nearbyStores is
-  // every active store within 20m, nearest first; the shown "primary"
-  // store is normally just the nearest one, UNLESS the shopper has
-  // manually corrected it (manualStoreId), in which case their pick wins
-  // even though the 10s background poll keeps refreshing the underlying
-  // list/distances. If a manual pick ever falls out of the refreshed list
-  // (moved out of range, store deactivated, etc.) this falls back to the
-  // nearest one rather than showing a store that's no longer a real
-  // candidate.
+  // every registered store within the 100m fetch radius, nearest first.
+  // primaryStore is always the anchored store from the 20m/100m geofencing
+  // logic above (resolveAnchor) — set automatically on every poll, or
+  // directly by a shopper's own "Modify Location" pick (handleModifyLocation
+  // below), so there's one single, always-resolved "the store" rather than
+  // a separate ambiguous/ask-the-shopper state. pendingMoveStore is the
+  // "Seems you have moved to X" candidate the ribbon offers to Confirm,
+  // kept entirely separate from primaryStore so nothing on this screen
+  // switches early just because a closer store showed up for a moment.
   const nearbyStores = locationCheck?.stores ?? [];
-  const primaryStore = (manualStoreId && nearbyStores.find((s) => s.store_id === manualStoreId)) || nearbyStores[0] || null;
+  const primaryStore = nearbyStores.find((s) => s.store_id === anchorStoreId) ?? null;
+  const pendingMoveStore = nearbyStores.find((s) => s.store_id === pendingMoveStoreId) ?? null;
   const alternativeStores = nearbyStores.filter((s) => s.store_id !== primaryStore?.store_id);
 
-  // A tight row of storefronts (e.g. 6 stores a few meters apart) sits well
-  // inside ordinary GPS error, so the "closest" candidate among them is
-  // close to a coin flip — the hysteresis above (stabilizeNearbyStores)
-  // keeps that coin-flip pick from flickering, but steady isn't the same
-  // as correct. Rather than silently committing to a guess in that case,
-  // flag it as genuinely ambiguous whenever the top two candidates are
-  // closer to each other than ordinary GPS noise (AMBIGUOUS_GAP_M) — the
-  // bar below then asks directly instead of quietly picking one.
-  const AMBIGUOUS_GAP_M = 6;
-  const isAmbiguous =
-    !manualStoreId &&
-    nearbyStores.length > 1 &&
-    nearbyStores[1].distance_m - nearbyStores[0].distance_m < AMBIGUOUS_GAP_M;
-
-  // Everywhere else on this screen that names "the" store — the landing
-  // panel's photo/"You are at" line, the atStore card, the red "doesn't
-  // carry" message — has to agree with what the bar above is actually
-  // telling the shopper. While isAmbiguous is asking them to pick, those
-  // can't keep silently committing to primaryStore's own guess (that WAS
-  // the bug just reported: the rest of the page kept auto-switching to
-  // "the closest" under the hood while the bar asked a different
-  // question). confirmedStore is primaryStore whenever there's nothing
-  // to ask about, and null while a pick is still pending — every other
-  // "the store" display below reads this instead of primaryStore.
-  const confirmedStore = isAmbiguous ? null : primaryStore;
+  function handleConfirmMove() {
+    if (pendingMoveStore) setAnchor(pendingMoveStore.store_id);
+  }
+  // "Modify Location" — a shopper's own explicit pick always wins outright,
+  // the same single setAnchor the automatic rules use.
+  function handleModifyLocation(storeId: string) {
+    setAnchor(storeId);
+  }
 
   // The "You're at [store], price: X" card below is about THIS search
-  // result at the shopper's current/confirmed store — so it has to be
-  // the exact same store as the orange "You are at" banner and the red
-  // "{store} doesn't carry this item" message above, not a separately
-  // re-detected one. An earlier version re-scanned `sorted` by live GPS
-  // distance on its own, independent of primaryStore — which could (and,
-  // per a real report, did) name a DIFFERENT store than the banner
-  // whenever the shopper was within range of two adjacent stores, and
-  // also silently ignored a manual "Change location" correction entirely
-  // (primaryStore respects manualStoreId; that independent GPS scan
-  // never did). Deriving atStore from primaryStore instead makes the two
-  // impossible to disagree, and means this card and the red "doesn't
-  // carry" message above are now strictly mutually exclusive — exactly
-  // one of them shows, for the one store the shopper is actually at.
-  const atStore = confirmedStore ? sorted.find((r) => r.store_id === confirmedStore.store_id) ?? null : null;
+  // result at the shopper's current/anchored store — so it has to be the
+  // exact same store as the orange ribbon and the red "{store} doesn't
+  // carry this item" message above, not a separately re-detected one.
+  // Deriving atStore from primaryStore keeps the two impossible to
+  // disagree, and means this card and the red "doesn't carry" message
+  // above are strictly mutually exclusive — exactly one of them shows, for
+  // the one store the shopper is actually at.
+  const atStore = primaryStore ? sorted.find((r) => r.store_id === primaryStore.store_id) ?? null : null;
 
   // "Save: X" line — compares the cheapest price within 5km of the shopper
   // to the priciest option in that same 5km radius, so the best-price row
@@ -1172,11 +1098,10 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       {initialMode === "menu" && primaryStore && (
         <LocationCorrectionBar
           primaryStore={primaryStore}
+          pendingMoveStore={pendingMoveStore}
           alternativeStores={alternativeStores}
-          isManualOverride={manualStoreId === primaryStore.store_id}
-          isAmbiguous={isAmbiguous}
-          promptRecheck={recheckPrompt}
-          onSelect={setManualStoreId}
+          onConfirmMove={handleConfirmMove}
+          onModifyLocation={handleModifyLocation}
         />
       )}
 
@@ -1209,7 +1134,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </p>
           ) : locationCheck ? (
             <>
-              {confirmedStore ? (
+              {primaryStore ? (
                 // Registered store: the map is always centered on the
                 // SHOPPER's own live GPS position (never the store's saved
                 // coordinates — those can be wrong or stale, and showing
@@ -1242,7 +1167,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                       />
                     )}
                   </div>
-                  {confirmedStore.store_photo_url ? (
+                  {primaryStore.store_photo_url ? (
                     // Same reasoning, no border — the store photo swaps
                     // out briefly during an app update or a location
                     // re-check, and a border around an empty gap read as a
@@ -1251,8 +1176,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                     // cleanly instead.
                     <div className="overflow-hidden rounded">
                       <img
-                        src={confirmedStore.store_photo_url}
-                        alt={confirmedStore.store_name}
+                        src={primaryStore.store_photo_url}
+                        alt={primaryStore.store_name}
                         className="h-[220px] w-full object-cover"
                       />
                     </div>
@@ -1277,16 +1202,10 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 )
               )}
               <p className={`text-center text-sm text-ink ${coords ? "bg-field-raised px-3 py-2" : ""}`}>
-                {confirmedStore ? (
+                {primaryStore ? (
                   <>
-                    {t("You are at")} <strong>{confirmedStore.store_name}</strong>
+                    {t("You are at")} <strong>{primaryStore.store_name}</strong>
                   </>
-                ) : isAmbiguous ? (
-                  // Several real candidates are too close together to call
-                  // automatically — same situation the sticky bar above is
-                  // already asking about, so this just points there rather
-                  // than guessing a name of its own that could disagree.
-                  t("Choose which store you're at above")
                 ) : coords ? (
                   t("You are at an unregistered location")
                 ) : (
@@ -1308,20 +1227,20 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       )}
 
 
-      {/* Reported as "scan barcode keeps repeating with no result" — a
-          screen recording showed the search actually succeeding every
-          time (the real Snickers result was sitting right below), but
-          this block's condition never checked for that: busy and
-          scanningBarcode both go back to false the instant a search
-          finishes, successful or not, so the Scan/Snap/Enter-details
-          buttons popped right back up ABOVE the just-arrived result
-          section (which renders separately below, gated only on
-          `result`) — looking exactly like the scan had failed and reset
-          to the start, when the answer was one scroll away the whole
-          time. !result closes that gap: these buttons now stay hidden
-          for as long as there's a result on screen, the same way they
-          already do while busy/scanningBarcode. */}
-      {mode === "menu" && checkPriceRevealed && !busy && !scanningBarcode && !result && (
+      {/* Scan/Snap/Enter details, Back, and Start new check are primary
+          actions on this screen, so by request they're never hidden —
+          not while a search is busy, not while scanningBarcode, and not
+          once a result is on screen. (An earlier version hid this whole
+          block behind !busy && !scanningBarcode && !result, originally to
+          fix the Scan/Snap/Enter-details buttons popping back up ABOVE a
+          just-arrived result and looking like the scan had reset — see the
+          !result on the result section itself, and on the "You're at"/
+          price callouts below, which already makes a fresh result read
+          clearly as a new answer arriving underneath rather than a reset,
+          so hiding these buttons was never actually required to fix that;
+          it only meant the shopper couldn't start another scan/snap
+          without first tapping Back.) */}
+      {mode === "menu" && checkPriceRevealed && (
         <>
           {snapInterrupted && (
             <p className="mb-3 rounded border border-flag/30 bg-flag/10 px-3 py-2 text-sm text-flag">
@@ -1407,7 +1326,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 // showing a stale product/store until a real new search
                 // overwrote it. Back now clears the result/mode too, same
                 // as a fresh visit to this tab, while leaving location
-                // state (locationCheck/manualStoreId) alone — the shopper
+                // state (locationCheck/the anchored store) alone — the shopper
                 // hasn't moved, so there's no reason to forget a location
                 // correction just because they backed out of one item.
                 setCheckPriceRevealed(false);
@@ -1519,9 +1438,9 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               if literally no store nearby carries this item, the existing
               "No store nearby carries this yet" message below already
               covers that. */}
-          {confirmedStore && sorted.length > 0 && !sorted.some((r) => r.store_id === confirmedStore.store_id) && (
+          {primaryStore && sorted.length > 0 && !sorted.some((r) => r.store_id === primaryStore.store_id) && (
             <p className="mb-3 text-sm font-bold text-red-600">
-              {t("{store} doesn't carry this item.").replace("{store}", confirmedStore.store_name)}
+              {t("{store} doesn't carry this item.").replace("{store}", primaryStore.store_name)}
             </p>
           )}
 

@@ -5,81 +5,60 @@ import { MapPin, Store } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { NearbyStore } from "@/lib/api";
 
-// The sticky "you're at X, incorrect?" pill + its store-picker dropdown, for
-// the Check Price tab's GPS auto-detect. Split out of
-// CheckPriceExperience.tsx because it's a self-contained, reusable bit of
-// UI/UX (amber pill -> dropdown -> onSelect) rather than something that
-// needs direct access to that screen's search/result state.
+// The prominent orange "which store are you at" ribbon for the Check Price
+// tab's GPS auto-detect. Split out of CheckPriceExperience.tsx because it's
+// a self-contained, reusable bit of UI/UX (ribbon -> picker -> callback)
+// rather than something that needs direct access to that screen's
+// search/result state.
+//
+// Exact text/behavior requested:
+// - "Seems you are at [Store Name]" (store name noticeably larger/bolder
+//   than the rest of the line) with a bold "Modify Location" button, any
+//   time there's nothing pending to confirm.
+// - "Seems you have moved to [Store Name]" with a bold "Confirm" button
+//   whenever the 20m-buffer logic in CheckPriceExperience has spotted a
+//   closer registered store while the shopper is still within the buffer
+//   of the current one — tapping Confirm is the ONLY thing that actually
+//   switches the anchor in that case; ignoring it leaves the shopper on
+//   their current store.
 //
 // Deliberately uses the `correction` color token ONLY here — see
 // tailwind.config.ts's comment on that token for why amber is otherwise
 // absent from the whole product.
 export function LocationCorrectionBar({
   primaryStore,
+  pendingMoveStore,
   alternativeStores,
-  isManualOverride,
-  isAmbiguous,
-  promptRecheck,
-  onSelect
+  onConfirmMove,
+  onModifyLocation
 }: {
   primaryStore: NearbyStore;
-  // Every other active store within range, nearest first — the dropdown
-  // lists these plus primaryStore itself (marked "Current"), so the full
-  // set of candidates is visible in one place rather than splitting "the
-  // pick" and "the alternatives" across two UI locations.
+  // Set only while a different registered store has become the closest
+  // candidate AND the shopper is still within 20m of primaryStore — the
+  // ribbon then asks to Confirm instead of switching outright. Null the
+  // rest of the time.
+  pendingMoveStore: NearbyStore | null;
+  // Every other registered store currently in range, nearest first — the
+  // "Modify Location" picker lists these plus primaryStore itself (marked
+  // "Current").
   alternativeStores: NearbyStore[];
-  isManualOverride: boolean;
-  // True when the top couple of candidates are closer to each other than
-  // ordinary GPS noise — e.g. a row of storefronts a few meters apart —
-  // so the auto-pick is close to a coin flip. Rather than quietly settling
-  // on one, the bar asks outright and opens the picker on its own the
-  // moment this turns true (once per episode — see the effect below),
-  // instead of waiting for the shopper to notice and tap "Incorrect?"
-  // themselves. Never fires while a manual pick is already active.
-  isAmbiguous: boolean;
-  // True for a few seconds right after a background re-check runs while a
-  // manual correction is active (the slow 60s cadence) — swaps the bar's
-  // text to "Are you still at X?" and flashes it, as a periodic nudge
-  // rather than something that needs dismissing (CheckPriceExperience
-  // clears it on its own timer).
-  promptRecheck: boolean;
-  onSelect: (storeId: string) => void;
+  onConfirmMove: () => void;
+  onModifyLocation: (storeId: string) => void;
 }) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-opens the picker the moment ambiguity starts, once per episode —
-  // not on every poll while it's still ambiguous, so a shopper who closes
-  // it to think isn't fought by it reopening 10 seconds later. Resets the
-  // moment it clears (resolved, moved away, or manually corrected) so the
-  // next distinct episode prompts again.
-  const autoPromptedRef = useRef(false);
-  useEffect(() => {
-    if (isManualOverride || !isAmbiguous) {
-      autoPromptedRef.current = false;
-      return;
-    }
-    if (!autoPromptedRef.current) {
-      setOpen(true);
-      autoPromptedRef.current = true;
-    }
-  }, [isAmbiguous, isManualOverride]);
-
-  // There's genuinely nothing to switch to — GPS found only this one store
-  // nearby. The bar still shows "You are at X" (previously it vanished
-  // entirely whenever this list happened to be empty, which — since it's
-  // driven by live GPS readings right at the 20m cutoff — made the whole
-  // orange ribbon flicker in and out as the count ticked between 0 and 1.
-  // Staying visible, just without the "Incorrect?"/"Change location"
-  // controls, means the ribbon is always there the moment there's a
-  // primary store at all).
+  // There's genuinely nothing to switch to — GPS found only this one
+  // registered store nearby (the 100m single-store rule). The ribbon still
+  // shows "Seems you are at X", just without a "Modify Location" button
+  // that would otherwise open onto an empty list.
   const hasAlternatives = alternativeStores.length > 0;
 
   // Closes the dropdown on an outside tap/click, without needing a
-  // full-screen backdrop — the small list sits right under the bar instead
-  // of as a bottom sheet, so a tap anywhere else on the page should just
-  // dismiss it.
+  // full-screen backdrop — the small list sits right under the ribbon
+  // instead of as a bottom sheet, so a tap anywhere else on the page
+  // should just dismiss it.
   useEffect(() => {
     if (!open) return;
     function onPointerDown(e: PointerEvent) {
@@ -92,86 +71,81 @@ export function LocationCorrectionBar({
   }, [open]);
 
   // Closing again if the candidate list changes under it (a background
-  // re-check lands while the dropdown happens to be open) avoids it showing
-  // a now-stale set of stores.
+  // re-check lands while the dropdown happens to be open) avoids it
+  // showing a now-stale set of stores.
   useEffect(() => {
     setOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [primaryStore.store_id, alternativeStores.length]);
 
   const allCandidates = [primaryStore, ...alternativeStores];
+  const moved = !!pendingMoveStore;
 
   return (
     <div ref={containerRef} className="sticky top-0 z-30 -mx-6 w-[calc(100%+3rem)] sm:-mx-8 sm:w-[calc(100%+4rem)]">
-      {/* The pill itself — bleeds edge-to-edge within AppPage's padded card
-          (negative margins cancel the card's own p-6/sm:p-8) so it reads as
-          a banner pinned to the top of the screen rather than a box
-          floating inside the content, the whole time the Check Price tab
-          is open (mirrors how location polling itself stays live across
-          the landing panel, Scan/Snap/results — see CheckPriceExperience's
-          background poll effect). */}
-      {(() => {
-        const flashing = isManualOverride && promptRecheck;
-        const asking = !isManualOverride && isAmbiguous;
-        return (
+      {/* The ribbon itself — bleeds edge-to-edge within AppPage's padded
+          card (negative margins cancel the card's own p-6/sm:p-8) so it
+          reads as a banner pinned to the top of the screen rather than a
+          box floating inside the content, the whole time the Check Price
+          tab is open. */}
+      <div
+        className={`flex w-full items-center justify-between gap-3 border-b border-correction-dark/20 px-4 py-3 text-left shadow-sm transition-colors mb-4 ${
+          moved ? "correction-flash-bar" : "bg-correction"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => !moved && hasAlternatives && setOpen((o) => !o)}
+          disabled={moved || !hasAlternatives}
+          className={`flex min-w-0 flex-1 items-start gap-2 text-left ${!moved && hasAlternatives ? "cursor-pointer" : "cursor-default"}`}
+        >
+          <MapPin size={18} strokeWidth={2.5} className="mt-1 shrink-0 text-white" />
+          <span className="flex min-w-0 flex-col">
+            {moved ? (
+              <>
+                <span className="font-display text-sm font-semibold text-white">{t("Seems you have moved to")}</span>
+                {/* Store name — significantly larger and bolder than the
+                    rest of the ribbon's text, by request. */}
+                <span className="truncate font-display text-xl font-extrabold leading-tight text-white">
+                  {pendingMoveStore!.store_name}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="font-display text-sm font-semibold text-white">{t("Seems you are at")}</span>
+                <span className="truncate font-display text-xl font-extrabold leading-tight text-white">
+                  {primaryStore.store_name}
+                </span>
+              </>
+            )}
+          </span>
+        </button>
+
+        {moved ? (
           <button
             type="button"
-            onClick={() => hasAlternatives && setOpen((o) => !o)}
-            className={`flex w-full items-center justify-between gap-3 border-b border-correction-dark/20 px-4 py-2.5 text-left shadow-sm transition-colors mb-4 ${
-              hasAlternatives ? "active:bg-correction-dark" : "cursor-default"
-            } ${flashing || asking ? "correction-flash-bar" : "bg-correction"}`}
+            onClick={onConfirmMove}
+            className="shrink-0 whitespace-nowrap self-center rounded-full bg-blue-900 px-3.5 py-1.5 font-display text-sm font-bold text-white transition-colors active:bg-blue-950"
           >
-            <span className="flex min-w-0 items-start gap-2 font-display text-sm font-semibold text-white">
-              <MapPin size={16} strokeWidth={2.5} className="mt-0.5 shrink-0" />
-              <span className="flex min-w-0 flex-col">
-                {flashing ? (
-                  <span className="truncate">
-                    {t("Are you still at")} {primaryStore.store_name}?
-                  </span>
-                ) : asking ? (
-                  // Several storefronts are close enough together that the
-                  // auto-pick is little better than a guess — say so
-                  // outright rather than quietly showing one of them as if
-                  // it were confident.
-                  <span className="truncate">{t("Which store are you at?")}</span>
-                ) : (
-                  <>
-                    <span className="truncate">
-                      {t("You are at")} {primaryStore.store_name}
-                    </span>
-                    {/* Own line rather than trailing the store name — a
-                        short store name left "Incorrect?" crammed right up
-                        against it on the same line, reading as one run-on
-                        phrase instead of a separate prompt. Only shown when
-                        there's actually another store to switch to. */}
-                    {!isManualOverride && hasAlternatives && <span className="font-medium">{t("Incorrect?")}</span>}
-                  </>
-                )}
-              </span>
-            </span>
-            {hasAlternatives && (
-              // Deliberately NOT amber/white-on-amber (that read as part of
-              // the flashing warning color itself, low-contrast against it)
-              // — a dark blue, by request, so it reads as a distinct,
-              // tappable action sitting on top of the attention-colored
-              // bar. Tailwind's built-in blue-900/950 rather than a new
-              // design token: this is a one-off accent for this single
-              // button, not a reusable brand color.
-              <span className="shrink-0 whitespace-nowrap self-center rounded-full bg-blue-900 px-2.5 py-1 font-display text-xs font-bold text-white transition-colors">
-                {flashing ? "→ " : ""}
-                {asking ? t("Choose") : t("Change location")}
-              </span>
-            )}
+            {t("Confirm")}
           </button>
-        );
-      })()}
+        ) : (
+          hasAlternatives && (
+            <button
+              type="button"
+              onClick={() => setOpen((o) => !o)}
+              className="shrink-0 whitespace-nowrap self-center rounded-full bg-blue-900 px-3.5 py-1.5 font-display text-sm font-bold text-white transition-colors active:bg-blue-950"
+            >
+              {t("Modify Location")}
+            </button>
+          )
+        )}
+      </div>
 
-      {open && hasAlternatives && (
-        // A small dropdown anchored right under the bar, not a full-screen
-        // bottom sheet — by request, so picking the right store never needs
-        // scrolling the page to find it. Capped height with its own scroll
-        // as a fallback only for the rare case of many nearby stores; with
-        // the usual 2-3 it never kicks in.
+      {open && !moved && hasAlternatives && (
+        // A small dropdown anchored right under the ribbon, not a
+        // full-screen bottom sheet — by request, so picking the right
+        // store never needs scrolling the page to find it.
         <div className="max-h-64 overflow-y-auto rounded-b-lg border-x border-b border-line bg-field-raised px-2 py-2 shadow-lg">
           <ul className="flex flex-col gap-1">
             {allCandidates.map((s) => {
@@ -181,7 +155,7 @@ export function LocationCorrectionBar({
                   <button
                     type="button"
                     onClick={() => {
-                      onSelect(s.store_id);
+                      onModifyLocation(s.store_id);
                       setOpen(false);
                     }}
                     className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${
@@ -192,10 +166,6 @@ export function LocationCorrectionBar({
                   >
                     <span className="flex min-w-0 items-center gap-2.5">
                       {s.store_photo_url ? (
-                        // No border here either, matching the big store
-                        // photo on the landing panel — see the comment
-                        // there on why (a flashing "frame" while the photo
-                        // itself briefly isn't there).
                         <img
                           src={s.store_photo_url}
                           alt=""

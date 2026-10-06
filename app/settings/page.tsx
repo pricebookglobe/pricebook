@@ -332,6 +332,9 @@ export default function SettingsPage() {
                 {locating ? "…" : coords ? t("Update") : t("Use my location")}
               </button>
             </div>
+            <p className="mt-1.5 text-xs text-ash">
+              {t("Please stand in the middle of your store before tapping Update Location.")}
+            </p>
           </div>
 
           <label className="text-sm text-ash">

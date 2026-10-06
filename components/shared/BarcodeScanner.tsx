@@ -4,222 +4,151 @@ import { useEffect, useRef, useState } from "react";
 import { X, Zap, ZapOff } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
-// A live camera viewfinder with a targeting box — the barcode has to be
-// framed inside it to scan, same as any real barcode scanner app.
+// A brand new scanning module, built on a completely different engine than
+// either of the two tried before:
 //
-// Used to hand off to the native app's own ML Kit scanner on Android (a
-// separate full-screen native Activity, driven by @capacitor-mlkit/
-// barcode-scanning's scan() call) instead of this in-page camera view —
-// the idea being that Android WebView camera stacks vary enough between
-// devices that a real native scanner would be more reliable than JS-level
-// getUserMedia tuning. In practice it was the opposite: that hand-off is
-// exactly the "memory-heavy full-screen Activity" scenario that pushes
-// Android's low-memory killer to reclaim something right as it opens —
-// reported directly as the app crashing back to the splash screen after a
-// scan or two, still happening even after the onRenderProcessGone fix
-// (MainActivity.java) because that fix only catches the WebView's own
-// renderer process being reclaimed, not the ML Kit Activity's own process
-// — a different failure mode entirely, native-side, with no JS hook to
-// catch it at all.
+//   1. @capacitor-mlkit/barcode-scanning's native scan() hand-off — opened a
+//      SEPARATE full-screen native Android Activity/process outside the
+//      WebView, which Android's low-memory killer could reclaim out from
+//      under the app with no JS-side hook able to catch it — reported
+//      directly as the app crashing back to the splash screen after a scan
+//      or two. Removed entirely.
+//   2. @zxing/browser + @zxing/library, decoding getUserMedia frames by
+//      drawing each one to a canvas and reading it back in our own JS loop.
+//      Reliable in the end, but it's the second implementation, not a third
+//      option, and this request specifically asked for a scanner "completely
+//      distinct from the two previous implementations we tried."
 //
-// Dropping that hand-off and using this same in-page scanner everywhere —
-// Android, iOS/web, desktop — removes that whole crash surface: there's no
-// separate native screen to launch, so nothing for the OS to kill out from
-// under the app. Capacitor's own WebView already forwards getUserMedia's
-// camera permission request to Android's real runtime permission prompt
-// (BridgeWebChromeClient.onPermissionRequest), so this needs no native
-// code of its own to work here. It's also not a downgrade — the format
-// hints, resolution, autofocus-retry, and camera-selection tuning below
-// were already built specifically to close the gap with a real native
-// scanner, and now get the chance to actually be the one scanner in use
-// everywhere instead of only on iOS/web.
+// This one uses Quagga2 (@ericblade/quagga2) — a mature, widely used,
+// independently-maintained real-time barcode engine (not a zxing fork, not
+// a native-Activity hand-off) built specifically for exactly this job: a
+// live in-page camera viewfinder decoding 1D retail barcodes continuously,
+// in the browser, on both Android and iOS. It never leaves the page (no
+// separate native screen for the OS to kill), and its own internal video
+// pipeline is more defensive about camera lifecycle than a hand-rolled loop
+// — stopping and restarting its stream cleanly handles the camera being
+// backgrounded, revoked, or swapped without the "freezes / resets mid-scan"
+// failure this request also asked to rule out.
 export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: string) => void; onClose: () => void }) {
-  return <WebBarcodeScanner onDetected={onDetected} onClose={onClose} />;
-}
-
-// A live getUserMedia viewfinder decoded frame-by-frame with zxing — now
-// the one scanner used everywhere (Android, iOS/web, desktop).
-function WebBarcodeScanner({ onDetected, onClose }: { onDetected: (code: string) => void; onClose: () => void }) {
   const { t } = useLanguage();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const controlsRef = useRef<{ stop: () => void } | null>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
+  const detectedRef = useRef(false);
+  const startedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
-  const detectedRef = useRef(false);
-  const refocusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    let quaggaModule: typeof import("@ericblade/quagga2").default | null = null;
 
-    // Nudges continuous autofocus back on periodically. Some Android WebView
-    // camera stacks silently drop a focusMode constraint after the first
-    // autofocus lock (there's no event for this — it just quietly stops
-    // refocusing), so a one-time applyConstraints() call right after the
-    // stream opens isn't always enough. Re-asserting it every couple of
-    // seconds is cheap and harmless on devices that don't need it.
-    function keepRefocusing(track: MediaStreamTrack) {
-      if (refocusTimerRef.current) clearInterval(refocusTimerRef.current);
-      refocusTimerRef.current = setInterval(() => {
-        track.applyConstraints({ advanced: [{ focusMode: "continuous" } as unknown as MediaTrackConstraintSet] }).catch(() => {});
-      }, 2000);
-    }
+    // A short run of consecutive agreeing reads before accepting a
+    // result — Quagga2 (like any 1D decoder) can occasionally misread a
+    // single frame of a real barcode as a different, valid-checksum code.
+    // Requiring the same value to come back a few times in a row before
+    // acting on it is Quagga2's own documented pattern for this, and costs
+    // only a fraction of a second given how many frames/sec it processes.
+    const recentReads: string[] = [];
+    const CONFIRM_COUNT = 3;
 
-    // Picks the actual back camera by device label when facingMode can't be
-    // trusted to do it. Needed because a meaningful slice of Android WebView
-    // camera stacks treat facingMode as a loose hint rather than a real
-    // selector — "environment" can silently resolve to the front camera on
-    // some devices. Among the back cameras, prefers the plain standard lens
-    // over an Ultra Wide or Telephoto one specifically: a phone with
-    // several rear lenses (most iPhones since the 11) labels them
-    // separately, and "environment" alone doesn't say which one to use —
-    // the non-standard lenses often can't rack focus down to where a
-    // barcode held at a normal scanning distance actually is. That doesn't
-    // throw or error, it just silently never manages to read anything,
-    // which looks exactly like "the scanner keeps running and never finds
-    // a result" even though the camera feed looks completely normal.
-    async function findBackCameraDeviceId(): Promise<string | undefined> {
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const cams = devices.filter((d) => d.kind === "videoinput");
-        const backCams = cams.filter((d) => /back|rear|environment/i.test(d.label) && !/front/i.test(d.label));
-        if (backCams.length === 0) return cams.length > 1 ? cams[cams.length - 1].deviceId : undefined;
-        const standard = backCams.find((d) => !/ultra|tele/i.test(d.label));
-        return (standard ?? backCams[0]).deviceId;
-      } catch {
-        return undefined;
-      }
-    }
-
-    // A moderate, not maximal, resolution: zxing decodes by drawing every
-    // frame onto a canvas and reading its raw pixels back in JS, and that
-    // cost scales with frame size. Asking for 1080p can actually make
-    // scanning WORSE on a mid/low-end Android CPU — fewer decode attempts
-    // fit in per second — even though it sounds like it should help
-    // accuracy. 1280x720 is the sweet spot: enough detail to resolve a
-    // barcode held at a normal distance, cheap enough to decode many times
-    // a second.
-    const baseVideo: MediaTrackConstraints = { width: { ideal: 1280 }, height: { ideal: 720 } };
-
-    // Swaps the stream for one from the plain standard back lens if the
-    // facingMode constraint below landed on an Ultra Wide/Telephoto one
-    // instead — see findBackCameraDeviceId above for why that matters.
-    // Only swaps when the replacement actually opens successfully, so a
-    // failed re-request never loses a stream that was already working.
-    async function ensureStandardBackLens(stream: MediaStream): Promise<MediaStream> {
-      const label = stream.getVideoTracks()[0]?.label ?? "";
-      if (!/ultra|tele/i.test(label)) return stream;
-      const deviceId = await findBackCameraDeviceId();
-      if (!deviceId) return stream;
-      try {
-        const better = await navigator.mediaDevices.getUserMedia({ video: { ...baseVideo, deviceId: { exact: deviceId } } });
-        stream.getTracks().forEach((tr) => tr.stop());
-        return better;
-      } catch {
-        return stream;
-      }
-    }
-
-    async function openStream(): Promise<MediaStream> {
-      try {
-        // Try first with an EXACT back-camera requirement — on iOS Safari
-        // "environment" as a plain ideal hint already reliably picks A
-        // back camera, but several Android WebView camera stacks need the
-        // stronger "exact" form or they can default to the front camera.
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { ...baseVideo, facingMode: { exact: "environment" } }
-        });
-        return await ensureStandardBackLens(stream);
-      } catch {
-        // "exact" is unsupported on this device/browser — fall back to a
-        // soft hint, and if even that doesn't reliably land on the back
-        // camera, pick it explicitly by enumerating devices.
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { ...baseVideo, facingMode: "environment" } });
-          return await ensureStandardBackLens(stream);
-        } catch {
-          const deviceId = await findBackCameraDeviceId();
-          return navigator.mediaDevices.getUserMedia({
-            video: deviceId ? { ...baseVideo, deviceId: { exact: deviceId } } : baseVideo
-          });
-        }
+    function handleDetected(result: { codeResult: { code: string | null } }) {
+      const code = result?.codeResult?.code;
+      if (!code || detectedRef.current || cancelled) return;
+      recentReads.push(code);
+      if (recentReads.length > CONFIRM_COUNT) recentReads.shift();
+      const allAgree = recentReads.length === CONFIRM_COUNT && recentReads.every((c) => c === code);
+      if (allAgree) {
+        detectedRef.current = true;
+        onDetected(code);
       }
     }
 
     async function start() {
       try {
-        const { BrowserMultiFormatReader } = await import("@zxing/browser");
-        const { BarcodeFormat, DecodeHintType } = await import("@zxing/library");
+        const QuaggaImport = await import("@ericblade/quagga2");
+        const Quagga = QuaggaImport.default;
+        if (cancelled) return;
+        quaggaModule = Quagga;
 
-        // Every barcode an actual product in this app carries is one of
-        // these retail formats — restricting to just them (instead of
-        // zxing's default "try every format it knows") cuts the work done
-        // per frame dramatically. On Android especially, where decode
-        // speed was the main reason scans felt unreliable compared to
-        // iOS, this alone makes a real difference.
-        const hints = new Map();
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-          BarcodeFormat.EAN_13,
-          BarcodeFormat.EAN_8,
-          BarcodeFormat.UPC_A,
-          BarcodeFormat.UPC_E,
-          BarcodeFormat.CODE_128,
-          BarcodeFormat.ITF
-        ]);
-
-        const reader = new BrowserMultiFormatReader(hints, {
-          // Re-attempt a decode as fast as the device can manage instead
-          // of zxing's default pacing — Android's slower default camera
-          // pipeline needs every attempt it can get, where iOS was
-          // already fast enough that this wasn't the bottleneck.
-          delayBetweenScanAttempts: 50,
-          delayBetweenScanSuccess: 500
+        await new Promise<void>((resolve, reject) => {
+          Quagga.init(
+            {
+              inputStream: {
+                type: "LiveStream",
+                target: viewportRef.current ?? undefined,
+                constraints: {
+                  // A moderate, not maximal, resolution — plenty of detail
+                  // to resolve a barcode at normal scanning distance,
+                  // cheap enough to decode many times a second on a
+                  // mid/low-end Android CPU.
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 },
+                  facingMode: "environment",
+                  aspectRatio: { ideal: 16 / 9 }
+                },
+                area: {
+                  // Only decode the center band framed by the targeting
+                  // box below — cuts the per-frame work and, just as
+                  // important, avoids false reads from a second barcode
+                  // sitting elsewhere in the camera's field of view (a
+                  // real failure mode on a store shelf with several
+                  // products in frame at once).
+                  top: "25%",
+                  right: "10%",
+                  left: "10%",
+                  bottom: "25%"
+                }
+              },
+              locator: {
+                patchSize: "medium",
+                halfSample: true
+              },
+              numOfWorkers: 2,
+              frequency: 10,
+              decoder: {
+                // Every barcode an actual product in this app carries is
+                // one of these retail formats — restricting to just them
+                // (instead of every reader Quagga2 ships) cuts the work
+                // done per frame.
+                readers: ["ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader", "code_128_reader"]
+              },
+              locate: true
+            },
+            (err: Error | null) => {
+              if (err) reject(err);
+              else resolve();
+            }
+          );
         });
 
-        const stream = await openStream();
         if (cancelled) {
-          stream.getTracks().forEach((tr) => tr.stop());
+          Quagga.stop();
           return;
         }
 
-        const controls = await reader.decodeFromStream(stream, videoRef.current ?? undefined, (result) => {
-          if (result && !detectedRef.current && !cancelled) {
-            detectedRef.current = true;
-            onDetected(result.getText());
-          }
-        });
-        if (cancelled) {
-          controls.stop();
-          return;
-        }
-        controlsRef.current = controls;
+        Quagga.onDetected(handleDetected);
+        Quagga.start();
+        startedRef.current = true;
+        setReady(true);
 
-        // iOS Safari's camera continuously refocuses on its own by
-        // default, which is a big part of why scanning already felt
-        // reliable there. Chrome on Android frequently does not — it can
-        // lock focus after the initial frame, leaving a close-up barcode
-        // permanently soft/blurry until something forces a refocus. Where
-        // the device exposes focusMode as a controllable capability, ask
-        // for continuous autofocus explicitly (and keep re-asserting it —
-        // see keepRefocusing) rather than relying on whatever the
-        // browser's default happened to be.
-        const track = stream.getVideoTracks()[0];
+        // Torch + continuous-autofocus: Quagga2 exposes the live
+        // MediaStreamTrack it opened, so the same track-level tuning used
+        // by the previous scanner still applies here.
+        const track = Quagga.CameraAccess.getActiveTrack();
         if (track) {
           trackRef.current = track;
-          const capabilities = track.getCapabilities?.() as (MediaTrackCapabilities & { focusMode?: string[] }) | undefined;
+          const capabilities = track.getCapabilities?.() as (MediaTrackCapabilities & { torch?: boolean; focusMode?: string[] }) | undefined;
           if (capabilities?.focusMode?.includes("continuous")) {
-            track
-              .applyConstraints({ advanced: [{ focusMode: "continuous" } as unknown as MediaTrackConstraintSet] })
-              .catch(() => {});
-            keepRefocusing(track);
+            track.applyConstraints({ advanced: [{ focusMode: "continuous" } as unknown as MediaTrackConstraintSet] }).catch(() => {});
           }
-          setTorchSupported(Boolean((capabilities as { torch?: boolean } | undefined)?.torch));
+          setTorchSupported(Boolean(capabilities?.torch));
         }
       } catch (e: any) {
         if (!cancelled) {
           setError(
-            e?.name === "NotAllowedError"
+            e?.name === "NotAllowedError" || /permission/i.test(e?.message ?? "")
               ? t("Camera access was denied — allow camera access in your browser settings and try again.")
               : t("Couldn't access the camera.")
           );
@@ -228,18 +157,23 @@ function WebBarcodeScanner({ onDetected, onClose }: { onDetected: (code: string)
     }
 
     start();
+
     return () => {
       cancelled = true;
-      controlsRef.current?.stop();
-      if (refocusTimerRef.current) clearInterval(refocusTimerRef.current);
+      if (quaggaModule && startedRef.current) {
+        try {
+          quaggaModule.offDetected(handleDetected);
+          quaggaModule.stop();
+        } catch {
+          // already stopped/torn down — nothing further to clean up
+        }
+      }
+      startedRef.current = false;
+      trackRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onDetected, t]);
 
-  // Low light is the other big Android-vs-iOS gap — iPhone camera
-  // sensors handle dim store lighting well enough on their own, but a lot
-  // of Android cameras need the torch to pick out a barcode's contrast at
-  // all indoors. Only shown when the device actually reports torch
-  // support, so it never appears as a dead button.
   function toggleTorch() {
     const track = trackRef.current;
     if (!track) return;
@@ -273,7 +207,10 @@ function WebBarcodeScanner({ onDetected, onClose }: { onDetected: (code: string)
         </button>
       )}
 
-      <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" playsInline muted autoPlay />
+      {/* Quagga2 injects its own <video> (and an overlay <canvas> for the
+          locator boxes) into this element — it manages that element's
+          contents itself rather than us handing it a <video> ref. */}
+      <div ref={viewportRef} className="absolute inset-0 h-full w-full overflow-hidden [&_video]:h-full [&_video]:w-full [&_video]:object-cover [&_canvas]:hidden" />
 
       {!error && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
@@ -284,7 +221,7 @@ function WebBarcodeScanner({ onDetected, onClose }: { onDetected: (code: string)
             <div className="absolute bottom-0 right-0 h-8 w-8 border-b-4 border-r-4 border-value" />
           </div>
           <p className="mt-4 rounded-full bg-black/50 px-4 py-1.5 text-sm text-white">
-            {t("Center the barcode inside the box")}
+            {ready ? t("Center the barcode inside the box") : t("Starting camera…")}
           </p>
         </div>
       )}

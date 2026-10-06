@@ -8,10 +8,13 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createServiceSupabase();
-  // 20m: close enough to comfortably cover standing at a store's entrance
-  // or just outside it, but tight enough that in a row of several
-  // closely-packed storefronts (reported case: ~10 stores, each only ~5m
-  // wide, side by side) it no longer sweeps in half the block.
+  // 100m: wide enough to cover the "only one registered store anywhere
+  // nearby" case (the 100m single-store rule in CheckPriceExperience),
+  // while the UI still anchors tightly — the 20m buffer rule — once more
+  // than one registered store comes back in range. Fetching the wider
+  // 100m radius every time and letting the client apply the 20m/100m
+  // threshold logic means a single poll always has enough data for
+  // whichever rule actually applies, without a second round trip.
   //
   // accuracy_m is only used by the old single-store fallback chain below,
   // for a database that hasn't run migration 0031 yet.
@@ -40,7 +43,7 @@ export async function POST(req: NextRequest) {
   ({ data: stores, error } = await supabase.rpc("find_nearby_stores", {
     user_lat: lat,
     user_lng: lng,
-    max_meters: 20
+    max_meters: 100
   }));
 
   if (!error) {
@@ -55,7 +58,7 @@ export async function POST(req: NextRequest) {
   ({ data, error } = await supabase.rpc("find_nearest_store", {
     user_lat: lat,
     user_lng: lng,
-    max_meters: 20,
+    max_meters: 100,
     ...(accuracyM !== undefined ? { accuracy_m: accuracyM } : {})
   }));
 
@@ -65,7 +68,7 @@ export async function POST(req: NextRequest) {
     ({ data, error } = await supabase.rpc("find_nearest_store", {
       user_lat: lat,
       user_lng: lng,
-      max_meters: 20
+      max_meters: 100
     }));
   }
 
