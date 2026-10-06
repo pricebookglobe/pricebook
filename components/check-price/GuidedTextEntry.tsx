@@ -108,7 +108,10 @@ export function GuidedTextEntry({
         >
           {t("Find price")}
         </button>
-        <button onClick={onCancel} className="rounded-sm px-4 py-2 font-display text-sm text-ash transition-colors hover:text-value">
+        <button
+          onClick={onCancel}
+          className="rounded border border-red-600 bg-red-600 px-4 py-2 font-display text-sm font-bold text-white transition-colors hover:border-red-700 hover:bg-red-700 active:border-red-800 active:bg-red-800"
+        >
           {t("Cancel")}
         </button>
       </div>

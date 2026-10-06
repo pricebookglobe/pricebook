@@ -1386,7 +1386,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                   className="btn-shine inline-flex items-center justify-center gap-1.5 rounded border border-value bg-value px-3 py-2 font-display text-sm font-bold tracking-wide text-white transition-all active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white duration-200 hover:scale-105"
                 >
                   <ImageIcon size={16} strokeWidth={2} />
-                  {t("Upload photo")}
+                  {t("Upload")}
                 </button>
                 <button
                   type="button"
@@ -1429,25 +1429,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             <>
               <GuidedTextEntry
                 onSubmit={(structured) => runSearch({ structured })}
-                onCancel={() => (initialMode === "menu" ? setMode("menu") : router.push("/check-price"))}
+                onCancel={() => setUseGuidedForm(false)}
               />
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setUseGuidedForm(false)}
-                  className="self-start text-sm text-value underline hover:text-value/80"
-                >
-                  {t("Back to search bar")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowImageUpload(true)}
-                  className="inline-flex items-center gap-1.5 self-start text-sm text-value underline hover:text-value/80"
-                >
-                  <ImageIcon size={14} strokeWidth={2} />
-                  {t("Or upload a photo to identify it")}
-                </button>
-              </div>
             </>
           )}
         </div>
