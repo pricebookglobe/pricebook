@@ -13,13 +13,13 @@ import { FreeTextSearch } from "@/components/check-price/FreeTextSearch";
 import { searchProducts, findNearbyStores, reportPrice, type SearchResponse, type SearchResult, type NearbyStore } from "@/lib/api";
 import { LocationCorrectionBar } from "./LocationCorrectionBar";
 import { BarcodeScanner } from "@/components/shared/BarcodeScanner";
+import { InPageCamera } from "@/components/shared/InPageCamera";
 import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { displayProductName, formatSizeTag } from "@/lib/productName";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
 import { Capacitor } from "@capacitor/core";
-import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 
 const TIER_LABEL: Record<string, string> = {
   neighborhood: "neighborhood zone",
@@ -516,6 +516,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [ratings, setRatings] = useState<Record<string, StoreRating>>({});
   const [snapInterrupted, setSnapInterrupted] = useState(false);
   const [scanInterrupted, setScanInterrupted] = useState(false);
+  const [showInPageCamera, setShowInPageCamera] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Clicking into Check Price or Search Items (both land here fresh on
@@ -754,24 +755,20 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     });
   }
 
-  // Inside the native app, Snap hands off to @capacitor/camera's own
-  // getPhoto() instead of the hidden <input capture> below. That plugin's
-  // bridge is DESIGNED to survive the exact scenario that caused the
-  // "Snap resets the app" bug (persisting the pending call before handing
-  // off to Android's native camera, and resuming it once the WebView
-  // reloads) — but real-device testing still shows a full reset with no
-  // recovery, so that guarantee isn't holding up in practice (possibly a
-  // Capacitor/plugin-version quirk, possibly the process being killed
-  // more thoroughly than the bridge expects on some devices). The
-  // in-flight flag below is now set on BOTH paths as a result — it's the
-  // one mechanism that's actually ours to guarantee, and it has to be in
-  // localStorage, not sessionStorage: sessionStorage does not survive a
-  // full Android process kill (only disk-backed storage does), so a flag
-  // written there was silently gone by the time the app relaunched,
-  // which is exactly why the "please try again" recovery banner was
-  // never showing — it looked like a clean reset because the one piece of
-  // state that would have explained it didn't survive either.
-  async function handleSnap() {
+  // Inside the native app, Snap used to hand off to @capacitor/camera's
+  // own getPhoto() — a separate native camera Activity/app launched on
+  // top of this one. That hand-off was the actual problem: switching its
+  // resultType from Base64 to Uri (an earlier fix here) only changed how
+  // much data crossed the native<->JS bridge AFTER a photo was taken; it
+  // did nothing about the Activity transition itself, and real-device
+  // testing kept showing the same crash/reset either way — Android's
+  // low-memory killer reclaiming this app's whole process while the
+  // heavier native camera app was in the foreground. Snap now opens
+  // InPageCamera instead (see that component) — a getUserMedia video
+  // feed shown right in this page, the same approach BarcodeScanner
+  // already uses successfully. There's no separate screen for Android to
+  // kill the app out from under anymore.
+  function handleSnap() {
     // Clear whatever result is currently on screen the moment Snap is
     // tapped, not just once a new photo comes back — otherwise the old
     // answer keeps showing underneath for the whole time the camera is
@@ -779,73 +776,17 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     setResult(null);
     setError(null);
     setSnapInterrupted(false);
-    // The in-flight flag is set here even on the native path: the plugin
-    // bridge is supposed to survive an Activity recreation on its own, but
-    // a couple of resets have still been seen in practice, so this stays
-    // as a safety net either way — it only ever matters if a reload
-    // actually happens before the flag is cleared below.
-    try {
-      localStorage.setItem(snapInFlightKey(initialMode), "1");
-    } catch {
-      // storage unavailable — the in-flight check is simply skipped
-    }
     if (Capacitor.isNativePlatform()) {
-      try {
-        const photo = await Camera.getPhoto({
-          // Uri, not Base64 — Base64 forces the plugin to hold the whole
-          // decoded image in memory AND serialize it across the
-          // native<->JS bridge as one giant string, right as the OS is
-          // already under memory pressure from launching the native
-          // camera Activity on top of this app. That combination is a
-          // well-documented trigger for Android's low-memory killer to
-          // reclaim the app's process entirely — reported here as the app
-          // crashing/resetting on Snap. Uri instead hands back a lightweight
-          // file path/blob URL with no such bridge transfer, which is
-          // Capacitor's own documented recommendation for exactly this
-          // crash pattern.
-          resultType: CameraResultType.Uri,
-          // Snap opens the camera directly, by request — no "Take Photo /
-          // Choose from Gallery" action sheet first. Picking an existing
-          // photo instead of a fresh one now goes through "Upload photo"
-          // in Enter details (ImageSourceSheet), which offers that choice
-          // explicitly.
-          source: CameraSource.Camera,
-          quality: 80,
-          saveToGallery: false,
-          // A modern phone's full-res photo can be 20-50MB raw before
-          // base64 even bloats it further — capping the longest edge
-          // keeps the capture light on memory right when the app is most
-          // likely to get killed for being memory-heavy in the
-          // background, and this app only ever needs enough detail to
-          // read a price tag or product label, not a full-resolution shot.
-          width: 1600
-        });
-        try {
-          localStorage.removeItem(snapInFlightKey(initialMode));
-        } catch {
-          // storage unavailable — nothing to clear
-        }
-        if (photo.webPath) {
-          const blob = await (await fetch(photo.webPath)).blob();
-          const imageBase64 = await fileToBase64(new File([blob], `snap.${photo.format || "jpg"}`, { type: blob.type }));
-          runSearch({ imageBase64 });
-        }
-      } catch (e: any) {
-        try {
-          localStorage.removeItem(snapInFlightKey(initialMode));
-        } catch {
-          // storage unavailable — nothing to clear
-        }
-        // The user backed out of the camera without taking a photo — not
-        // an error worth surfacing.
-        if (e?.message && !/cancel/i.test(e.message)) {
-          setError(t("Couldn't open the camera."));
-        }
-      }
+      setShowInPageCamera(true);
       return;
     }
-
     cameraInputRef.current?.click();
+  }
+
+  async function handleInPageCapture(file: File) {
+    setShowInPageCamera(false);
+    const imageBase64 = await fileToBase64(file);
+    runSearch({ imageBase64 });
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1443,6 +1384,9 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       {scanningBarcode && <p className="mb-6 text-sm text-ash"><StatusDots label={t("Reading barcode…")} /></p>}
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
       {showScanner && <BarcodeScanner onDetected={handleBarcodeDetected} onClose={closeScanner} />}
+      {showInPageCamera && (
+        <InPageCamera onCapture={handleInPageCapture} onClose={() => setShowInPageCamera(false)} onError={setError} />
+      )}
 
       {mode === "text" && !useGuidedForm && (
         <div className="flex flex-col gap-2">

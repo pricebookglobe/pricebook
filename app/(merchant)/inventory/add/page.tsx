@@ -6,11 +6,11 @@ import Link from "next/link";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import type { StructuredProduct, NutritionFacts } from "@/lib/aiVision";
 import { BarcodeScanner } from "@/components/shared/BarcodeScanner";
+import { InPageCamera } from "@/components/shared/InPageCamera";
 import { AppPage } from "@/components/shared/AppPage";
 import { StatusDots } from "@/components/shared/StatusDots";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { Capacitor } from "@capacitor/core";
-import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 
 export default function AddItemPage() {
   const router = useRouter();
@@ -37,6 +37,7 @@ export default function AddItemPage() {
   const [nutritionError, setNutritionError] = useState<string | null>(null);
   const [scanningBarcode, setScanningBarcode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showInPageCamera, setShowInPageCamera] = useState(false);
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -100,45 +101,31 @@ export default function AddItemPage() {
     e.target.value = "";
   }
 
-  // In the native app, hands off to Capacitor's Camera plugin with
-  // source: Prompt instead of clicking the hidden file input — Prompt
-  // shows the native "Take Photo" / "Choose from Gallery" action sheet,
-  // so a merchant can pick an existing photo of the item instead of
-  // always being forced into taking a brand new one. The web fallback
-  // (cameraInputRef's plain <input type="file" capture>) is unaffected —
-  // browsers already offer that choice on their own file picker.
-  async function handleSnap() {
+  // Used to hand off to Capacitor's Camera plugin (source: Prompt, the
+  // native "Take Photo"/"Choose from Gallery" action sheet) in the native
+  // app. That hand-off is itself what caused the app to crash/reset when
+  // taking a photo — launching the native camera Activity is a
+  // memory-heavy transition that Android's low-memory killer can reclaim
+  // this app's whole process for, and switching resultType from Base64 to
+  // Uri (tried first) only changes what crosses the bridge AFTER a photo
+  // is taken, not the transition itself. Snap now opens InPageCamera
+  // instead — a getUserMedia feed shown right in this page, same
+  // crash-proof approach BarcodeScanner already uses successfully. That
+  // does mean Snap here is camera-only now (no more "Choose from
+  // Gallery" via the Prompt sheet) — matching how Snap already behaves
+  // on Check Price's side.
+  function handleSnap() {
     if (!Capacitor.isNativePlatform()) {
       cameraInputRef.current?.click();
       return;
     }
-    try {
-      const photo = await Camera.getPhoto({
-        // Uri, not Base64 — see CheckPriceExperience's handleSnap for why:
-        // Base64 forces the plugin to hold the whole decoded image in
-        // memory and serialize it across the native<->JS bridge right as
-        // the OS is under memory pressure from launching the camera
-        // Activity, a well-documented trigger for Android's low-memory
-        // killer to reclaim the app entirely (reported as the app
-        // crashing/resetting when taking a photo).
-        resultType: CameraResultType.Uri,
-        source: CameraSource.Prompt,
-        quality: 80,
-        saveToGallery: false,
-        width: 1600
-      });
-      if (photo.webPath) {
-        const blob = await (await fetch(photo.webPath)).blob();
-        const imageBase64 = await fileToBase64(new File([blob], `snap.${photo.format || "jpg"}`, { type: blob.type }));
-        extract({ imageBase64 });
-      }
-    } catch (e: any) {
-      // The merchant backed out of the camera/gallery picker without
-      // choosing anything — not an error worth surfacing.
-      if (e?.message && !/cancel/i.test(e.message)) {
-        setError(t("Couldn't open the camera."));
-      }
-    }
+    setShowInPageCamera(true);
+  }
+
+  async function handleInPageCapture(file: File) {
+    setShowInPageCamera(false);
+    const imageBase64 = await fileToBase64(file);
+    extract({ imageBase64 });
   }
 
   async function handleBarcodeDetected(barcode: string) {
@@ -310,6 +297,9 @@ export default function AddItemPage() {
           {scanningBarcode && <p className="text-sm text-ash"><StatusDots label={t("Reading barcode…")} /></p>}
           <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
           {showScanner && <BarcodeScanner onDetected={handleBarcodeDetected} onClose={() => setShowScanner(false)} />}
+          {showInPageCamera && (
+            <InPageCamera onCapture={handleInPageCapture} onClose={() => setShowInPageCamera(false)} onError={setError} />
+          )}
 
           {mode === "text" && (
             <form

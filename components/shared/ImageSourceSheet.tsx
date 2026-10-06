@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Camera as CameraIcon, Image as ImageIcon, Upload } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { Capacitor } from "@capacitor/core";
 import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
+import { InPageCamera } from "./InPageCamera";
 
 // A bottom-sheet picker offering three explicit, distinct ways to supply an
 // image — "Take Photo" (camera), "Photo" (existing photo library), "Upload
@@ -45,21 +46,22 @@ export function ImageSourceSheet({
   const takePhotoInputRef = useRef<HTMLInputElement>(null);
   const choosePhotoInputRef = useRef<HTMLInputElement>(null);
   const uploadFileInputRef = useRef<HTMLInputElement>(null);
+  // "Take Photo" on the native app no longer goes through Capacitor's
+  // Camera.getPhoto() plugin at all — see InPageCamera's own comment for
+  // why: that plugin hands off to a separate native camera Activity, and
+  // real-device testing kept showing Android's low-memory killer reclaim
+  // the app's whole process while that heavier native app was in the
+  // foreground (reported as the app crashing/resetting). InPageCamera
+  // opens an in-page getUserMedia feed instead, the same crash-proof
+  // approach BarcodeScanner already uses. "Photo" (the existing photo
+  // library) still uses the Camera plugin below — picking an existing
+  // image doesn't launch the camera itself, so it isn't this crash.
+  const [showInPageCamera, setShowInPageCamera] = useState(false);
 
   async function nativePick(source: CameraSource) {
     onClose();
     try {
       const photo = await Camera.getPhoto({
-        // Uri, not Base64 — Base64 forces the plugin to hold the whole
-        // decoded image in memory AND serialize it across the native<->JS
-        // bridge as one giant string, right as the OS is already under
-        // memory pressure from launching the native camera Activity on
-        // top of this app. That combination is a well-documented trigger
-        // for Android's low-memory killer to reclaim the app's process
-        // entirely — reported as the app crashing/resetting when taking a
-        // photo. Uri instead hands back a lightweight file path/blob URL
-        // with no such bridge transfer, which is Capacitor's own
-        // documented recommendation for exactly this crash pattern.
         resultType: CameraResultType.Uri,
         source,
         quality: 80,
@@ -74,17 +76,18 @@ export function ImageSourceSheet({
         onPicked(new File([blob], `photo.${photo.format || "jpg"}`, { type: blob.type }));
       }
     } catch (e: any) {
-      // The person backed out of the camera/picker without choosing
-      // anything — not an error worth surfacing.
+      // The person backed out of the picker without choosing anything —
+      // not an error worth surfacing.
       if (e?.message && !/cancel/i.test(e.message)) {
-        onError?.(source === CameraSource.Camera ? t("Couldn't open the camera.") : t("Couldn't open your photos."));
+        onError?.(t("Couldn't open your photos."));
       }
     }
   }
 
   function handleTakePhoto() {
     if (Capacitor.isNativePlatform()) {
-      nativePick(CameraSource.Camera);
+      onClose();
+      setShowInPageCamera(true);
     } else {
       onClose();
       takePhotoInputRef.current?.click();
@@ -201,6 +204,17 @@ export function ImageSourceSheet({
           </div>,
           document.body
         )}
+
+      {showInPageCamera && (
+        <InPageCamera
+          onCapture={(file) => {
+            setShowInPageCamera(false);
+            onPicked(file);
+          }}
+          onClose={() => setShowInPageCamera(false)}
+          onError={onError}
+        />
+      )}
     </>
   );
 }
