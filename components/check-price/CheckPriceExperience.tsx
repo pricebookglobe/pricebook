@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Camera as CameraIcon, Image as ImageIcon } from "lucide-react";
+import { Camera as CameraIcon, Image as ImageIcon, Tags as CategoryIcon } from "lucide-react";
 import { ImageSourceSheet } from "@/components/shared/ImageSourceSheet";
 import { useGeolocation } from "@/components/shared/GeolocationProvider";
 import { ResultRow, SaveBadge, ItemName, type StoreRating } from "@/components/search/ResultRow";
@@ -1379,31 +1379,42 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           ) : (
             <>
               <FreeTextSearch onSubmit={(text) => runSearch({ text })} busy={busy} />
-              <button
-                type="button"
-                onClick={() => setShowImageUpload(true)}
-                className="inline-flex items-center gap-1.5 self-start text-sm text-value underline hover:text-value/80"
-              >
-                <ImageIcon size={14} strokeWidth={2} />
-                {t("Or upload a photo to identify it")}
-              </button>
-              <div className="flex gap-3">
+              <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => setShowImageUpload(true)}
+                  className="inline-flex items-center justify-center gap-1.5 rounded border border-line bg-field-raised px-3 py-2 font-display text-sm text-ink transition-colors hover:bg-field active:bg-field"
+                >
+                  <ImageIcon size={16} strokeWidth={2} />
+                  {t("Upload photo")}
+                </button>
                 <button
                   type="button"
                   onClick={() => setUseGuidedForm(true)}
-                  className="text-sm text-value underline hover:text-value/80"
+                  className="inline-flex items-center justify-center gap-1.5 rounded border border-line bg-field-raised px-3 py-2 font-display text-sm text-ink transition-colors hover:bg-field active:bg-field"
                 >
-                  {t("Or choose from categories instead")}
+                  <CategoryIcon size={16} strokeWidth={2} />
+                  {t("Search by category")}
                 </button>
-                {initialMode === "menu" && (
-                  <button
-                    type="button"
-                    onClick={() => setMode("menu")}
-                    className="text-sm text-ash underline hover:text-ink"
-                  >
-                    {t("Cancel")}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Same full reset the other red "Back" button in this
+                    // file uses — not just hiding this sub-view, but
+                    // actually returning to the previous screen (the
+                    // Scan/Snap/Enter details menu, or the tab's landing
+                    // state when there's no menu to go back to).
+                    setCheckPriceRevealed(false);
+                    setResult(null);
+                    setError(null);
+                    setMode(initialMode === "menu" ? "menu" : initialMode);
+                    setUseGuidedForm(false);
+                    if (initialMode !== "menu") router.push("/check-price");
+                  }}
+                  className="col-span-2 inline-flex items-center justify-center gap-1 rounded border border-flag bg-flag px-3 py-2 font-display text-sm text-white transition-colors hover:border-field active:border-ink-dark active:bg-ink-dark sm:col-span-1"
+                >
+                  {t("Cancel")}
+                </button>
               </div>
             </>
           )}
