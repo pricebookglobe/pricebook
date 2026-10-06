@@ -35,6 +35,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
   const trackRef = useRef<MediaStreamTrack | null>(null);
   const detectedRef = useRef(false);
   const startedRef = useRef(false);
+  const refocusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
@@ -65,8 +66,62 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
       }
     }
 
+    // Picks the actual back camera by device label when facingMode can't be
+    // trusted to do it — a meaningful slice of Android devices have several
+    // rear lenses (standard, Ultra Wide, Telephoto/macro), "environment"
+    // alone doesn't say which one to use, and the non-standard lenses often
+    // can't rack focus down to where a barcode held at a normal scanning
+    // distance actually is. Quagga2 has no equivalent selection logic of
+    // its own — it just passes whatever constraints it's given straight to
+    // getUserMedia — so this has to happen before Quagga.init runs.
+    async function findBackCameraDeviceId(): Promise<string | undefined> {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cams = devices.filter((d) => d.kind === "videoinput");
+        const backCams = cams.filter((d) => /back|rear|environment/i.test(d.label) && !/front/i.test(d.label));
+        if (backCams.length === 0) return undefined;
+        const standard = backCams.find((d) => !/ultra|tele|macro/i.test(d.label));
+        return (standard ?? backCams[0]).deviceId;
+      } catch {
+        return undefined;
+      }
+    }
+
+    // Nudges continuous autofocus back on periodically. A meaningful slice
+    // of Android WebView camera stacks silently drop a focusMode constraint
+    // after the first autofocus lock — there's no event for this, it just
+    // quietly stops refocusing — which is exactly what a report showed:
+    // the live preview ran fine the whole time, camera clearly working, but
+    // permanently soft/blurry on the barcode itself, which no decoder can
+    // read regardless of engine. Re-asserting continuous focus every couple
+    // of seconds is cheap and harmless on devices that don't need it.
+    function keepRefocusing(track: MediaStreamTrack) {
+      if (refocusTimerRef.current) clearInterval(refocusTimerRef.current);
+      refocusTimerRef.current = setInterval(() => {
+        track.applyConstraints({ advanced: [{ focusMode: "continuous" } as unknown as MediaTrackConstraintSet] }).catch(() => {});
+      }, 2000);
+    }
+
     async function start() {
       try {
+        // Enumerating devices by label requires an already-granted camera
+        // permission on most browsers — request a throwaway stream first
+        // (immediately stopped) just to unlock real device labels, then
+        // let Quagga2 open the real one below. Device enumeration can also
+        // simply fail/return nothing on some devices; findBackCameraDeviceId
+        // already handles that by returning undefined, which falls back to
+        // a plain facingMode hint.
+        let preferredDeviceId: string | undefined;
+        try {
+          const probe = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+          probe.getTracks().forEach((tr) => tr.stop());
+          preferredDeviceId = await findBackCameraDeviceId();
+        } catch {
+          // Permission not granted yet, or no camera — Quagga.init below
+          // will surface the real error (e.g. NotAllowedError) itself.
+        }
+        if (cancelled) return;
+
         const QuaggaImport = await import("@ericblade/quagga2");
         const Quagga = QuaggaImport.default;
         if (cancelled) return;
@@ -85,8 +140,10 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
                   // mid/low-end Android CPU.
                   width: { ideal: 1280 },
                   height: { ideal: 720 },
-                  facingMode: "environment",
-                  aspectRatio: { ideal: 16 / 9 }
+                  aspectRatio: { ideal: 16 / 9 },
+                  ...(preferredDeviceId
+                    ? { deviceId: { exact: preferredDeviceId } }
+                    : { facingMode: "environment" })
                 }
                 // No `area` crop — Quagga2's area coordinates are relative
                 // to the raw camera frame, not to the on-screen video
@@ -149,6 +206,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
           const capabilities = track.getCapabilities?.() as (MediaTrackCapabilities & { torch?: boolean; focusMode?: string[] }) | undefined;
           if (capabilities?.focusMode?.includes("continuous")) {
             track.applyConstraints({ advanced: [{ focusMode: "continuous" } as unknown as MediaTrackConstraintSet] }).catch(() => {});
+            keepRefocusing(track);
           }
           setTorchSupported(Boolean(capabilities?.torch));
         }
@@ -167,6 +225,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (code: str
 
     return () => {
       cancelled = true;
+      if (refocusTimerRef.current) clearInterval(refocusTimerRef.current);
       if (quaggaModule && startedRef.current) {
         try {
           quaggaModule.offDetected(handleDetected);
