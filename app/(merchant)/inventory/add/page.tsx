@@ -370,7 +370,17 @@ export default function AddItemPage() {
             </form>
           )}
 
-          {extracting && mode === "menu" && <p className="text-sm text-ash">{t("Reading…")}</p>}
+          {extracting && mode === "menu" && <p className="text-sm text-ash"><StatusDots label={t("Reading…")} /></p>}
+          {/* Scan Barcode, Snap, and text search all call setError() on
+              failure (barcode not found, a photo the AI couldn't read, a
+              network error) while `product` is still null — and this was
+              the ONLY place `error` ever got rendered, nested inside the
+              product-confirm block below that doesn't exist yet at that
+              point. The failure was real but completely invisible: the
+              screen just silently reset to this same menu with no
+              explanation, which read as "nothing happened" / "didn't
+              continue adding the item." */}
+          {error && <p className="text-sm text-flag">{error}</p>}
           {saved && <p className="text-sm text-value">{t("Saved — add another item, or head back to your dashboard.")}</p>}
         </div>
       )}
