@@ -1383,7 +1383,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 <button
                   type="button"
                   onClick={() => setShowImageUpload(true)}
-                  className="inline-flex items-center justify-center gap-1.5 rounded border border-line bg-field-raised px-3 py-2 font-display text-sm text-ink transition-colors hover:bg-field active:bg-field"
+                  className="btn-shine inline-flex items-center justify-center gap-1.5 rounded border border-value bg-value px-3 py-2 font-display text-sm font-bold tracking-wide text-white transition-all active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white duration-200 hover:scale-105"
                 >
                   <ImageIcon size={16} strokeWidth={2} />
                   {t("Upload photo")}
@@ -1391,7 +1391,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 <button
                   type="button"
                   onClick={() => setUseGuidedForm(true)}
-                  className="inline-flex items-center justify-center gap-1.5 rounded border border-line bg-field-raised px-3 py-2 font-display text-sm text-ink transition-colors hover:bg-field active:bg-field"
+                  className="btn-shine inline-flex items-center justify-center gap-1.5 rounded border border-value bg-value px-3 py-2 font-display text-sm font-bold tracking-wide text-white transition-all active:bg-value-dark hover:border-value-soft hover:text-white active:border-value-dark active:text-white duration-200 hover:scale-105"
                 >
                   <CategoryIcon size={16} strokeWidth={2} />
                   {t("Search by category")}
@@ -1411,7 +1411,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                     setUseGuidedForm(false);
                     if (initialMode !== "menu") router.push("/check-price");
                   }}
-                  className="col-span-2 inline-flex items-center justify-center gap-1 rounded border border-flag bg-flag px-3 py-2 font-display text-sm text-white transition-colors hover:border-field active:border-ink-dark active:bg-ink-dark sm:col-span-1"
+                  className="col-span-2 inline-flex items-center justify-center gap-1 rounded border border-red-600 bg-red-600 px-3 py-2 font-display text-sm font-bold text-white transition-colors hover:border-red-700 hover:bg-red-700 active:border-red-800 active:bg-red-800 sm:col-span-1"
                 >
                   {t("Cancel")}
                 </button>
