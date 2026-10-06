@@ -8,6 +8,7 @@ import { PageShell } from "@/components/shared/PageShell";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { COUNTRIES, citiesFor } from "@/lib/geography";
 import { stashLoginPrefill } from "@/lib/loginPrefill";
+import { ImageSourceSheet } from "@/components/shared/ImageSourceSheet";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -41,6 +42,10 @@ export default function MerchantSignup() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingReview, setPendingReview] = useState(false);
+  // Which of the three file fields below the picker sheet is currently open
+  // for — only one at a time, so a single ImageSourceSheet instance is
+  // reused rather than three separate ones.
+  const [activePicker, setActivePicker] = useState<"cr" | "photo" | "logo" | null>(null);
 
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -208,11 +213,19 @@ export default function MerchantSignup() {
           <input required value={form.commercialRegistration} onChange={(e) => update("commercialRegistration", e.target.value)}
             className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none" />
         </label>
-        <label className="text-sm text-ash">
+        <div className="text-sm text-ash">
           Upload CR certificate <span className="text-red-600">*</span>
-          <input required type="file" accept="image/*,application/pdf" onChange={(e) => setCrFile(e.target.files?.[0] ?? null)}
-            className="mt-1 w-full text-sm text-ink" />
-        </label>
+          <div className="mt-1 flex items-center justify-between gap-2 rounded border border-line bg-field px-3 py-2">
+            <span className="truncate text-xs text-ink">{crFile ? crFile.name : t("No file chosen")}</span>
+            <button
+              type="button"
+              onClick={() => setActivePicker("cr")}
+              className="btn-shine shrink-0 rounded-sm border border-value bg-value px-2 py-1 font-display text-xs font-medium text-white transition-all hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white duration-200 hover:scale-105"
+            >
+              {t("Choose File")}
+            </button>
+          </div>
+        </div>
         <label className="text-sm text-ash">
           Country <span className="text-red-600">*</span>
           <select
@@ -276,17 +289,45 @@ export default function MerchantSignup() {
           </p>
         </div>
 
-        <label className="text-sm text-ash">
+        <div className="text-sm text-ash">
           {t("Store logo or store front image")} <span className="text-red-600">*</span>
-          <input required type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
-            className="mt-1 w-full text-sm text-ink" />
-        </label>
+          <div className="mt-1 flex items-center justify-between gap-2 rounded border border-line bg-field px-3 py-2">
+            <span className="truncate text-xs text-ink">{photoFile ? photoFile.name : t("No file chosen")}</span>
+            <button
+              type="button"
+              onClick={() => setActivePicker("photo")}
+              className="btn-shine shrink-0 rounded-sm border border-value bg-value px-2 py-1 font-display text-xs font-medium text-white transition-all hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white duration-200 hover:scale-105"
+            >
+              {t("Choose File")}
+            </button>
+          </div>
+        </div>
 
-        <label className="text-sm text-ash">
+        <div className="text-sm text-ash">
           Store logo <span className="text-ash/70">(optional — shown in your dashboard sidebar)</span>
-          <input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
-            className="mt-1 w-full text-sm text-ink" />
-        </label>
+          <div className="mt-1 flex items-center justify-between gap-2 rounded border border-line bg-field px-3 py-2">
+            <span className="truncate text-xs text-ink">{logoFile ? logoFile.name : t("No file chosen")}</span>
+            <button
+              type="button"
+              onClick={() => setActivePicker("logo")}
+              className="btn-shine shrink-0 rounded-sm border border-value bg-value px-2 py-1 font-display text-xs font-medium text-white transition-all hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white duration-200 hover:scale-105"
+            >
+              {t("Choose File")}
+            </button>
+          </div>
+        </div>
+
+        <ImageSourceSheet
+          open={activePicker !== null}
+          onClose={() => setActivePicker(null)}
+          uploadAccept={activePicker === "cr" ? "image/*,application/pdf" : "image/*"}
+          onPicked={(file) => {
+            if (activePicker === "cr") setCrFile(file);
+            else if (activePicker === "photo") setPhotoFile(file);
+            else if (activePicker === "logo") setLogoFile(file);
+          }}
+          onError={setError}
+        />
 
         <label className="text-sm text-ash">
           Contact person's name <span className="text-red-600">*</span>

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Camera as CameraIcon } from "lucide-react";
+import { Camera as CameraIcon, Image as ImageIcon } from "lucide-react";
+import { ImageSourceSheet } from "@/components/shared/ImageSourceSheet";
 import { useGeolocation } from "@/components/shared/GeolocationProvider";
 import { ResultRow, SaveBadge, ItemName, type StoreRating } from "@/components/search/ResultRow";
 import { EmojiRating } from "@/components/shared/EmojiRating";
@@ -507,6 +508,10 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   }
   const [scanningBarcode, setScanningBarcode] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  // "Upload photo" inside Enter details — lets someone identify an item by
+  // photo even after they've chosen the type-it-in path, without having to
+  // back out to the Scan/Snap/Enter details menu first.
+  const [showImageUpload, setShowImageUpload] = useState(false);
   const [useGuidedForm, setUseGuidedForm] = useState(false);
   const [sortMode, setSortMode] = useState<"price" | "distance">("price");
   // Toggles the results table between exact matches (sorted/tableRows
@@ -744,10 +749,12 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       try {
         const photo = await Camera.getPhoto({
           resultType: CameraResultType.Base64,
-          // Prompt (not Camera) shows the native "Take Photo" / "Choose
-          // from Gallery" action sheet, so Snap can also be used to pick
-          // an existing photo instead of always forcing a brand new one.
-          source: CameraSource.Prompt,
+          // Snap opens the camera directly, by request — no "Take Photo /
+          // Choose from Gallery" action sheet first. Picking an existing
+          // photo instead of a fresh one now goes through "Upload photo"
+          // in Enter details (ImageSourceSheet), which offers that choice
+          // explicitly.
+          source: CameraSource.Camera,
           quality: 80,
           saveToGallery: false,
           // A modern phone's full-res photo can be 20-50MB raw before
@@ -795,6 +802,16 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     const imageBase64 = await fileToBase64(file);
     runSearch({ imageBase64 });
     e.target.value = "";
+  }
+
+  // "Upload photo" inside Enter details (via ImageSourceSheet) — a photo
+  // picked any of its three ways (take/choose/upload) always comes back as
+  // a plain File, so this is the one place that turns it into the same
+  // image-search request Snap already runs.
+  async function handleImagePicked(file: File) {
+    setError(null);
+    const imageBase64 = await fileToBase64(file);
+    runSearch({ imageBase64 });
   }
 
   // Clears the scan-in-flight flag and closes the scanner — used both when
@@ -1362,6 +1379,14 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           ) : (
             <>
               <FreeTextSearch onSubmit={(text) => runSearch({ text })} busy={busy} />
+              <button
+                type="button"
+                onClick={() => setShowImageUpload(true)}
+                className="inline-flex items-center gap-1.5 self-start text-sm text-value underline hover:text-value/80"
+              >
+                <ImageIcon size={14} strokeWidth={2} />
+                {t("Or upload a photo to identify it")}
+              </button>
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -1395,17 +1420,34 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 onSubmit={(structured) => runSearch({ structured })}
                 onCancel={() => (initialMode === "menu" ? setMode("menu") : router.push("/check-price"))}
               />
-              <button
-                type="button"
-                onClick={() => setUseGuidedForm(false)}
-                className="self-start text-sm text-value underline hover:text-value/80"
-              >
-                {t("Back to search bar")}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setUseGuidedForm(false)}
+                  className="self-start text-sm text-value underline hover:text-value/80"
+                >
+                  {t("Back to search bar")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowImageUpload(true)}
+                  className="inline-flex items-center gap-1.5 self-start text-sm text-value underline hover:text-value/80"
+                >
+                  <ImageIcon size={14} strokeWidth={2} />
+                  {t("Or upload a photo to identify it")}
+                </button>
+              </div>
             </>
           )}
         </div>
       )}
+
+      <ImageSourceSheet
+        open={showImageUpload}
+        onClose={() => setShowImageUpload(false)}
+        onPicked={handleImagePicked}
+        onError={setError}
+      />
 
       {busy && mode !== "text" && <p className="mt-3 text-sm text-ash">{t("Searching…")}</p>}
       {error && <p className="mt-3 text-sm text-flag">{t(error)}</p>}
