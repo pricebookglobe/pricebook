@@ -11,6 +11,7 @@ import { AppPage } from "@/components/shared/AppPage";
 import { StatusDots } from "@/components/shared/StatusDots";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { Capacitor } from "@capacitor/core";
+import { Camera as CameraIcon } from "lucide-react";
 
 export default function AddItemPage() {
   const router = useRouter();
@@ -274,16 +275,44 @@ export default function AddItemPage() {
               <button
                 type="button"
                 onClick={() => setShowScanner(true)}
-                className="btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
+                aria-label={t("Scan Barcode")}
+                className="btn-shine flex flex-1 items-center justify-center rounded border border-value bg-value px-4 py-3 text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
               >
-                {t("Scan Barcode")}
+                {/* Same icon as the customer-side Scan button, for a
+                    consistent look across both accounts — a custom glyph
+                    (18 uneven bars) rather than lucide's sparser Barcode
+                    icon, matching the barcode in the app's own
+                    logo/watermark. */}
+                <svg width="48" height="28" viewBox="0 0 120 78" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <g fill="currentColor">
+                    <rect x="2" y="0" width="3" height="78" />
+                    <rect x="8" y="0" width="5" height="78" />
+                    <rect x="16" y="0" width="2" height="78" />
+                    <rect x="21" y="0" width="4" height="78" />
+                    <rect x="28" y="0" width="3" height="78" />
+                    <rect x="34" y="0" width="6" height="78" />
+                    <rect x="43" y="0" width="2" height="78" />
+                    <rect x="48" y="0" width="4" height="78" />
+                    <rect x="55" y="0" width="3" height="78" />
+                    <rect x="61" y="0" width="5" height="78" />
+                    <rect x="69" y="0" width="2" height="78" />
+                    <rect x="74" y="0" width="4" height="78" />
+                    <rect x="81" y="0" width="3" height="78" />
+                    <rect x="87" y="0" width="6" height="78" />
+                    <rect x="96" y="0" width="2" height="78" />
+                    <rect x="101" y="0" width="4" height="78" />
+                    <rect x="108" y="0" width="3" height="78" />
+                    <rect x="114" y="0" width="4" height="78" />
+                  </g>
+                </svg>
               </button>
               <button
                 type="button"
                 onClick={handleSnap}
-                className="btn-shine flex-1 rounded border border-value bg-value px-4 py-3 font-display text-[15px] text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
+                aria-label={t("Snap")}
+                className="btn-shine flex flex-1 items-center justify-center rounded border border-value bg-value px-4 py-3 text-white transition-all hover:border-value-soft hover:text-white active:border-value-dark active:bg-value-dark active:text-white duration-200 hover:scale-105"
               >
-                {t("Snap")}
+                <CameraIcon size={36} strokeWidth={2} aria-hidden="true" />
               </button>
               <button
                 type="button"
