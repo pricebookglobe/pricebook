@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Camera as CameraIcon, Image as ImageIcon, Tags as CategoryIcon } from "lucide-react";
 import { ImageSourceSheet } from "@/components/shared/ImageSourceSheet";
+import { StatusDots, StatusDotsCard } from "@/components/shared/StatusDots";
 import { useGeolocation } from "@/components/shared/GeolocationProvider";
 import { ResultRow, SaveBadge, ItemName, type StoreRating } from "@/components/search/ResultRow";
 import { EmojiRating } from "@/components/shared/EmojiRating";
@@ -363,16 +364,7 @@ function PriceCallout({
 // there looking unresponsive while the request is in flight.
 function SearchingIndicator() {
   const { t } = useLanguage();
-  return (
-    <div className="flex items-center gap-2 rounded border border-line bg-field-raised px-4 py-3 text-sm text-ash">
-      <span>{t("Searching…")}</span>
-      <span className="flex items-end gap-1" aria-hidden="true">
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-value" style={{ animationDelay: "0ms" }} />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-value" style={{ animationDelay: "150ms" }} />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-value" style={{ animationDelay: "300ms" }} />
-      </span>
-    </div>
-  );
+  return <StatusDotsCard label={t("Searching…")} />;
 }
 
 // Powers both /check-price (camera, upload, or type it in — starts on the
@@ -708,6 +700,60 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     });
   }
 
+  // Snap and the native "Take Photo"/"Photo" options already cap their
+  // capture at width 1600 / quality 80 (via @capacitor/camera), but a photo
+  // picked through a plain web <input type="file"> — which is every path
+  // on the web, and "Upload File" even inside the native app — comes
+  // straight from the camera roll at full resolution. A modern phone photo
+  // there can be 10-20MB+, which bloats to even more as base64 and can
+  // silently fail (a request too large for the server to accept, or a slow
+  // upload a shopper gives up on) with nothing useful on screen to explain
+  // why — exactly what "upload/take/choose a photo on Enter details does
+  // nothing" looks like from the outside. Downscaling every image file to
+  // the same ceiling Snap already uses, right before it's turned into
+  // base64, keeps every image-search path the same reliable size.
+  function resizeImageFile(file: File, maxDimension = 1600, quality = 0.8): Promise<File> {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith("image/")) {
+        resolve(file);
+        return;
+      }
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+        // Already small enough — skip the canvas round-trip entirely.
+        if (scale >= 1) {
+          resolve(file);
+          return;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => resolve(blob ? new File([blob], file.name, { type: "image/jpeg" }) : file),
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        // Couldn't decode it as an image client-side — hand the original
+        // file along and let the server's own validation explain why, if
+        // it isn't actually a readable image.
+        resolve(file);
+      };
+      img.src = objectUrl;
+    });
+  }
+
   // Inside the native app, Snap hands off to @capacitor/camera's own
   // getPhoto() instead of the hidden <input capture> below. That plugin's
   // bridge is DESIGNED to survive the exact scenario that caused the
@@ -797,9 +843,17 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     }
     const file = e.target.files?.[0];
     if (!file) return;
-    const imageBase64 = await fileToBase64(file);
-    runSearch({ imageBase64 });
     e.target.value = "";
+    try {
+      const resized = await resizeImageFile(file);
+      const imageBase64 = await fileToBase64(resized);
+      runSearch({ imageBase64 });
+    } catch {
+      // A failure reading/resizing the photo itself (not the search
+      // request, which runSearch already catches on its own) — still
+      // needs to land somewhere visible rather than just going quiet.
+      setError(t("Couldn't read that photo — please try again."));
+    }
   }
 
   // "Upload photo" inside Enter details (via ImageSourceSheet) — a photo
@@ -808,8 +862,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // image-search request Snap already runs.
   async function handleImagePicked(file: File) {
     setError(null);
-    const imageBase64 = await fileToBase64(file);
-    runSearch({ imageBase64 });
+    try {
+      const resized = await resizeImageFile(file);
+      const imageBase64 = await fileToBase64(resized);
+      runSearch({ imageBase64 });
+    } catch {
+      setError(t("Couldn't read that photo — please try again."));
+    }
   }
 
   // Clears the scan-in-flight flag and closes the scanner — used both when
@@ -1366,7 +1425,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           </div>
         </>
       )}
-      {scanningBarcode && <p className="mb-6 text-sm text-ash">{t("Reading barcode…")}</p>}
+      {scanningBarcode && <p className="mb-6 text-sm text-ash"><StatusDots label={t("Reading barcode…")} /></p>}
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
       {showScanner && <BarcodeScanner onDetected={handleBarcodeDetected} onClose={closeScanner} />}
 
@@ -1443,7 +1502,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         onError={setError}
       />
 
-      {busy && mode !== "text" && <p className="mt-3 text-sm text-ash">{t("Searching…")}</p>}
+      {busy && mode !== "text" && <p className="mt-3 text-sm text-ash"><StatusDots label={t("Searching…")} /></p>}
       {error && <p className="mt-3 text-sm text-flag">{t(error)}</p>}
 
       {result && (

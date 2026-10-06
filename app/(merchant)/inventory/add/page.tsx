@@ -7,6 +7,7 @@ import { createBrowserSupabase } from "@/lib/supabaseClient";
 import type { StructuredProduct, NutritionFacts } from "@/lib/aiVision";
 import { BarcodeScanner } from "@/components/shared/BarcodeScanner";
 import { AppPage } from "@/components/shared/AppPage";
+import { StatusDots } from "@/components/shared/StatusDots";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { Capacitor } from "@capacitor/core";
 import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
@@ -295,7 +296,7 @@ export default function AddItemPage() {
               </button>
             </div>
           )}
-          {scanningBarcode && <p className="text-sm text-ash">{t("Reading barcode…")}</p>}
+          {scanningBarcode && <p className="text-sm text-ash"><StatusDots label={t("Reading barcode…")} /></p>}
           <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
           {showScanner && <BarcodeScanner onDetected={handleBarcodeDetected} onClose={() => setShowScanner(false)} />}
 
@@ -333,7 +334,7 @@ export default function AddItemPage() {
                       : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white transition-all duration-200 hover:scale-105"
                   }`}
                 >
-                  {extracting ? t("Reading…") : t("Identify")}
+                  {extracting ? <StatusDots label={t("Reading…")} dotClassName="bg-white" /> : t("Identify")}
                 </button>
               </div>
             </form>

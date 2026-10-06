@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronDown, X } from "lucide-react";
 import { AppPage } from "@/components/shared/AppPage";
+import { StatusDots } from "@/components/shared/StatusDots";
 import { EmojiRating, EmojiRatingPicker } from "@/components/shared/EmojiRating";
 import { Pagination, paginate } from "@/components/admin/Pagination";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
@@ -168,7 +169,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
     return (
       <AppPage>
         {backButton}
-        <p className="text-sm text-ash">{t("Loading…")}</p>
+        <p className="text-sm text-ash"><StatusDots label={t("Loading…")} /></p>
       </AppPage>
     );
 
