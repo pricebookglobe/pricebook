@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { createPortal } from "react-dom";
 import { Camera as CameraIcon, Image as ImageIcon, Upload } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { Capacitor } from "@capacitor/core";
@@ -133,47 +134,67 @@ export function ImageSourceSheet({
       <input ref={choosePhotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleInputChange} />
       <input ref={uploadFileInputRef} type="file" accept={uploadAccept} className="hidden" onChange={handleInputChange} />
 
-      {open && (
-      <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/50" onClick={onClose}>
-        <div
-          className="w-full max-w-md rounded-t-2xl bg-field p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
-          <button
-            type="button"
-            onClick={handleTakePhoto}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-field-raised active:bg-field-raised"
-          >
-            <CameraIcon size={20} strokeWidth={2} className="text-ink" />
-            <span className="font-display text-sm text-ink">{t("Take Photo")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleChoosePhoto}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-field-raised active:bg-field-raised"
-          >
-            <ImageIcon size={20} strokeWidth={2} className="text-ink" />
-            <span className="font-display text-sm text-ink">{t("Photo")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleUploadFile}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-field-raised active:bg-field-raised"
-          >
-            <Upload size={20} strokeWidth={2} className="text-ink" />
-            <span className="font-display text-sm text-ink">{t("Upload File")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="mt-2 w-full rounded-lg border border-line px-3 py-2.5 text-center font-display text-sm text-ash transition-colors hover:bg-field-raised"
-          >
-            {t("Cancel")}
-          </button>
-        </div>
-      </div>
-      )}
+      {/* Rendered through a portal straight onto <body>, not in place here.
+          AppPage wraps every screen's content in a couple of nested
+          `position: relative` + `z-index` divs (one of them explicitly
+          z-10, to sit above the decorative BarcodeArrowWatermark) — in the
+          native app layout, that inner z-10 div is a SIBLING of the fixed,
+          z-30 bottom tab bar, inside a shared outer stacking context. A
+          nested z-index only ever competes with its own siblings: once
+          this sheet is painted inside that inner z-10 box, ITS z-[80]
+          only outranks other things inside that same box — it can never
+          outrank the tab bar's z-30, because that comparison happens one
+          level up, where the whole box is worth just z-10. That's why the
+          sheet was rendering UNDER the bottom tab bar instead of over it,
+          cutting off "Upload File" and hiding "Cancel" beneath it entirely
+          (tapping where Cancel should be just tapped the tab bar
+          underneath). Portaling to <body> escapes that nested context
+          completely, the same fix FreeTextSearch's dropdown already uses
+          for a similar clipping problem. */}
+      {open &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/50" onClick={onClose}>
+            <div
+              className="w-full max-w-md rounded-t-2xl bg-field p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
+              <button
+                type="button"
+                onClick={handleTakePhoto}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-field-raised active:bg-field-raised"
+              >
+                <CameraIcon size={20} strokeWidth={2} className="text-ink" />
+                <span className="font-display text-sm text-ink">{t("Take Photo")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleChoosePhoto}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-field-raised active:bg-field-raised"
+              >
+                <ImageIcon size={20} strokeWidth={2} className="text-ink" />
+                <span className="font-display text-sm text-ink">{t("Photo")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleUploadFile}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-field-raised active:bg-field-raised"
+              >
+                <Upload size={20} strokeWidth={2} className="text-ink" />
+                <span className="font-display text-sm text-ink">{t("Upload File")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-2 w-full rounded-lg border border-line px-3 py-2.5 text-center font-display text-sm text-ash transition-colors hover:bg-field-raised"
+              >
+                {t("Cancel")}
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 }
