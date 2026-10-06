@@ -45,8 +45,6 @@ export function ImageSourceSheet({
   const choosePhotoInputRef = useRef<HTMLInputElement>(null);
   const uploadFileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!open) return null;
-
   function base64ToFile(base64: string, format: string): File {
     const byteChars = atob(base64);
     const bytes = new Uint8Array(byteChars.length);
@@ -111,6 +109,19 @@ export function ImageSourceSheet({
 
   return (
     <>
+      {/* These three stay mounted at all times, open or closed — NOT inside
+          an `if (!open) return null` guard like the sheet UI below. Every
+          web/non-native option (and "Upload File" even inside the native
+          app) works by calling .click() on one of these right after
+          onClose() closes the sheet. If the inputs were unmounted along
+          with the rest of the sheet the instant onClose() fires, the
+          element they're clicking would already be gone from the DOM by
+          the time the OS file/photo picker actually returns a file —
+          the browser has nowhere left to fire that "change" event, so
+          onPicked silently never runs. That's exactly what "upload/take a
+          photo on Enter details does nothing at all" looks like: no
+          error, no searching status, because the request was never even
+          made. */}
       <input
         ref={takePhotoInputRef}
         type="file"
@@ -122,6 +133,7 @@ export function ImageSourceSheet({
       <input ref={choosePhotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleInputChange} />
       <input ref={uploadFileInputRef} type="file" accept={uploadAccept} className="hidden" onChange={handleInputChange} />
 
+      {open && (
       <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/50" onClick={onClose}>
         <div
           className="w-full max-w-md rounded-t-2xl bg-field p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
@@ -161,6 +173,7 @@ export function ImageSourceSheet({
           </button>
         </div>
       </div>
+      )}
     </>
   );
 }
