@@ -509,6 +509,14 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // could differ in size, brand, and/or manufacturer. Independent of
   // sortMode, which still orders whichever list is currently shown.
   const [showSimilar, setShowSimilar] = useState(false);
+  // Which pack-size/size "variant" chip is selected above the exact-match
+  // table (null = "All"). Lets someone disambiguate AFTER seeing what's
+  // actually on offer — a search can genuinely match a 6-pack and a
+  // 24-pack of the same drink, or a 330ml can and a 1.5L bottle, under one
+  // query, and asking the shopper to know and type the exact pack/size
+  // before searching is worse UX than just letting them tap the one they
+  // actually want once it's in front of them. Reset on every new search.
+  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   // This screen's own per-store review summary cache (average emoji rating
   // + count), keyed by store_id — fetched once per result set, in a single
   // batched request for every store on screen, rather than one request per
@@ -674,6 +682,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     // anything — the searching indicator below takes its place instead.
     setResult(null);
     setShowSimilar(false);
+    setSelectedVariant(null);
     try {
       const supabase = createBrowserSupabase();
       const { data } = await supabase.auth.getSession();
@@ -885,6 +894,34 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         sortMode === "price" ? a.unit_price - b.unit_price : a.distance_m - b.distance_m
       )
     : [];
+  // Groups the exact-match table by pack size + size, so a search that
+  // genuinely spans more than one (a 6-pack and a 24-pack, a 330ml can and
+  // a 1.5L bottle) can be disambiguated AFTER seeing what's really on
+  // offer, instead of asking the shopper to know and type that detail
+  // before searching at all. Only meaningful when there's more than one
+  // distinct combination — a single-variant result set shows no chips.
+  function variantKey(r: SearchResult): string {
+    const pack = r.pack_size ?? 1;
+    if (r.size_type === "units" || r.size == null) return `p${pack}`;
+    return `p${pack}-${r.size}-${(r.unit ?? "").toLowerCase()}`;
+  }
+  function variantLabel(r: SearchResult): string {
+    const pack = r.pack_size ?? 1;
+    const sizePart = r.size_type !== "units" && r.size != null ? formatSizeTag(r.size, r.unit).replace(/[[\]]/g, "") : "";
+    if (pack > 1) return sizePart ? `${pack}× ${sizePart}` : `${pack}×`;
+    return sizePart || t("Single item");
+  }
+  const variants = (() => {
+    const byKey = new Map<string, { key: string; label: string; count: number }>();
+    for (const r of sorted) {
+      const key = variantKey(r);
+      const existing = byKey.get(key);
+      if (existing) existing.count++;
+      else byKey.set(key, { key, label: variantLabel(r), count: 1 });
+    }
+    return Array.from(byKey.values()).sort((a, b) => a.label.localeCompare(b.label));
+  })();
+  const sortedFiltered = selectedVariant ? sorted.filter((r) => variantKey(r) === selectedVariant) : sorted;
   // One product image for the whole results screen — not per-row. Every
   // row here is the same searched-for item at a different store, so
   // there's one real photo to show, not several; picks the first one
@@ -911,9 +948,9 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // same partial-name search), so "store_id" alone could mark more than
   // one row as "cheapest" even when only one of them actually is.
   const cheapestKey =
-    sorted.length > 0
+    sortedFiltered.length > 0
       ? (() => {
-          const min = sorted.reduce((m, r) => (r.unit_price < m.unit_price ? r : m), sorted[0]);
+          const min = sortedFiltered.reduce((m, r) => (r.unit_price < m.unit_price ? r : m), sortedFiltered[0]);
           return `${min.store_id}::${min.product_id}`;
         })()
       : null;
@@ -1067,7 +1104,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // the full comparison list (with sorting) all at once, not have to ask
   // for the list. Swaps to similarSorted while the "Similar items" toggle
   // is on.
-  const tableRows = showSimilar ? similarSorted : sorted;
+  const tableRows = showSimilar ? similarSorted : sortedFiltered;
 
   // Fetch review summaries for every store on screen in one batched
   // request, whenever the result set changes — covers the comparison
@@ -1592,6 +1629,42 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               rating={ratings[result.city_best.store_id]}
               isNativeApp={isNativeApp}
             />
+          )}
+
+          {/* Pack/size chips — only when this search genuinely turned up
+              more than one (a 6-pack and a 24-pack of the same drink, a
+              330ml can and a 1.5L bottle). Lets the shopper pick the one
+              they actually want after seeing what's really on offer,
+              instead of having to know and type it before searching.
+              Hidden under "Similar items", which is deliberately a
+              different-products view, not a size variant of this one. */}
+          {!showSimilar && variants.length > 1 && (
+            <div className="mb-2 flex flex-wrap items-center gap-1.5 text-sm">
+              <span className="text-ash">{t("Size")}:</span>
+              <button
+                onClick={() => setSelectedVariant(null)}
+                className={`rounded-full px-2.5 py-1 text-[13px] transition-colors ${
+                  selectedVariant === null
+                    ? "bg-ink text-white"
+                    : "border border-line bg-field text-ink hover:bg-field-raised"
+                }`}
+              >
+                {t("All")}
+              </button>
+              {variants.map((v) => (
+                <button
+                  key={v.key}
+                  onClick={() => setSelectedVariant((s) => (s === v.key ? null : v.key))}
+                  className={`rounded-full px-2.5 py-1 text-[13px] transition-colors ${
+                    selectedVariant === v.key
+                      ? "bg-ink text-white"
+                      : "border border-line bg-field text-ink hover:bg-field-raised"
+                  }`}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
           )}
 
           {/* Two buttons (Best price/Nearest, no Similar items yet) sit

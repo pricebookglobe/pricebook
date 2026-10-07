@@ -97,7 +97,15 @@ export type SearchResponse = {
 export async function searchProducts(params: {
   text?: string;
   imageBase64?: string;
-  structured?: { product_name: string; brand?: string | null; size?: number | null; unit?: string | null; category: string };
+  structured?: {
+    product_name: string;
+    brand?: string | null;
+    size?: number | null;
+    unit?: string | null;
+    category: string;
+    pack_size?: number | null;
+    size_type?: "weight" | "volume" | "length" | "units" | null;
+  };
   barcode?: string;
   lat: number;
   lng: number;

@@ -364,5 +364,14 @@ export const UI_STRINGS = [
 
   // Search failure messages (Snap / Enter details with nothing recognizable)
   "Couldn't recognize a product in that photo — try a clearer, closer photo, or Enter details instead.",
-  "Couldn't understand that search — try rephrasing, or Enter details instead."
+  "Couldn't understand that search — try rephrasing, or Enter details instead.",
+
+  // Enter details — optional pack/size, and the results screen's variant chips
+  "Know the exact size or pack? Add it (optional)",
+  "Pack size",
+  "Size type",
+  "Size of one item in the pack",
+  "E.g. a 6-pack of 330ml cans: Pack size 6, Volume, 330 ml.",
+  "Single item",
+  "All"
 ] as const;
