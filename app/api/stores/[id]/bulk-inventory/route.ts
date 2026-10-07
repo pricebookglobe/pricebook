@@ -3,6 +3,7 @@ import { createServiceSupabase } from "@/lib/supabaseClient";
 import { parseCSVToObjects } from "@/lib/csv";
 import { embedProductDescription } from "@/lib/aiVision";
 import { inferSizeType } from "@/lib/productCategorization";
+import { normalizeUnit } from "@/lib/units";
 
 // Accepts either a logged-in merchant's Supabase session (the dashboard's
 // own bulk-upload page) OR that store's long-lived API key (an external
@@ -126,7 +127,10 @@ async function handlePost(req: NextRequest, params: { id: string }) {
       const priceRaw = row.price?.trim();
       const brand = row.brand?.trim() || null;
       const sizeRaw = row.size?.trim();
-      const unit = row.unit?.trim() || null;
+      // Normalized so a CSV column full of "grams"/"litre"/etc. (common
+      // from a merchant's own spreadsheet habits) still lines up with
+      // every other unit stored the canonical short way — see lib/units.ts.
+      const unit = normalizeUnit(row.unit?.trim() || null);
       const currency = row.currency?.trim() || "JOD";
       const barcode = row.barcode?.trim() || null;
       // Optional — how many individual units one listing sells together

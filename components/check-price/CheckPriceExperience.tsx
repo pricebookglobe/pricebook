@@ -19,6 +19,7 @@ import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { displayProductName, formatSizeTag, formatItemSizeTag } from "@/lib/productName";
 import { namesMatch } from "@/lib/nameMatch";
+import { normalizeUnit } from "@/lib/units";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
 import { Capacitor } from "@capacitor/core";
 
@@ -908,7 +909,9 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // more than one real value to choose between.
   function sizeKey(r: SearchResult): string | null {
     if (r.size_type === "units" || r.size == null) return null;
-    return `${r.size}-${(r.unit ?? "").toLowerCase()}`;
+    // normalizeUnit so "50g" and "50grams" collapse into the same chip
+    // instead of splitting one real size into two.
+    return `${r.size}-${(normalizeUnit(r.unit) ?? "").toLowerCase()}`;
   }
   function sizeLabel(r: SearchResult): string {
     return formatSizeTag(r.size, r.unit).replace(/[[\]]/g, "");
@@ -1052,7 +1055,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   function sameItem(a: SearchResult, b: SearchResult): boolean {
     if (!namesMatch(a.product_name, b.product_name)) return false;
     if (fieldsConflict(norm(a.size), norm(b.size))) return false;
-    if (fieldsConflict(norm(a.unit), norm(b.unit))) return false;
+    // normalizeUnit first — "g" and "grams" are the same unit, and
+    // comparing the raw text here used to treat them as a conflict,
+    // silently blocking "same item" matches (Save badges, cheapest-
+    // nearby) between listings that were actually identical.
+    if (fieldsConflict(norm(normalizeUnit(a.unit)), norm(normalizeUnit(b.unit)))) return false;
     // A 6-pack and a 12-pack of the same-named, same-sized item are not the
     // same listing — dedup treats pack_size as part of product identity
     // (see app/api/products/route.ts), so a "Save: X" comparison has to

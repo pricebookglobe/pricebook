@@ -1,3 +1,5 @@
+import { normalizeUnit } from "./units";
+
 /**
  * How a product's brand and name should be shown together, without
  * repeating the brand when it's already part of (or the same as) the
@@ -20,14 +22,19 @@ export function displayProductName(brand: string | null | undefined, name: strin
  * The item's size/unit shown next to its name as a bracketed tag, e.g.
  * "Snickers [75g]" — "" (nothing to render) when either half is missing,
  * since a size with no unit (or vice versa) isn't meaningful on its own.
+ *
+ * Always normalizes the unit first (normalizeUnit) so the same physical
+ * unit always displays the same way regardless of how it happened to be
+ * typed/extracted — "50g" and "50grams" both show as "50g" — instead of
+ * looking like two different sizes.
  */
 export function formatSizeTag(size: number | null | undefined, unit: string | null | undefined): string {
-  if (size == null || !unit || !unit.trim()) return "";
-  const trimmedUnit = unit.trim();
+  const normalizedUnit = normalizeUnit(unit);
+  if (size == null || !normalizedUnit) return "";
   // Size values come through as numeric (often a float like 75.0) — show
   // whole numbers cleanly, keep decimals when they're actually meaningful.
   const sizeStr = Number.isInteger(size) ? String(size) : String(Number(size.toFixed(2)));
-  return `[${sizeStr}${trimmedUnit}]`;
+  return `[${sizeStr}${normalizedUnit}]`;
 }
 
 /**

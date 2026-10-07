@@ -12,30 +12,21 @@
 // pack_size/size/unit, so those rows are already apples-to-apples. This
 // only matters once results from different product_ids get compared.
 
+import { normalizeUnit } from "./units";
+
 export type SizeType = "weight" | "volume" | "length" | "units";
 
 // Converts to a common base unit per size_type so differently-labeled
-// sizes (kg vs g, L vs ml, m vs cm) are comparable: weight -> grams,
-// volume -> milliliters, length -> centimeters. Units has no sub-unit to
-// normalize.
+// sizes (kg vs g, L vs ml, m vs cm — including synonyms like "grams" or
+// "litre", via normalizeUnit) are comparable: weight -> grams, volume ->
+// milliliters, length -> centimeters. Units has no sub-unit to normalize.
 function normalizeToBaseUnit(size: number, unit: string | null | undefined): number {
-  const u = (unit ?? "").trim().toLowerCase();
-  switch (u) {
+  switch (normalizeUnit(unit)) {
     case "kg":
-    case "kilogram":
-    case "kilograms":
       return size * 1000;
-    case "l":
-    case "liter":
-    case "liters":
-    case "litre":
-    case "litres":
+    case "L":
       return size * 1000;
     case "m":
-    case "meter":
-    case "meters":
-    case "metre":
-    case "metres":
       return size * 100;
     default:
       // g, ml, cm, pcs, or anything already in the base unit.

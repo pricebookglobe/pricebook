@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceSupabase } from "@/lib/supabaseClient";
 import { embedProductDescription, type StructuredProduct, type NutritionFacts } from "@/lib/aiVision";
 import { uploadProductImage } from "@/lib/storage";
+import { normalizeUnit } from "@/lib/units";
 
 export async function POST(req: NextRequest) {
   const body: StructuredProduct & { imageBase64?: string; imageUrl?: string; nutrition_facts?: NutritionFacts | null; barcode?: string } =
     await req.json();
+  // Normalize once, here, before it's used for either the dedup lookup or
+  // the insert below — every write path (Add Item, barcode scan, photo
+  // extraction) funnels through this one endpoint, so this is the single
+  // place that keeps new product rows' unit text consistent regardless of
+  // how it was spelled/extracted ("grams" -> "g", "litre" -> "L", etc.).
+  if (body.unit) body.unit = normalizeUnit(body.unit) ?? body.unit;
   if (!body.product_name || !body.category) {
     // Names the actual missing field(s) rather than always blaming both —
     // the far more common case is product_name being filled in (it's
