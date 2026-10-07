@@ -1021,7 +1021,30 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // disagree, and means this card and the red "doesn't carry" message
   // above are strictly mutually exclusive — exactly one of them shows, for
   // the one store the shopper is actually at.
-  const atStore = primaryStore ? sorted.find((r) => r.store_id === primaryStore.store_id) ?? null : null;
+  //
+  // When the query itself names a concrete size (a photo scan, a barcode,
+  // a guided entry), prefer whichever row at that store is actually that
+  // SAME size/unit/pack — `sorted` can hold several pack sizes/sizes of
+  // the same-named product (a single bar and its 6-pack), and just taking
+  // sorted's first match for the store (previously whatever the active
+  // Best price/Nearest sort put first) could show the 6-pack's price as
+  // "the price here" for a shopper who scanned a single bar. Falls back to
+  // any name-matching row at that store when there's no exact-SKU one, so
+  // "doesn't carry this item" still only fires when the store has nothing
+  // matching at all.
+  const queryHasSku = result?.query.size != null && !!result?.query.unit;
+  const atStoreSkuMatch =
+    primaryStore && queryHasSku
+      ? sorted.find(
+          (r) =>
+            r.store_id === primaryStore.store_id &&
+            Number(r.size) === Number(result!.query.size) &&
+            normalizeUnit(r.unit) === normalizeUnit(result!.query.unit) &&
+            (r.pack_size ?? 1) === (result!.query.pack_size ?? 1)
+        ) ?? null
+      : null;
+  const atStore =
+    atStoreSkuMatch ?? (primaryStore ? sorted.find((r) => r.store_id === primaryStore.store_id) ?? null : null);
 
   // "Save: X" line — compares the cheapest price within 5km of the shopper
   // to the priciest option in that same 5km radius, so the best-price row

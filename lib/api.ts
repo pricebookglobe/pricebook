@@ -77,7 +77,7 @@ export type SearchResult = {
 };
 
 export type SearchResponse = {
-  query: { product_name: string; brand: string | null; size: number | null; unit: string | null; category: string };
+  query: { product_name: string; brand: string | null; size: number | null; unit: string | null; category: string; pack_size?: number | null };
   tier: "neighborhood" | "town" | "city" | null;
   local_results: SearchResult[];
   web_estimate: { price_estimate: number | null; currency: string; source_url: string | null; note: string } | null;
