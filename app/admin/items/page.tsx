@@ -127,7 +127,7 @@ export default function AdminItemsPage() {
           <thead>
             <tr>
               <th>Item</th>
-              <th>Size / Qty</th>
+              <th className="whitespace-nowrap">Size / Qty</th>
               <th>Store</th>
               <th className="num">Price</th>
               <th className="num">Actions</th>
@@ -153,7 +153,7 @@ export default function AdminItemsPage() {
                     <span>{displayProductName(i.brand, i.product_name)}</span>
                   </div>
                 </td>
-                <td className="font-mono text-xs text-ash">{formatSize(i)}</td>
+                <td className="whitespace-nowrap font-mono text-xs text-ash">{formatSize(i)}</td>
                 <td>
                   <div className="flex items-center gap-2">
                     <TrustDot positivePct={i.store_positive_pct} />

@@ -117,7 +117,7 @@ export function StoreInventoryDialog({
             <thead>
               <tr>
                 <th>Item</th>
-                <th>Size / Qty</th>
+                <th className="whitespace-nowrap">Size / Qty</th>
                 <th>Status</th>
                 <th className="num">Price</th>
                 <th className="num">Actions</th>
@@ -143,7 +143,7 @@ export function StoreInventoryDialog({
                       <span>{displayProductName(row.products.brand, row.products.canonical_name)}</span>
                     </div>
                   </td>
-                  <td className="font-mono text-xs text-ash">
+                  <td className="whitespace-nowrap font-mono text-xs text-ash">
                     {formatSize(row.products)}
                   </td>
                   <td className="font-mono text-xs">

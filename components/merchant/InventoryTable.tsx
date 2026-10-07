@@ -295,7 +295,7 @@ export function InventoryTable({
           <thead>
             <tr>
               <th>{t("Item")}</th>
-              <th>{t("Size / Qty")}</th>
+              <th className="whitespace-nowrap">{t("Size / Qty")}</th>
               <th>{t("Status")}</th>
               {showReportBadge && <th>{t("Reports")}</th>}
               <th className="num">{t("Price")}</th>
@@ -322,7 +322,7 @@ export function InventoryTable({
                     <span>{displayProductName(row.products.brand, row.products.canonical_name)}</span>
                   </div>
                 </td>
-                <td className="font-mono text-xs text-ash">
+                <td className="whitespace-nowrap font-mono text-xs text-ash">
                   {formatSize(row.products)}
                 </td>
                 <td className="font-mono text-xs">
