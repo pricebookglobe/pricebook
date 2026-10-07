@@ -5,6 +5,7 @@ import { webFallbackSearch } from "@/lib/webFallback";
 import { withUnitPrice } from "@/lib/unitPrice";
 import { namesMatch } from "@/lib/nameMatch";
 import { displayProductName } from "@/lib/productName";
+import { normalizeUnit } from "@/lib/units";
 
 // "city" is an approximation (a large fixed radius), not a real
 // city/country-boundary-aware query — good enough for an MVP, worth
@@ -220,9 +221,33 @@ export async function POST(req: NextRequest) {
     let nearBest: any = null;
     let cityBest: any = null;
     if (results.length) {
+      // `results` can span several genuinely different pack sizes/sizes
+      // under the one matched product name (a single bar and its 6-pack,
+      // say) — picking "best" by unit_price alone across ALL of them used
+      // to let a 6-pack's much lower per-gram price get surfaced as "the
+      // best price nearby" for someone who scanned a single bar, which
+      // isn't a real comparison (same reasoning sameItem()/nameMatch.ts
+      // already apply to the Save badges). When the query names a
+      // concrete size (a photo scan, a barcode, or a structured
+      // category-picker submission all do), the best-price picks are
+      // restricted to listings with that SAME size/unit/pack_size. A
+      // vague text search with no concrete size has nothing to restrict
+      // to, so every size/pack variant stays eligible there, same as before.
+      const querySize = structured.size ?? null;
+      const queryUnit = normalizeUnit(structured.unit) ?? null;
+      const queryPackSize = structured.pack_size ?? 1;
+      const hasQuerySku = querySize != null && queryUnit != null;
+      const skuMatches = (r: any) =>
+        Number(r.size) === Number(querySize) &&
+        normalizeUnit(r.unit) === queryUnit &&
+        (r.pack_size ?? 1) === queryPackSize;
+
       const nearbyPool = results.filter((r: any) => r.distance_m <= RADII_M.neighborhood);
-      nearBest = nearbyPool.length ? [...nearbyPool].sort((a: any, b: any) => a.unit_price - b.unit_price)[0] : null;
-      cityBest = [...results].sort((a: any, b: any) => a.unit_price - b.unit_price)[0] ?? null;
+      const nearbyEligible = hasQuerySku ? nearbyPool.filter(skuMatches) : nearbyPool;
+      const cityEligible = hasQuerySku ? results.filter(skuMatches) : results;
+
+      nearBest = nearbyEligible.length ? [...nearbyEligible].sort((a: any, b: any) => a.unit_price - b.unit_price)[0] : null;
+      cityBest = cityEligible.length ? [...cityEligible].sort((a: any, b: any) => a.unit_price - b.unit_price)[0] : null;
     }
 
     // "Similar items" — other products that are semantically close to the
