@@ -4,6 +4,7 @@ import { extractProductFromImage, parseTextQuery, embedProductDescription } from
 import { webFallbackSearch } from "@/lib/webFallback";
 import { withUnitPrice } from "@/lib/unitPrice";
 import { namesMatch } from "@/lib/nameMatch";
+import { displayProductName } from "@/lib/productName";
 
 // "city" is an approximation (a large fixed radius), not a real
 // city/country-boundary-aware query — good enough for an MVP, worth
@@ -172,9 +173,22 @@ export async function POST(req: NextRequest) {
     // product beyond any doubt, regardless of how differently its name
     // happens to be typed. Anything that fails this still gets a chance to
     // show up under "Similar items" via search_similar_products below.
+    //
+    // Folds brand into the name on BOTH sides before comparing (same
+    // displayProductName() the UI uses to show "Ultra Bottled Drinking
+    // Water" as one heading) rather than comparing structured.product_name
+    // alone — GPT's photo/barcode extraction often splits the brand out
+    // into its own field ({ product_name: "Bottled Drinking Water", brand:
+    // "Ultra" }) instead of folding it into product_name the way text
+    // search queries do. Comparing product_name alone meant the query side
+    // of the check was effectively just "water" every time, which is why
+    // every other water brand kept passing.
+    const queryName = displayProductName(structured.brand, structured.product_name ?? "");
     const barcodeKeys = new Set(cityWideBarcode.map((r: any) => `${r.store_id}::${r.product_id}`));
     const cityWide = cityWideMerged.filter(
-      (r: any) => barcodeKeys.has(`${r.store_id}::${r.product_id}`) || namesMatch(r.product_name, structured.product_name)
+      (r: any) =>
+        barcodeKeys.has(`${r.store_id}::${r.product_id}`) ||
+        namesMatch(displayProductName(r.brand, r.product_name ?? ""), queryName)
     );
 
     const strongMatches = cityWide.filter((r: any) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
