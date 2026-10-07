@@ -104,7 +104,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const { product_id, price, in_stock, is_hidden, product_name, nutrition_facts } = await req.json();
+  const { product_id, price, in_stock, is_hidden, product_name, nutrition_facts, pack_size } = await req.json();
   if (!product_id) return NextResponse.json({ error: "product_id is required" }, { status: 400 });
 
   const verified = await verifyOwnership(req, params.id);
@@ -146,6 +146,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       .update({ nutrition_facts })
       .eq("id", product_id);
     if (nutritionError) return NextResponse.json({ error: nutritionError.message }, { status: 500 });
+  }
+
+  // Same shared-row caveat as the product_name/nutrition_facts updates
+  // above: pack_size lives on `products`, not this store's own
+  // store_inventory row, so correcting it here corrects it everywhere
+  // that exact product_id is listed — the right behavior when a merchant
+  // mis-entered it at Add Item time (e.g. said "1" for what's actually a
+  // 6-pack) and is fixing their own listing after the fact.
+  if (typeof pack_size === "number" && Number.isFinite(pack_size) && pack_size > 0) {
+    const { error: packSizeError } = await supabase
+      .from("products")
+      .update({ pack_size: Math.round(pack_size) })
+      .eq("id", product_id);
+    if (packSizeError) return NextResponse.json({ error: packSizeError.message }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

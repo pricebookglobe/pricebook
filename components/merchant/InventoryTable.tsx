@@ -101,6 +101,7 @@ export function InventoryTable({
   const [editing, setEditing] = useState<InventoryRow | null>(null);
   const [editName, setEditName] = useState("");
   const [editPrice, setEditPrice] = useState("");
+  const [editPackSize, setEditPackSize] = useState("1");
   const [editNutrition, setEditNutrition] = useState<NutritionFacts | null>(null);
   const [loadingNutrition, setLoadingNutrition] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -112,7 +113,14 @@ export function InventoryTable({
 
   async function patchItem(
     row: InventoryRow,
-    patch: { price?: number; in_stock?: boolean; is_hidden?: boolean; product_name?: string; nutrition_facts?: NutritionFacts | null }
+    patch: {
+      price?: number;
+      in_stock?: boolean;
+      is_hidden?: boolean;
+      product_name?: string;
+      nutrition_facts?: NutritionFacts | null;
+      pack_size?: number;
+    }
   ) {
     setBusyId(row.id);
     try {
@@ -121,7 +129,7 @@ export function InventoryTable({
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ product_id: row.products.id, ...patch })
       });
-      const { product_name, nutrition_facts, ...rest } = patch;
+      const { product_name, nutrition_facts, pack_size, ...rest } = patch;
       setRows((r) =>
         r.map((x) =>
           x.id === row.id
@@ -131,7 +139,8 @@ export function InventoryTable({
                 products: {
                   ...x.products,
                   ...(product_name ? { canonical_name: product_name } : {}),
-                  ...(nutrition_facts !== undefined ? { nutrition_facts } : {})
+                  ...(nutrition_facts !== undefined ? { nutrition_facts } : {}),
+                  ...(pack_size !== undefined ? { pack_size } : {})
                 }
               }
             : x
@@ -156,6 +165,7 @@ export function InventoryTable({
     setEditing(row);
     setEditName(row.products.canonical_name);
     setEditPrice(String(row.price));
+    setEditPackSize(String(row.products.pack_size ?? 1));
     setEditNutrition(row.products.nutrition_facts ?? null);
   }
 
@@ -193,12 +203,17 @@ export function InventoryTable({
     const price = parseFloat(editPrice);
     if (Number.isNaN(price) || price < 0) return;
     if (!editName.trim()) return;
+    const packSize = parseInt(editPackSize, 10);
+    if (!Number.isFinite(packSize) || packSize < 1) return;
     setSavingEdit(true);
-    const patch: { price: number; product_name?: string; nutrition_facts?: NutritionFacts | null } = { price };
+    const patch: { price: number; product_name?: string; nutrition_facts?: NutritionFacts | null; pack_size?: number } = {
+      price
+    };
     if (editName.trim() !== editing.products.canonical_name) patch.product_name = editName.trim();
     if (JSON.stringify(editNutrition) !== JSON.stringify(editing.products.nutrition_facts ?? null)) {
       patch.nutrition_facts = editNutrition;
     }
+    if (packSize !== (editing.products.pack_size ?? 1)) patch.pack_size = packSize;
     await patchItem(editing, patch);
     setSavingEdit(false);
     setEditing(null);
@@ -357,6 +372,20 @@ export function InventoryTable({
                 onChange={(e) => setEditPrice(e.target.value)}
                 className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
               />
+            </label>
+            <label className="mt-4 block text-sm text-ash">
+              {t("Pack Size")}
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={editPackSize}
+                onChange={(e) => setEditPackSize(e.target.value)}
+                className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
+              />
+              <span className="mt-1 block text-xs normal-case text-ash/80">
+                {t("How many individual units are sold together (e.g. a 6-pack of cans).")}
+              </span>
             </label>
 
             <div className="mt-4 rounded border border-line bg-field p-3">
