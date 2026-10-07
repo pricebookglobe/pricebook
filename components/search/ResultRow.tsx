@@ -6,7 +6,7 @@ import type { SearchResult } from "@/lib/api";
 import { reportPrice } from "@/lib/api";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import { formatSizeTag } from "@/lib/productName";
+import { formatItemSizeTag } from "@/lib/productName";
 import { EmojiRating } from "@/components/shared/EmojiRating";
 import { isNutritionRelevant } from "@/lib/productCategorization";
 
@@ -287,7 +287,7 @@ export function ResultRow({
                 after the last word. */}
             <ItemName
               name={result.product_name}
-              sizeTag={formatSizeTag(result.size, result.unit)}
+              sizeTag={formatItemSizeTag(result.size, result.unit, result.pack_size)}
               className="block font-display text-[14px] font-semibold leading-tight text-ink"
             />
             {/* (2) Store name, on its own line, with the review circle + face. */}
@@ -339,7 +339,7 @@ export function ResultRow({
         {/* (1) Item name — wrapped at three words per line, size tag after
             the last word. */}
         <td className="align-top">
-          <ItemName name={result.product_name} sizeTag={formatSizeTag(result.size, result.unit)} className="block font-medium leading-tight text-ink" />
+          <ItemName name={result.product_name} sizeTag={formatItemSizeTag(result.size, result.unit, result.pack_size)} className="block font-medium leading-tight text-ink" />
           {/* (2) Store name, on its own line, with the review circle + face. */}
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <span className={"h-2 w-2 shrink-0 rounded-full " + TRUST_COLOR[result.trust_badge]} />

@@ -17,7 +17,7 @@ import { InPageCamera } from "@/components/shared/InPageCamera";
 import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import { displayProductName, formatSizeTag } from "@/lib/productName";
+import { displayProductName, formatSizeTag, formatItemSizeTag } from "@/lib/productName";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
 import { Capacitor } from "@capacitor/core";
 
@@ -99,7 +99,7 @@ function PriceCallout({
 
   // The [75g]-style size tag, placed right after the name's last word by
   // ItemName (which also hard-wraps the name at three words per line).
-  const sizeTag = formatSizeTag(result.size, result.unit);
+  const sizeTag = formatItemSizeTag(result.size, result.unit, result.pack_size);
 
   async function handleReport(type: "correct_price" | "wrong_price") {
     setBusy(true);
@@ -517,7 +517,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // before searching is worse UX than just letting them tap what they
   // actually want once it's in front of them. Reset on every new search.
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [selectedPack, setSelectedPack] = useState<number | null>(null);
+  const [selectedPack, setSelectedPack] = useState<string | null>(null);
   // This screen's own per-store review summary cache (average emoji rating
   // + count), keyed by store_id — fetched once per result set, in a single
   // batched request for every store on screen, rather than one request per
@@ -912,11 +912,23 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   function sizeLabel(r: SearchResult): string {
     return formatSizeTag(r.size, r.unit).replace(/[[\]]/g, "");
   }
-  function packKey(r: SearchResult): number {
-    return r.pack_size ?? 1;
+  // Pack chips are keyed by pack count AND size together (e.g. "6×1.5L" is
+  // a different chip from "6×500ml"), since a bare "6×" can't tell the
+  // shopper which 6-pack they'd be picking when a search spans more than
+  // one size. Plain single items (pack size 1) all collapse into one
+  // "Single" chip regardless of size — that distinction is already covered
+  // by the Size row above.
+  function packKey(r: SearchResult): string {
+    const pack = r.pack_size ?? 1;
+    if (pack <= 1) return "1";
+    const sKey = sizeKey(r);
+    return sKey ? `${pack}-${sKey}` : `${pack}-`;
   }
-  function packLabel(pack: number): string {
-    return pack > 1 ? `${pack}×` : t("Single");
+  function packLabel(r: SearchResult): string {
+    const pack = r.pack_size ?? 1;
+    if (pack <= 1) return t("Single");
+    const sLabel = sizeLabel(r);
+    return sLabel ? `${pack}×${sLabel}` : `${pack}×`;
   }
   const sizeOptions = (() => {
     const byKey = new Map<string, { key: string; label: string }>();
@@ -927,12 +939,16 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     return Array.from(byKey.values()).sort((a, b) => a.label.localeCompare(b.label));
   })();
   const packOptions = (() => {
-    const byKey = new Map<number, { key: number; label: string }>();
+    const byKey = new Map<string, { key: string; label: string }>();
     for (const r of sorted) {
       const key = packKey(r);
-      if (!byKey.has(key)) byKey.set(key, { key, label: packLabel(key) });
+      if (!byKey.has(key)) byKey.set(key, { key, label: packLabel(r) });
     }
-    return Array.from(byKey.values()).sort((a, b) => a.key - b.key);
+    return Array.from(byKey.values()).sort((a, b) => {
+      if (a.key === "1") return -1;
+      if (b.key === "1") return 1;
+      return a.label.localeCompare(b.label);
+    });
   })();
   const sortedFiltered = sorted.filter(
     (r) => (!selectedSize || sizeKey(r) === selectedSize) && (selectedPack == null || packKey(r) === selectedPack)

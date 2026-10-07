@@ -29,3 +29,26 @@ export function formatSizeTag(size: number | null | undefined, unit: string | nu
   const sizeStr = Number.isInteger(size) ? String(size) : String(Number(size.toFixed(2)));
   return `[${sizeStr}${trimmedUnit}]`;
 }
+
+/**
+ * Same bracketed tag as formatSizeTag, but folds in pack size too, since
+ * a listing's name alone doesn't say whether "[1.5L]" means one bottle or
+ * one bottle's worth inside a 6-pack — e.g. "Ultra water [6×1.5L]" for a
+ * 6-pack, "Ultra water [1.5L]" for a single bottle (pack size 1 adds
+ * nothing worth showing). Falls back to a bare "[6×]" when there's a real
+ * pack but no size to go with it (a plain Units item, like a 6-pack of
+ * eggs with no weight/volume/length recorded).
+ */
+export function formatItemSizeTag(
+  size: number | null | undefined,
+  unit: string | null | undefined,
+  packSize: number | null | undefined
+): string {
+  const sizePart = formatSizeTag(size, unit);
+  const pack = packSize ?? 1;
+  if (pack <= 1) return sizePart;
+  if (!sizePart) return `[${pack}×]`;
+  // sizePart is "[1.5L]" — splice the pack count in right after the
+  // opening bracket rather than re-deriving the inner text.
+  return `[${pack}×${sizePart.slice(1)}`;
+}
