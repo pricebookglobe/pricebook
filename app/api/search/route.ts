@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceSupabase } from "@/lib/supabaseClient";
 import { extractProductFromImage, parseTextQuery, embedProductDescription } from "@/lib/aiVision";
 import { webFallbackSearch } from "@/lib/webFallback";
+import { withUnitPrice } from "@/lib/unitPrice";
 
 // "city" is an approximation (a large fixed radius), not a real
 // city/country-boundary-aware query — good enough for an MVP, worth
@@ -157,7 +158,13 @@ export async function POST(req: NextRequest) {
     const cityWide = mergeByStoreAndProduct(cityWideEmbedding ?? [], cityWideText, cityWideBarcode);
 
     const strongMatches = cityWide.filter((r: any) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
-    const results = strongMatches.length ? strongMatches : cityWide;
+    // unit_price (price per gram/ml/cm/item, pack size included) backs every
+    // ranking below — a fuzzy match can span several genuinely different
+    // pack sizes/sizes under one product name, and raw listing price alone
+    // would unfairly favor the smaller pack every time. The real listing
+    // price is still what's returned and shown to the shopper; unit_price is
+    // for comparison only. See lib/unitPrice.ts.
+    const results = (strongMatches.length ? strongMatches : cityWide).map(withUnitPrice);
     const webEstimate = strongMatches.length ? null : await webFallbackSearch(structured);
 
     // Purely a display label now ("neighborhood/town/city zone" in the
@@ -174,8 +181,8 @@ export async function POST(req: NextRequest) {
     let cityBest: any = null;
     if (results.length) {
       const nearbyPool = results.filter((r: any) => r.distance_m <= RADII_M.neighborhood);
-      nearBest = nearbyPool.length ? [...nearbyPool].sort((a: any, b: any) => a.price - b.price)[0] : null;
-      cityBest = [...results].sort((a: any, b: any) => a.price - b.price)[0] ?? null;
+      nearBest = nearbyPool.length ? [...nearbyPool].sort((a: any, b: any) => a.unit_price - b.unit_price)[0] : null;
+      cityBest = [...results].sort((a: any, b: any) => a.unit_price - b.unit_price)[0] ?? null;
     }
 
     // "Similar items" — other products that are semantically close to the
@@ -207,7 +214,7 @@ export async function POST(req: NextRequest) {
         exclude_product_ids: excludeIds
       });
       if (similarError) throw similarError;
-      similarResults = similarData ?? [];
+      similarResults = (similarData ?? []).map(withUnitPrice);
     } catch (similarErr) {
       console.error("search_similar_products failed (non-fatal)", similarErr);
     }

@@ -876,9 +876,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     }
   }
 
+  // "price" sort uses unit_price, not the raw listing price — local_results
+  // can span more than one product_id (a fuzzy/embedding match can mix pack
+  // sizes and sizes under one search), so ranking by total price alone would
+  // unfairly favor the smaller pack every time. See lib/unitPrice.ts.
   const sorted = result?.local_results.length
     ? [...result.local_results].sort((a, b) =>
-        sortMode === "price" ? a.price - b.price : a.distance_m - b.distance_m
+        sortMode === "price" ? a.unit_price - b.unit_price : a.distance_m - b.distance_m
       )
     : [];
   // One product image for the whole results screen — not per-row. Every
@@ -909,7 +913,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const cheapestKey =
     sorted.length > 0
       ? (() => {
-          const min = sorted.reduce((m, r) => (r.price < m.price ? r : m), sorted[0]);
+          const min = sorted.reduce((m, r) => (r.unit_price < m.unit_price ? r : m), sorted[0]);
           return `${min.store_id}::${min.product_id}`;
         })()
       : null;
@@ -976,6 +980,12 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     if (norm(a.product_name) !== norm(b.product_name)) return false;
     if (fieldsConflict(norm(a.size), norm(b.size))) return false;
     if (fieldsConflict(norm(a.unit), norm(b.unit))) return false;
+    // A 6-pack and a 12-pack of the same-named, same-sized item are not the
+    // same listing — dedup treats pack_size as part of product identity
+    // (see app/api/products/route.ts), so a "Save: X" comparison has to
+    // respect that too, or it'd compare a pack's total price against a
+    // different pack's total price as if they were interchangeable.
+    if (fieldsConflict(norm(a.pack_size ?? 1), norm(b.pack_size ?? 1))) return false;
     if (fieldsConflict(norm(a.manufacturer || a.brand), norm(b.manufacturer || b.brand))) return false;
     return true;
   }
@@ -996,9 +1006,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     const map = new Map<string, { key: string; savings: number }>();
     for (const [name, items] of nameGroups) {
       if (items.length < 2) continue;
-      const best = items.reduce((m, r) => (r.price < m.price ? r : m), items[0]);
+      const best = items.reduce((m, r) => (r.unit_price < m.unit_price ? r : m), items[0]);
       const comparable = items.filter((r) => sameItem(r, best));
       if (comparable.length < 2) continue;
+      // sameItem now guarantees matching pack_size/size/unit within
+      // `comparable`, so the raw price difference is a real, directly
+      // comparable currency saving here — unit_price was only needed to
+      // pick out `best` from the wider (possibly mixed-pack-size) group.
       const worst = comparable.reduce((m, r) => (r.price > m.price ? r : m), comparable[0]);
       const savings = worst.price - best.price;
       if (savings > 0) {
@@ -1043,7 +1057,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // above, which all intentionally stay scoped to exact matches only.
   const similarSorted = result?.similar_results.length
     ? [...result.similar_results].sort((a, b) =>
-        sortMode === "price" ? a.price - b.price : a.distance_m - b.distance_m
+        sortMode === "price" ? a.unit_price - b.unit_price : a.distance_m - b.distance_m
       )
     : [];
   // Always show the full list of every store carrying the item — it used

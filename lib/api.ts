@@ -51,11 +51,24 @@ export type SearchResult = {
   manufacturer: string | null;
   size: number | null;
   unit: string | null;
+  // How many individual units this listing's price covers (a 6-pack, a
+  // 12-pack, etc. — default 1), and what size/unit actually measure
+  // (weight/volume/length/units). Both feed unit_price below — see
+  // lib/unitPrice.ts.
+  pack_size: number | null;
+  size_type: "weight" | "volume" | "length" | "units" | null;
   // The product's own photo, set during "Add item" (an uploaded photo, or
   // the image a barcode lookup returned) — not a store photo.
   image_url: string | null;
   price: number;
   currency: string;
+  // Price per base unit (per gram/ml/cm, or per individual item for
+  // "units"/no size), accounting for pack_size — computed server-side
+  // (lib/unitPrice.ts). Use this, not `price`, for any ranking that spans
+  // more than one product_id (fuzzy/embedding matches can mix pack sizes
+  // and sizes under one query); `price` is still what's shown to the
+  // shopper.
+  unit_price: number;
   distance_m: number;
   similarity: number;
   trust_badge: "green" | "orange" | "red" | "unrated";
