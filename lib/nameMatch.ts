@@ -20,6 +20,14 @@
  * they're different products, not the same item in different packaging.
  * Same-category-but-different-product pairs like that belong under
  * "Similar items" instead, never merged into a same-item comparison.
+ *
+ * A single shared word is too weak on its own in the other direction too:
+ * when a scan only returns a bare brand with no descriptor ("Snickers",
+ * with nothing else), that one word technically satisfies "coverage" against
+ * ANY candidate containing it — "Snickers Duo", "Snickers Mini", every
+ * multipack and size — wrongly treating genuinely different products as
+ * the same item. So a match built on exactly one shared word only counts
+ * when neither name brings in any extra, unmentioned descriptor beyond it.
  */
 const NAME_MATCH_STOPWORDS = new Set([
   "the", "and", "with", "for", "pack", "bottle", "bottled", "drinking", "pure", "natural", "fresh", "brand", "new"
@@ -42,5 +50,11 @@ export function namesMatch(a: string | null | undefined, b: string | null | unde
   const wb = significantWords(nb);
   if (!wa.length || !wb.length) return false;
   const [shorter, longer] = wa.length <= wb.length ? [wa, wb] : [wb, wa];
-  return shorter.every((w) => longer.includes(w));
+  if (!shorter.every((w) => longer.includes(w))) return false;
+  // A single shared word is too weak on its own when the other side
+  // brings in MORE words (extra descriptors it never mentioned) — a
+  // bare "Snickers" query matching "Snickers Duo" or "Snickers Mini"
+  // would wrongly treat genuinely different products as the same item.
+  if (shorter.length === 1 && longer.length > shorter.length) return false;
+  return true;
 }
