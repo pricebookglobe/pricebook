@@ -156,16 +156,23 @@ async function handlePost(req: NextRequest, params: { id: string }) {
       // unit instead, same heuristic the Add Item form starts from.
       const sizeType = inferSizeType(itemName, category);
 
-      // Match an existing product: by barcode first if given (exact,
-      // unambiguous), else by the same name+brand+size+unit+category+
-      // pack_size combination used everywhere else in the app, so a
-      // re-upload of the same catalog updates prices instead of creating
-      // duplicates. pack_size is part of that identity because a 6-pack
-      // and a 12-pack of the same item are different listings (different
-      // price, different quantity), not the same product restated.
+      // Match an existing product: by barcode first if given, else by the
+      // same name+brand+size+unit+category+pack_size combination used
+      // everywhere else in the app, so a re-upload of the same catalog
+      // updates prices instead of creating duplicates. pack_size is part
+      // of that identity because a 6-pack and a 12-pack of the same item
+      // are different listings (different price, different quantity), not
+      // the same product restated — and the SAME barcode can legitimately
+      // be printed on both, so the barcode check is scoped to the same
+      // pack_size/size/unit too, not barcode alone (a bare barcode match
+      // would wrongly treat a 6-pack and a single can sharing one code as
+      // the same row and overwrite one with the other's price).
       let productId: string | null = null;
       if (barcode) {
-        const { data } = await supabase.from("products").select("id").eq("barcode", barcode).maybeSingle();
+        let bcQuery = supabase.from("products").select("id").eq("barcode", barcode).eq("pack_size", packSize);
+        bcQuery = size != null ? bcQuery.eq("size", size) : bcQuery.is("size", null);
+        bcQuery = unit ? bcQuery.eq("unit", unit) : bcQuery.is("unit", null);
+        const { data } = await bcQuery.maybeSingle();
         productId = data?.id ?? null;
       }
       if (!productId) {

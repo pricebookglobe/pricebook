@@ -5,6 +5,21 @@ import { uploadProductImage } from "@/lib/storage";
 import { normalizeUnit } from "@/lib/units";
 
 export async function POST(req: NextRequest) {
+  try {
+    return await handlePost(req);
+  } catch (e: any) {
+    // A route that throws instead of returning JSON gets a raw platform
+    // error response back on the client, often with no body at all — the
+    // client's res.json() then fails with "Unexpected end of JSON input",
+    // which reads to the merchant as a mysterious crash with no actual
+    // explanation. Wrapping the whole handler guarantees a real, readable
+    // error comes back no matter what breaks (a bad embedding call, an
+    // unexpected database constraint, anything).
+    return NextResponse.json({ error: `Unexpected server error: ${e.message ?? String(e)}` }, { status: 500 });
+  }
+}
+
+async function handlePost(req: NextRequest) {
   const body: StructuredProduct & { imageBase64?: string; imageUrl?: string; nutrition_facts?: NutritionFacts | null; barcode?: string } =
     await req.json();
   // Normalize once, here, before it's used for either the dedup lookup or
@@ -27,21 +42,42 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createServiceSupabase();
+  const packSize = body.pack_size ?? 1;
 
-  let query = supabase
-    .from("products")
-    .select("id")
-    .ilike("canonical_name", body.product_name)
-    .eq("category", body.category)
-    // A 6-pack and a 12-pack of the same item are different listings
-    // (different price, different quantity) — same reasoning as size/unit
-    // below, so they dedup as distinct products, not merged into one.
-    .eq("pack_size", body.pack_size ?? 1);
-  if (body.brand) query = query.eq("brand", body.brand);
-  if (body.size) query = query.eq("size", body.size);
-  if (body.unit) query = query.eq("unit", body.unit);
+  // Same barcode can legitimately label more than one real listing — a
+  // single can and a 6-pack of it often print the same code — so a
+  // barcode alone is never enough to call two rows "the same product".
+  // Checked first (and separately from the name-based dedup below) so
+  // that re-scanning the SAME barcode+size+pack a second time updates
+  // that exact listing, while scanning it again with a different
+  // size/pack creates a new one instead of colliding with the unique
+  // index on (barcode, pack_size, size, unit).
+  let existing: { id: string } | null = null;
+  if (body.barcode) {
+    let bcQuery = supabase.from("products").select("id").eq("barcode", body.barcode).eq("pack_size", packSize);
+    bcQuery = body.size != null ? bcQuery.eq("size", body.size) : bcQuery.is("size", null);
+    bcQuery = body.unit ? bcQuery.eq("unit", body.unit) : bcQuery.is("unit", null);
+    const { data } = await bcQuery.maybeSingle();
+    existing = data ?? null;
+  }
 
-  const { data: existing } = await query.maybeSingle();
+  if (!existing) {
+    let query = supabase
+      .from("products")
+      .select("id")
+      .ilike("canonical_name", body.product_name)
+      .eq("category", body.category)
+      // A 6-pack and a 12-pack of the same item are different listings
+      // (different price, different quantity) — same reasoning as size/unit
+      // below, so they dedup as distinct products, not merged into one.
+      .eq("pack_size", packSize);
+    if (body.brand) query = query.eq("brand", body.brand);
+    if (body.size) query = query.eq("size", body.size);
+    if (body.unit) query = query.eq("unit", body.unit);
+
+    const { data } = await query.maybeSingle();
+    existing = data ?? null;
+  }
   if (existing) {
     // A product can exist with no embedding if an earlier add attempt
     // created the row but then failed before the embedding was saved (an
@@ -85,7 +121,7 @@ export async function POST(req: NextRequest) {
       size: body.size,
       unit: body.unit,
       category: body.category,
-      pack_size: body.pack_size ?? 1,
+      pack_size: packSize,
       size_type: body.size_type ?? "units",
       nutrition_facts: body.nutrition_facts ?? null,
       barcode: body.barcode ?? null
