@@ -1132,6 +1132,26 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     const worst = withinRange.reduce((m, r) => (r.price > m.price ? r : m), withinRange[0]);
     return worst.price > nb.price ? worst.price - nb.price : null;
   })();
+  // Same idea again, but for the "Best price in the whole city" callout —
+  // deliberately NOT scoped to 5km (that's what nearBestSavings is for).
+  // Keeping these two separate matters: a nearby-store comparison implies
+  // "you could easily switch for this," while a citywide one is only
+  // meaningful as "if you're willing to travel, here's what you'd save" —
+  // conflating them into one number would misrepresent how reachable that
+  // saving actually is. `sorted` already spans the whole city (the search
+  // API queries city-wide), so this just skips the distance filter.
+  const cityBestSavings = (() => {
+    const cb = result?.city_best;
+    if (!cb) return null;
+    const sameProductAtStore = atStore && sameItem(atStore, cb) ? atStore : null;
+    if (sameProductAtStore && sameProductAtStore.price > cb.price) {
+      return sameProductAtStore.price - cb.price;
+    }
+    const citywide = sorted.filter((r) => sameItem(r, cb));
+    if (citywide.length === 0) return null;
+    const worst = citywide.reduce((m, r) => (r.price > m.price ? r : m), citywide[0]);
+    return worst.price > cb.price ? worst.price - cb.price : null;
+  })();
   // "Similar items" — same category, but deliberately NOT the exact
   // product (could be a different size, brand, and/or manufacturer),
   // sorted by the same price/distance toggle as the exact-match table.
@@ -1673,6 +1693,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               result={result.city_best}
               rating={ratings[result.city_best.store_id]}
               isNativeApp={isNativeApp}
+              savingsAmount={cityBestSavings ?? undefined}
             />
           )}
 
