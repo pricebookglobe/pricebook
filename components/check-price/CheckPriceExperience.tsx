@@ -1759,8 +1759,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               <button
                 key="similar"
                 onClick={() => setShowSimilar((v) => !v)}
-                className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
-                  showSimilar ? "bg-blue-800 text-white" : "bg-blue-600 text-white hover:bg-blue-700"
+                className={`btn-shine rounded-full bg-blue-100 px-2.5 py-1 font-display text-[13px] text-blue-900 transition-all duration-200 hover:scale-105 ${
+                  showSimilar ? "border-2 border-blue-800 font-bold" : "border-2 border-transparent font-medium"
                 }`}
               >
                 {t("Similar items")}
