@@ -377,5 +377,7 @@ export const UI_STRINGS = [
   "Size of one item in the pack",
   "E.g. a 6-pack of 330ml cans: Pack size 6, Volume, 330 ml.",
   "Single item",
-  "All"
+  "All",
+  "Select size",
+  "Select pack"
 ] as const;

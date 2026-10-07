@@ -1673,13 +1673,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               a size/pack variant of this one. */}
           {!showSimilar && sizeOptions.length > 1 && (
             <div className="mb-2 flex flex-wrap items-center gap-1.5 text-sm">
-              <span className="text-ash">{t("Size")}:</span>
+              <span className="text-ash">{t("Select size")}:</span>
               <button
                 onClick={() => setSelectedSize(null)}
-                className={`rounded-full px-2.5 py-1 text-[13px] transition-colors ${
+                className={`btn-shine rounded-full px-2.5 py-1 text-[13px] font-medium transition-all duration-200 hover:scale-105 ${
                   selectedSize === null
-                    ? "bg-ink text-white"
-                    : "border border-line bg-field text-ink hover:bg-field-raised"
+                    ? "bg-value-dark text-white"
+                    : "bg-value-soft text-value-dark hover:bg-value-light hover:text-white"
                 }`}
               >
                 {t("All")}
@@ -1688,10 +1688,10 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 <button
                   key={opt.key}
                   onClick={() => setSelectedSize((s) => (s === opt.key ? null : opt.key))}
-                  className={`rounded-full px-2.5 py-1 text-[13px] transition-colors ${
+                  className={`btn-shine rounded-full px-2.5 py-1 text-[13px] font-medium transition-all duration-200 hover:scale-105 ${
                     selectedSize === opt.key
-                      ? "bg-ink text-white"
-                      : "border border-line bg-field text-ink hover:bg-field-raised"
+                      ? "bg-value-dark text-white"
+                      : "bg-value-soft text-value-dark hover:bg-value-light hover:text-white"
                   }`}
                 >
                   {opt.label}
@@ -1701,13 +1701,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           )}
           {!showSimilar && packOptions.length > 1 && (
             <div className="mb-2 flex flex-wrap items-center gap-1.5 text-sm">
-              <span className="text-ash">{t("Pack")}:</span>
+              <span className="text-ash">{t("Select pack")}:</span>
               <button
                 onClick={() => setSelectedPack(null)}
-                className={`rounded-full px-2.5 py-1 text-[13px] transition-colors ${
+                className={`btn-shine rounded-full px-2.5 py-1 text-[13px] font-medium transition-all duration-200 hover:scale-105 ${
                   selectedPack === null
-                    ? "bg-ink text-white"
-                    : "border border-line bg-field text-ink hover:bg-field-raised"
+                    ? "bg-value-dark text-white"
+                    : "bg-value-soft text-value-dark hover:bg-value-light hover:text-white"
                 }`}
               >
                 {t("All")}
@@ -1716,10 +1716,10 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 <button
                   key={opt.key}
                   onClick={() => setSelectedPack((s) => (s === opt.key ? null : opt.key))}
-                  className={`rounded-full px-2.5 py-1 text-[13px] transition-colors ${
+                  className={`btn-shine rounded-full px-2.5 py-1 text-[13px] font-medium transition-all duration-200 hover:scale-105 ${
                     selectedPack === opt.key
-                      ? "bg-ink text-white"
-                      : "border border-line bg-field text-ink hover:bg-field-raised"
+                      ? "bg-value-dark text-white"
+                      : "bg-value-soft text-value-dark hover:bg-value-light hover:text-white"
                   }`}
                 >
                   {opt.label}
