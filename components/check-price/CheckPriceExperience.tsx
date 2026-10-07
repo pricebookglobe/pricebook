@@ -1050,10 +1050,19 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // match missed that pairing entirely, so "same item" comparisons (Save
   // badges, cheapest-nearby) silently skipped real matches whenever the
   // wording differed even slightly. This matches on either name containing
-  // the other, or — when neither does — sharing most of their meaningful
-  // words (ignoring short/generic filler like "bottled" or "drinking"), so
-  // wording differences don't block a real match while still keeping
-  // genuinely different products (different brands, different items) apart.
+  // the other, or — when neither does — the SHORTER name's meaningful words
+  // (ignoring short/generic filler like "bottled" or "drinking") being
+  // FULLY covered by the other name's words, e.g. "Ultra water" matches
+  // "Ultra Bottled Drinking Water" because {ultra, water} ⊆ {ultra, water}.
+  // Requiring full coverage (not just a majority) matters because a single
+  // shared *category* word is never enough on its own — "Ultra Water" and
+  // "San Pellegrino Sparkling Natural Mineral Water" both contain "water",
+  // but they're different products, not the same item in different
+  // packaging, and sharing just that one generic word used to be enough to
+  // wrongly treat them as the same listing. Same-category-but-different-
+  // product pairs like that belong in "Similar items" instead (see
+  // search_similar_products / similar_results), never merged into a
+  // same-item comparison.
   const NAME_MATCH_STOPWORDS = new Set([
     "the", "and", "with", "for", "pack", "bottle", "bottled", "drinking", "pure", "natural", "fresh", "brand", "new"
   ]);
@@ -1069,8 +1078,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     const wb = significantWords(nb);
     if (!wa.length || !wb.length) return false;
     const [shorter, longer] = wa.length <= wb.length ? [wa, wb] : [wb, wa];
-    const hits = shorter.filter((w) => longer.includes(w)).length;
-    return hits >= Math.max(1, Math.ceil(shorter.length / 2));
+    return shorter.every((w) => longer.includes(w));
   }
   function sameItem(a: SearchResult, b: SearchResult): boolean {
     if (!namesMatch(a.product_name, b.product_name)) return false;
