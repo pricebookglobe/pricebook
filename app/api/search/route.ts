@@ -3,6 +3,7 @@ import { createServiceSupabase } from "@/lib/supabaseClient";
 import { extractProductFromImage, parseTextQuery, embedProductDescription } from "@/lib/aiVision";
 import { webFallbackSearch } from "@/lib/webFallback";
 import { withUnitPrice } from "@/lib/unitPrice";
+import { namesMatch } from "@/lib/nameMatch";
 
 // "city" is an approximation (a large fixed radius), not a real
 // city/country-boundary-aware query — good enough for an MVP, worth
@@ -127,6 +128,22 @@ export async function POST(req: NextRequest) {
     });
     if (embeddingError) throw embeddingError;
 
+    // The embedding search compares *meaning*, so a generic query like
+    // "Ultra Bottled Drinking Water" can land well above the exact-match
+    // similarity floor against a totally different brand — "San Pellegrino
+    // Sparkling Natural Mineral Water" — just because both are,
+    // semantically, about bottled water. That's a real product, just not
+    // THIS product, so it belongs under "Similar items", not merged into
+    // the main results table as if it were another store's listing of the
+    // same item. Gate embedding matches through the same name check
+    // search_nearby_products_by_text already applies at the SQL level
+    // (lib/nameMatch.ts) before they're allowed to count as a direct
+    // match — items that fail this still get a chance to show up under
+    // "Similar items" via search_similar_products below.
+    const cityWideEmbeddingMatched = (cityWideEmbedding ?? []).filter((r: any) =>
+      namesMatch(r.product_name, structured.product_name)
+    );
+
     let cityWideText: any[] = [];
     if (partialTextQuery.length >= 2) {
       const { data, error: textError } = await supabase.rpc("search_nearby_products_by_text", {
@@ -155,7 +172,7 @@ export async function POST(req: NextRequest) {
 
     // Priority (highest confidence wins for a given store+product):
     // embedding similarity < substring text match < exact barcode match.
-    const cityWide = mergeByStoreAndProduct(cityWideEmbedding ?? [], cityWideText, cityWideBarcode);
+    const cityWide = mergeByStoreAndProduct(cityWideEmbeddingMatched, cityWideText, cityWideBarcode);
 
     const strongMatches = cityWide.filter((r: any) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
     // unit_price (price per gram/ml/cm/item, pack size included) backs every

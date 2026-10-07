@@ -18,6 +18,7 @@ import { AppPage } from "@/components/shared/AppPage";
 import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { displayProductName, formatSizeTag, formatItemSizeTag } from "@/lib/productName";
+import { namesMatch } from "@/lib/nameMatch";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
 import { Capacitor } from "@capacitor/core";
 
@@ -1044,42 +1045,10 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   function fieldsConflict(a: string, b: string): boolean {
     return a !== "" && b !== "" && a !== b;
   }
-  // Two listings' names rarely come in typed identically — one merchant's
-  // "Ultra water" and another's "Ultra Bottled Drinking Water" are the same
-  // product, just entered with extra descriptive words. An exact string
-  // match missed that pairing entirely, so "same item" comparisons (Save
-  // badges, cheapest-nearby) silently skipped real matches whenever the
-  // wording differed even slightly. This matches on either name containing
-  // the other, or — when neither does — the SHORTER name's meaningful words
-  // (ignoring short/generic filler like "bottled" or "drinking") being
-  // FULLY covered by the other name's words, e.g. "Ultra water" matches
-  // "Ultra Bottled Drinking Water" because {ultra, water} ⊆ {ultra, water}.
-  // Requiring full coverage (not just a majority) matters because a single
-  // shared *category* word is never enough on its own — "Ultra Water" and
-  // "San Pellegrino Sparkling Natural Mineral Water" both contain "water",
-  // but they're different products, not the same item in different
-  // packaging, and sharing just that one generic word used to be enough to
-  // wrongly treat them as the same listing. Same-category-but-different-
-  // product pairs like that belong in "Similar items" instead (see
-  // search_similar_products / similar_results), never merged into a
-  // same-item comparison.
-  const NAME_MATCH_STOPWORDS = new Set([
-    "the", "and", "with", "for", "pack", "bottle", "bottled", "drinking", "pure", "natural", "fresh", "brand", "new"
-  ]);
-  function significantWords(s: string): string[] {
-    return s.split(/\s+/).filter((w) => w.length >= 3 && !NAME_MATCH_STOPWORDS.has(w));
-  }
-  function namesMatch(a: string | null | undefined, b: string | null | undefined): boolean {
-    const na = norm(a);
-    const nb = norm(b);
-    if (!na || !nb) return false;
-    if (na === nb || na.includes(nb) || nb.includes(na)) return true;
-    const wa = significantWords(na);
-    const wb = significantWords(nb);
-    if (!wa.length || !wb.length) return false;
-    const [shorter, longer] = wa.length <= wb.length ? [wa, wb] : [wb, wa];
-    return shorter.every((w) => longer.includes(w));
-  }
+  // namesMatch (lib/nameMatch.ts) is shared with the search API, which now
+  // applies the same fuzzy-but-not-too-fuzzy name check server-side to
+  // decide what counts as a real match vs. a "similar item" — see there
+  // for the full reasoning.
   function sameItem(a: SearchResult, b: SearchResult): boolean {
     if (!namesMatch(a.product_name, b.product_name)) return false;
     if (fieldsConflict(norm(a.size), norm(b.size))) return false;
