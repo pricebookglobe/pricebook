@@ -7,7 +7,16 @@ export async function POST(req: NextRequest) {
   const body: StructuredProduct & { imageBase64?: string; imageUrl?: string; nutrition_facts?: NutritionFacts | null; barcode?: string } =
     await req.json();
   if (!body.product_name || !body.category) {
-    return NextResponse.json({ error: "product_name and category are required" }, { status: 400 });
+    // Names the actual missing field(s) rather than always blaming both —
+    // the far more common case is product_name being filled in (it's
+    // required earlier in the Add Item flow) while category is the one
+    // thing genuinely left blank (a brand name like "Twix" or "Snickers"
+    // doesn't match any category keyword, and GPT's own extraction
+    // doesn't always return one either), and a message that blames a
+    // field the merchant can plainly see is filled in just reads as
+    // broken rather than telling them what to actually fix.
+    const missing = [!body.product_name && "item name", !body.category && "category"].filter(Boolean).join(" and ");
+    return NextResponse.json({ error: `Please fill in the ${missing} before saving.` }, { status: 400 });
   }
 
   const supabase = createServiceSupabase();

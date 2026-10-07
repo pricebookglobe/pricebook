@@ -119,6 +119,8 @@ export const UI_STRINGS = [
   "Brand",
   "Category",
   "Select a category",
+  "(required)",
+  "Pick a category above before saving.",
   "Pack Size",
   "How many individual units are sold together (e.g. a 6-pack of cans). Size below describes ONE of them.",
   "Size Type",

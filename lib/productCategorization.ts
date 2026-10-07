@@ -82,6 +82,17 @@ const NAME_CATEGORY_KEYWORDS: { pattern: RegExp; subcategory: string }[] = [
   { pattern: /\b(frozen|ice cream)\b/i, subcategory: "Frozen Foods" },
   { pattern: /\b(can|canned|tin|tinned)\b/i, subcategory: "Canned & Packaged Goods" },
   { pattern: /\b(chocolate|candy|sweet|sweets|snack|chips|crisps|cookie|biscuit)\b/i, subcategory: "Snacks & Sweets" },
+  // A chocolate/candy brand name on its own ("Twix", "Snickers"...) never
+  // matches the generic "chocolate|candy|sweet" rule above — nothing in
+  // the name says what kind of product it is unless the brand itself is
+  // recognized. Covers the handful of brands actually common enough to
+  // name-drop here; anything else still falls through to a blank
+  // category, which the Add Item form now flags clearly rather than
+  // letting slip through to a confusing save error.
+  {
+    pattern: /\b(twix|snickers|kitkat|kit kat|mars|bounty|milky way|m&ms?|oreo|galaxy|toblerone|aero|crunch|kinder|lindt|cadbury)\b/i,
+    subcategory: "Snacks & Sweets"
+  },
   { pattern: /\b(water|juice|soda|cola|drink|beverage|coffee|tea|energy drink)\b/i, subcategory: "Beverages" },
   { pattern: /\b(rice|pasta|spaghetti|noodle|grain|flour|lentil|bean)\b/i, subcategory: "Rice, Pasta & Grains" },
   { pattern: /\b(oil|vinegar|ketchup|mayonnaise|sauce|condiment|spice)\b/i, subcategory: "Cooking Oils & Condiments" },

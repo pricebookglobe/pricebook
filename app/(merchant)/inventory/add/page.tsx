@@ -515,17 +515,23 @@ export default function AddItemPage() {
             </label>
             <label className="text-sm text-ash">
               {t("Category")}
-              {/* Auto-detected from the item name above (editable any
-                  time) — a plain <select> over the app's existing
-                  category taxonomy (lib/categories.ts), the same list
-                  "Search by category" already uses on the customer side,
-                  so a listing's category always lines up with something a
-                  shopper can actually filter by. If the current value
-                  (from GPT extraction or a barcode-DB lookup) isn't one of
-                  those known subcategories, it's kept as an extra option
-                  at the top instead of being silently replaced. */}
+              {/* Required to save (app/api/products/route.ts), but a brand
+                  name alone ("Twix", "Snickers"...) rarely matches any
+                  category keyword, and neither GPT extraction nor a
+                  barcode lookup always returns one either — so this is
+                  left genuinely blank fairly often, not a rare edge case.
+                  Flagged in red the moment it's empty so it's obvious
+                  BEFORE hitting Save, instead of a merchant having typed
+                  a real item name and price and only then being told,
+                  confusingly, that the name is "required" too. */}
+              {!product.category && (
+                <span className="ml-1 text-flag">{t("(required)")}</span>
+              )}
               <select
                 value={product.category}
+                className={`mt-1 w-full rounded border bg-field px-3 py-2 text-ink outline-none ${
+                  product.category ? "border-line" : "border-flag"
+                }`}
                 onChange={(e) => {
                   const category = e.target.value;
                   setCategoryManuallySet(true);
@@ -552,7 +558,6 @@ export default function AddItemPage() {
                     return updated;
                   });
                 }}
-                className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
               >
                 {!product.category && <option value="">{t("Select a category")}</option>}
                 {product.category && !CATEGORY_OPTIONS.some((o) => o.subcategory === product.category) && (
@@ -766,11 +771,18 @@ export default function AddItemPage() {
           )}
 
           {error && <p className="text-sm text-flag">{error}</p>}
+          {/* Catches the far more common real case (category left blank —
+              see the Category field above) before a round trip to the
+              server is even needed, rather than only surfacing it as a
+              generic error after Save is clicked. */}
+          {!product.category && (
+            <p className="text-sm text-flag">{t("Pick a category above before saving.")}</p>
+          )}
 
           <div className="flex gap-2">
             <button
               onClick={handleSave}
-              disabled={saving || !price}
+              disabled={saving || !price || !product.category}
               className="btn-shine rounded-sm border border-value bg-value px-4 py-2 font-display text-sm font-medium text-white transition-all hover:border-value-soft hover:text-white active:bg-value-dark active:border-value-dark active:text-white disabled:opacity-40 duration-200 hover:scale-105"
             >
               {saving ? t("Saving…") : t("Save item")}
