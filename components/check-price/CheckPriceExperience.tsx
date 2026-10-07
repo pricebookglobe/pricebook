@@ -1640,7 +1640,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               different-products view, not a size variant of this one. */}
           {!showSimilar && variants.length > 1 && (
             <div className="mb-2 flex flex-wrap items-center gap-1.5 text-sm">
-              <span className="text-ash">{t("Size")}:</span>
+              <span className="text-ash">{t("Pack Size")}:</span>
               <button
                 onClick={() => setSelectedVariant(null)}
                 className={`rounded-full px-2.5 py-1 text-[13px] transition-colors ${
