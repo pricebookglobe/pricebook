@@ -128,22 +128,6 @@ export async function POST(req: NextRequest) {
     });
     if (embeddingError) throw embeddingError;
 
-    // The embedding search compares *meaning*, so a generic query like
-    // "Ultra Bottled Drinking Water" can land well above the exact-match
-    // similarity floor against a totally different brand — "San Pellegrino
-    // Sparkling Natural Mineral Water" — just because both are,
-    // semantically, about bottled water. That's a real product, just not
-    // THIS product, so it belongs under "Similar items", not merged into
-    // the main results table as if it were another store's listing of the
-    // same item. Gate embedding matches through the same name check
-    // search_nearby_products_by_text already applies at the SQL level
-    // (lib/nameMatch.ts) before they're allowed to count as a direct
-    // match — items that fail this still get a chance to show up under
-    // "Similar items" via search_similar_products below.
-    const cityWideEmbeddingMatched = (cityWideEmbedding ?? []).filter((r: any) =>
-      namesMatch(r.product_name, structured.product_name)
-    );
-
     let cityWideText: any[] = [];
     if (partialTextQuery.length >= 2) {
       const { data, error: textError } = await supabase.rpc("search_nearby_products_by_text", {
@@ -172,7 +156,26 @@ export async function POST(req: NextRequest) {
 
     // Priority (highest confidence wins for a given store+product):
     // embedding similarity < substring text match < exact barcode match.
-    const cityWide = mergeByStoreAndProduct(cityWideEmbeddingMatched, cityWideText, cityWideBarcode);
+    const cityWideMerged = mergeByStoreAndProduct(cityWideEmbedding ?? [], cityWideText, cityWideBarcode);
+
+    // Name gate, applied once here rather than trusting each individual
+    // source to have already filtered correctly: the embedding search
+    // compares *meaning*, so a generic query like "Ultra Drinking Water"
+    // can land well above the exact-match similarity floor against a
+    // totally different brand — "San Pellegrino Sparkling Natural Mineral
+    // Water" — just because both are, semantically, about bottled water.
+    // The text search is meant to be stricter (see
+    // search_nearby_products_by_text), but re-checking here means a real
+    // mismatch can't slip into the main results table even if that SQL
+    // function is ever out of sync with this logic. A barcode match is
+    // exempt — scanning a specific barcode already identifies the exact
+    // product beyond any doubt, regardless of how differently its name
+    // happens to be typed. Anything that fails this still gets a chance to
+    // show up under "Similar items" via search_similar_products below.
+    const barcodeKeys = new Set(cityWideBarcode.map((r: any) => `${r.store_id}::${r.product_id}`));
+    const cityWide = cityWideMerged.filter(
+      (r: any) => barcodeKeys.has(`${r.store_id}::${r.product_id}`) || namesMatch(r.product_name, structured.product_name)
+    );
 
     const strongMatches = cityWide.filter((r: any) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
     // unit_price (price per gram/ml/cm/item, pack size included) backs every
