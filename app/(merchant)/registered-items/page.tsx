@@ -7,6 +7,7 @@ import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { InventoryTable, type InventoryRow } from "@/components/merchant/InventoryTable";
 import { useIsNativeApp } from "@/lib/useIsNativeApp";
+import { isNutritionRelevant } from "@/lib/productCategorization";
 
 type SortMode = "none" | "alphabetical" | "worst-to-best";
 
@@ -72,7 +73,16 @@ export default function RegisteredItemsPage() {
   const sortLabel =
     sortMode === "alphabetical" ? t("Sorted: A–Z") : sortMode === "worst-to-best" ? t("Sorted: needs attention first") : t("Sort");
 
-  const missingNutrition = rows.filter((r) => !r.products.nutrition_facts);
+  // Only food/supplement items ever get a real nutrition estimate — a GPT
+  // "nutrition facts" guess for a lamp or a bag of cement is invented
+  // numbers with nothing real to estimate from, so those items are left
+  // out of the batch (and out of the count in the button's label) rather
+  // than silently filled with nonsense.
+  const missingNutrition = rows.filter(
+    (r) =>
+      !r.products.nutrition_facts &&
+      isNutritionRelevant({ category: r.products.category, productName: r.products.canonical_name })
+  );
 
   async function fillMissingNutrition() {
     if (!storeId || !token || missingNutrition.length === 0) return;

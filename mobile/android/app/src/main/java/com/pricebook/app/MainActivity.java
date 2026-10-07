@@ -44,6 +44,25 @@ public class MainActivity extends BridgeActivity {
     // twice, but there's nothing to gain from it either.
     private boolean splashForceHidden = false;
 
+    // "Camera lands me back on [home screen] and doesn't continue adding
+    // the item" — the relaunch below (startActivity(new Intent(getIntent())))
+    // is what onRenderProcessGone always did once the renderer was killed
+    // mid-Snap, and it never carried the page the person was actually on:
+    // getIntent() is the app's ORIGINAL launch intent, so the fresh WebView
+    // always starts over from capacitor.config.ts's server.url root, which
+    // then redirects by role (merchant -> /overview, customer ->
+    // /check-price) — never back to /inventory/add. That's the "lands on
+    // [home], didn't continue" behavior reported, not a separate bug.
+    //
+    // This doesn't recover the in-progress draft (that's real React state,
+    // gone with the killed renderer) — but it does mean the person lands
+    // back on the Add Item page itself afterward, instead of getting
+    // bounced to an unrelated tab with no obvious way back. Stored in a
+    // static field because only the Chromium render process was killed,
+    // not this app's own Java process, so a plain static survives the
+    // finish()+startActivity() below just fine.
+    private static volatile String pendingRestoreUrl = null;
+
     private void forceHideSplashIfStuck() {
         if (splashForceHidden) return;
         splashForceHidden = true;
@@ -109,6 +128,12 @@ public class MainActivity extends BridgeActivity {
                         if (!detail.didCrash()) {
                             // Killed to reclaim memory, not an actual
                             // renderer crash — safe to relaunch cleanly.
+                            // Remember where the person actually was so the
+                            // fresh WebView can return there once it's back
+                            // up, instead of silently restarting at the
+                            // app's normal launch screen.
+                            String currentUrl = view.getUrl();
+                            if (currentUrl != null) pendingRestoreUrl = currentUrl;
                             finish();
                             startActivity(new Intent(getIntent()));
                             return true;
@@ -124,6 +149,24 @@ public class MainActivity extends BridgeActivity {
                         super.onReceivedError(view, request, error);
                         if (request.isForMainFrame()) {
                             forceHideSplashIfStuck();
+                        }
+                    }
+
+                    @Override
+                    public void onPageFinished(WebView view, String url) {
+                        super.onPageFinished(view, url);
+                        // Fires once for the fresh WebView's very first
+                        // load (the normal server.url start page, per
+                        // capacitor.config.ts) — if a render-process-gone
+                        // relaunch left a page to return to, this is the
+                        // one and only moment to redirect there, before the
+                        // person has a chance to see or interact with the
+                        // wrong screen. Cleared immediately so a normal,
+                        // unrelated page load later never triggers this.
+                        String restoreUrl = pendingRestoreUrl;
+                        if (restoreUrl != null) {
+                            pendingRestoreUrl = null;
+                            if (!restoreUrl.equals(url)) view.loadUrl(restoreUrl);
                         }
                     }
                 }

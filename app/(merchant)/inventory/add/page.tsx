@@ -21,6 +21,7 @@ import {
   defaultUnitForSizeType,
   inferCategory,
   inferSizeType,
+  isNutritionRelevant,
   type SizeType
 } from "@/lib/productCategorization";
 import { CATEGORY_TREE } from "@/lib/categories";
@@ -111,12 +112,22 @@ export default function AddItemPage() {
       const extracted = await res.json();
       setCategoryManuallySet(false);
       setSizeTypeManuallySet(false);
-      setProduct(normalizeProduct(extracted));
+      const normalized = normalizeProduct(extracted);
+      setProduct(normalized);
       // Runs in the background while the merchant sets a price — not
       // awaited, so it doesn't block the confirm screen from appearing.
       // Barcode-scanned items skip this entirely (they already have real
       // label data from extract() never being called for that path).
-      lookupNutrition(extracted);
+      // Skipped outright for anything that isn't food/supplements — a GPT
+      // nutrition estimate on a phone case or a bottle of engine oil is
+      // just invented numbers with nowhere real to come from.
+      if (isNutritionRelevant({ category: normalized.category, productName: normalized.product_name })) {
+        lookupNutrition(normalized);
+      } else {
+        setNutrition(null);
+        setNutritionFromDatabase(false);
+        setNutritionError(null);
+      }
     } catch (e: any) {
       setError(e.message ?? "Couldn't read that product.");
     } finally {
@@ -194,13 +205,20 @@ export default function AddItemPage() {
 
       setCategoryManuallySet(false);
       setSizeTypeManuallySet(false);
-      setProduct(normalizeProduct(data.structured));
+      const normalized = normalizeProduct(data.structured);
+      setProduct(normalized);
       setProductImageUrl(data.image_url ?? null);
       setLastImageBase64(null);
       setScannedBarcode(barcode);
-      if (data.nutrition_facts) {
+      if (
+        data.nutrition_facts &&
+        isNutritionRelevant({ category: normalized.category, productName: normalized.product_name })
+      ) {
         setNutrition(data.nutrition_facts);
         setNutritionFromDatabase(true);
+      } else {
+        setNutrition(null);
+        setNutritionFromDatabase(false);
       }
     } catch (e: any) {
       setError(`Barcode lookup failed: ${e?.message ?? String(e)}`);
@@ -504,7 +522,20 @@ export default function AddItemPage() {
                     const units = SIZE_TYPE_UNITS[sizeType];
                     const unit = p.unit && units.includes(p.unit) ? p.unit : defaultUnitForSizeType(sizeType);
                     const size = sizeType === "units" && p.size == null ? 1 : p.size;
-                    return { ...p, category, size_type: sizeType, unit, size };
+                    const updated = { ...p, category, size_type: sizeType, unit, size };
+                    // A category edit can flip whether nutrition facts make
+                    // sense at all — fetch an estimate the moment it becomes
+                    // relevant (e.g. corrected from "Other" to "Snacks &
+                    // Sweets"), or drop a stale/invented one the moment it
+                    // stops being relevant.
+                    if (isNutritionRelevant({ category, productName: updated.product_name })) {
+                      if (!nutrition) lookupNutrition(updated);
+                    } else {
+                      setNutrition(null);
+                      setNutritionFromDatabase(false);
+                      setNutritionError(null);
+                    }
+                    return updated;
                   });
                 }}
                 className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
@@ -600,6 +631,7 @@ export default function AddItemPage() {
             </label>
           </div>
 
+          {isNutritionRelevant({ category: product.category, productName: product.product_name }) && (
           <div className="rounded border border-line bg-field p-3">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium text-ink">{t("Nutrition facts")}</p>
@@ -703,6 +735,7 @@ export default function AddItemPage() {
               </>
             )}
           </div>
+          )}
 
           {error && <p className="text-sm text-flag">{error}</p>}
 

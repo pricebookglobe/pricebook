@@ -8,6 +8,7 @@ import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { formatSizeTag } from "@/lib/productName";
 import { EmojiRating } from "@/components/shared/EmojiRating";
+import { isNutritionRelevant } from "@/lib/productCategorization";
 
 export type StoreRating = { average_rating: number | null; count: number };
 
@@ -54,48 +55,59 @@ const TRUST_COLOR: Record<SearchResult["trust_badge"], string> = {
   unrated: "bg-ash/40"
 };
 
+// Nutrition facts only mean anything for something you eat or drink — a
+// GPT estimate stored against a non-food product_id (electronics, car
+// parts, cleaning supplies, etc.) still shouldn't be surfaced to a
+// shopper just because the column happens to be non-null. SearchResult
+// rows don't carry the product's category, so this falls back to the
+// same name-keyword guess used for auto-categorization.
+export function hasRelevantNutrition(result: SearchResult): boolean {
+  return !!result.nutrition_facts && isNutritionRelevant({ productName: result.product_name });
+}
+
 function NutritionPanel({ result, dark = false }: { result: SearchResult; dark?: boolean }) {
   const { t } = useLanguage();
-  if (!result.nutrition_facts) return null;
+  const facts = result.nutrition_facts;
+  if (!facts || !isNutritionRelevant({ productName: result.product_name })) return null;
   return (
     <div className={dark ? "mt-2 rounded bg-white/10 px-3 py-2" : "bg-field px-3 py-2"}>
       <p className={`mb-1.5 font-mono text-[10px] uppercase tracking-wide ${dark ? "text-field/60" : "text-ash"}`}>
         {t("Nutrition facts")} · {t("AI estimate — check the actual package")}
       </p>
       <div className={`flex flex-wrap gap-x-4 gap-y-1 text-xs ${dark ? "text-field" : "text-ink"}`}>
-        {result.nutrition_facts.serving_size && (
+        {facts.serving_size && (
           <span>
-            {t("Serving size")}: <strong>{result.nutrition_facts.serving_size}</strong>
+            {t("Serving size")}: <strong>{facts.serving_size}</strong>
           </span>
         )}
-        {result.nutrition_facts.calories != null && (
+        {facts.calories != null && (
           <span>
-            {t("Calories")}: <strong>{result.nutrition_facts.calories}</strong>
+            {t("Calories")}: <strong>{facts.calories}</strong>
           </span>
         )}
-        {result.nutrition_facts.protein_g != null && (
+        {facts.protein_g != null && (
           <span>
-            {t("Protein (g)")}: <strong>{result.nutrition_facts.protein_g}</strong>
+            {t("Protein (g)")}: <strong>{facts.protein_g}</strong>
           </span>
         )}
-        {result.nutrition_facts.fat_g != null && (
+        {facts.fat_g != null && (
           <span>
-            {t("Fat (g)")}: <strong>{result.nutrition_facts.fat_g}</strong>
+            {t("Fat (g)")}: <strong>{facts.fat_g}</strong>
           </span>
         )}
-        {result.nutrition_facts.carbs_g != null && (
+        {facts.carbs_g != null && (
           <span>
-            {t("Carbs (g)")}: <strong>{result.nutrition_facts.carbs_g}</strong>
+            {t("Carbs (g)")}: <strong>{facts.carbs_g}</strong>
           </span>
         )}
-        {result.nutrition_facts.sugar_g != null && (
+        {facts.sugar_g != null && (
           <span>
-            {t("Sugar (g)")}: <strong>{result.nutrition_facts.sugar_g}</strong>
+            {t("Sugar (g)")}: <strong>{facts.sugar_g}</strong>
           </span>
         )}
-        {result.nutrition_facts.sodium_mg != null && (
+        {facts.sodium_mg != null && (
           <span>
-            {t("Sodium (mg)")}: <strong>{result.nutrition_facts.sodium_mg}</strong>
+            {t("Sodium (mg)")}: <strong>{facts.sodium_mg}</strong>
           </span>
         )}
       </div>
@@ -179,7 +191,7 @@ function ActionsMenu({
         <>
           <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
           <div className="absolute right-0 top-6 z-20 w-48 rounded border border-line bg-field-raised py-1 text-left shadow-lg">
-            {result.nutrition_facts && (
+            {hasRelevantNutrition(result) && (
               <button
                 onClick={() => {
                   onToggleNutrition();
@@ -370,7 +382,7 @@ export function ResultRow({
           <ActionsMenu result={result} showingNutrition={showNutrition} onToggleNutrition={() => setShowNutrition((s) => !s)} />
         </td>
       </tr>
-      {showNutrition && result.nutrition_facts && (
+      {showNutrition && hasRelevantNutrition(result) && (
         <tr>
           <td colSpan={2} className="bg-field px-3 py-2">
             <NutritionPanel result={result} />

@@ -6,7 +6,7 @@ import { Camera as CameraIcon, Image as ImageIcon, Tags as CategoryIcon } from "
 import { ImageSourceSheet } from "@/components/shared/ImageSourceSheet";
 import { StatusDots, StatusDotsCard } from "@/components/shared/StatusDots";
 import { useGeolocation } from "@/components/shared/GeolocationProvider";
-import { ResultRow, SaveBadge, ItemName, type StoreRating } from "@/components/search/ResultRow";
+import { ResultRow, SaveBadge, ItemName, hasRelevantNutrition, type StoreRating } from "@/components/search/ResultRow";
 import { EmojiRating } from "@/components/shared/EmojiRating";
 import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
 import { FreeTextSearch } from "@/components/check-price/FreeTextSearch";
@@ -184,7 +184,7 @@ function PriceCallout({
           >
             {t("Open in Maps")}
           </a>
-          {result.nutrition_facts && (
+          {hasRelevantNutrition(result) && (
             <button onClick={() => setShowNutrition((s) => !s)} className="text-sm text-[#7FE0AE] underline">
               {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
             </button>
@@ -195,45 +195,45 @@ function PriceCallout({
             {t("Your answer counts toward this store's total price reports and credibility.")}
           </p>
         )}
-        {showNutrition && result.nutrition_facts && (
+        {showNutrition && hasRelevantNutrition(result) && (
           <div className="mt-2 rounded bg-white/10 px-3 py-2">
             <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-field/60">
               {t("AI estimate — check the actual package")}
             </p>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-field">
-              {result.nutrition_facts.serving_size && (
+              {result.nutrition_facts!.serving_size && (
                 <span>
-                  {t("Serving size")}: <strong>{result.nutrition_facts.serving_size}</strong>
+                  {t("Serving size")}: <strong>{result.nutrition_facts!.serving_size}</strong>
                 </span>
               )}
-              {result.nutrition_facts.calories != null && (
+              {result.nutrition_facts!.calories != null && (
                 <span>
-                  {t("Calories")}: <strong>{result.nutrition_facts.calories}</strong>
+                  {t("Calories")}: <strong>{result.nutrition_facts!.calories}</strong>
                 </span>
               )}
-              {result.nutrition_facts.protein_g != null && (
+              {result.nutrition_facts!.protein_g != null && (
                 <span>
-                  {t("Protein (g)")}: <strong>{result.nutrition_facts.protein_g}</strong>
+                  {t("Protein (g)")}: <strong>{result.nutrition_facts!.protein_g}</strong>
                 </span>
               )}
-              {result.nutrition_facts.fat_g != null && (
+              {result.nutrition_facts!.fat_g != null && (
                 <span>
-                  {t("Fat (g)")}: <strong>{result.nutrition_facts.fat_g}</strong>
+                  {t("Fat (g)")}: <strong>{result.nutrition_facts!.fat_g}</strong>
                 </span>
               )}
-              {result.nutrition_facts.carbs_g != null && (
+              {result.nutrition_facts!.carbs_g != null && (
                 <span>
-                  {t("Carbs (g)")}: <strong>{result.nutrition_facts.carbs_g}</strong>
+                  {t("Carbs (g)")}: <strong>{result.nutrition_facts!.carbs_g}</strong>
                 </span>
               )}
-              {result.nutrition_facts.sugar_g != null && (
+              {result.nutrition_facts!.sugar_g != null && (
                 <span>
-                  {t("Sugar (g)")}: <strong>{result.nutrition_facts.sugar_g}</strong>
+                  {t("Sugar (g)")}: <strong>{result.nutrition_facts!.sugar_g}</strong>
                 </span>
               )}
-              {result.nutrition_facts.sodium_mg != null && (
+              {result.nutrition_facts!.sodium_mg != null && (
                 <span>
-                  {t("Sodium (mg)")}: <strong>{result.nutrition_facts.sodium_mg}</strong>
+                  {t("Sodium (mg)")}: <strong>{result.nutrition_facts!.sodium_mg}</strong>
                 </span>
               )}
             </div>
@@ -300,7 +300,7 @@ function PriceCallout({
         >
           {t("Open in Maps")}
         </a>
-        {result.nutrition_facts && (
+        {hasRelevantNutrition(result) && (
           <button onClick={() => setShowNutrition((s) => !s)} className="text-sm text-ink underline hover:text-ink/80">
             {showNutrition ? t("Hide nutrition facts") : t("Nutrition facts")}
           </button>
@@ -311,45 +311,45 @@ function PriceCallout({
           {t("Your answer counts toward this store's total price reports and credibility.")}
         </p>
       )}
-      {showNutrition && result.nutrition_facts && (
+      {showNutrition && hasRelevantNutrition(result) && (
         <div className="mt-2 rounded border border-ink/20 bg-white/60 px-3 py-2">
           <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide text-ash">
             {t("AI estimate — check the actual package")}
           </p>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink">
-            {result.nutrition_facts.serving_size && (
+            {result.nutrition_facts!.serving_size && (
               <span>
-                {t("Serving size")}: <strong>{result.nutrition_facts.serving_size}</strong>
+                {t("Serving size")}: <strong>{result.nutrition_facts!.serving_size}</strong>
               </span>
             )}
-            {result.nutrition_facts.calories != null && (
+            {result.nutrition_facts!.calories != null && (
               <span>
-                {t("Calories")}: <strong>{result.nutrition_facts.calories}</strong>
+                {t("Calories")}: <strong>{result.nutrition_facts!.calories}</strong>
               </span>
             )}
-            {result.nutrition_facts.protein_g != null && (
+            {result.nutrition_facts!.protein_g != null && (
               <span>
-                {t("Protein (g)")}: <strong>{result.nutrition_facts.protein_g}</strong>
+                {t("Protein (g)")}: <strong>{result.nutrition_facts!.protein_g}</strong>
               </span>
             )}
-            {result.nutrition_facts.fat_g != null && (
+            {result.nutrition_facts!.fat_g != null && (
               <span>
-                {t("Fat (g)")}: <strong>{result.nutrition_facts.fat_g}</strong>
+                {t("Fat (g)")}: <strong>{result.nutrition_facts!.fat_g}</strong>
               </span>
             )}
-            {result.nutrition_facts.carbs_g != null && (
+            {result.nutrition_facts!.carbs_g != null && (
               <span>
-                {t("Carbs (g)")}: <strong>{result.nutrition_facts.carbs_g}</strong>
+                {t("Carbs (g)")}: <strong>{result.nutrition_facts!.carbs_g}</strong>
               </span>
             )}
-            {result.nutrition_facts.sugar_g != null && (
+            {result.nutrition_facts!.sugar_g != null && (
               <span>
-                {t("Sugar (g)")}: <strong>{result.nutrition_facts.sugar_g}</strong>
+                {t("Sugar (g)")}: <strong>{result.nutrition_facts!.sugar_g}</strong>
               </span>
             )}
-            {result.nutrition_facts.sodium_mg != null && (
+            {result.nutrition_facts!.sodium_mg != null && (
               <span>
-                {t("Sodium (mg)")}: <strong>{result.nutrition_facts.sodium_mg}</strong>
+                {t("Sodium (mg)")}: <strong>{result.nutrition_facts!.sodium_mg}</strong>
               </span>
             )}
           </div>

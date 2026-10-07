@@ -147,3 +147,29 @@ export function inferSizeType(productName: string, subcategory: string | null): 
 export function defaultUnitForSizeType(sizeType: SizeType): string {
   return SIZE_TYPE_UNITS[sizeType]?.[0] ?? "pcs";
 }
+
+// Nutrition facts (calories, protein, sugar, etc.) only mean anything for
+// something you actually eat or drink — a GPT estimate asked for "typical
+// nutrition facts" on a phone case, a car battery, or a bar of soap just
+// hallucinates plausible-looking numbers rather than reporting "not
+// applicable," which is worse than showing nothing. Vitamins & Supplements
+// carry a real Supplement Facts panel too, so it's included alongside the
+// whole Groceries & Food group.
+const NUTRITION_RELEVANT_SUBCATEGORIES = new Set<string>([
+  ...(CATEGORY_TREE.find((g) => g.name === "Groceries & Food")?.subcategories ?? []),
+  "Vitamins & Supplements"
+]);
+
+/**
+ * Whether nutrition facts make sense for this product at all. Checks the
+ * product's own category first (when known); otherwise falls back to the
+ * same name-keyword guess used for auto-categorization, so a not-yet-
+ * categorized item still gets a sensible answer rather than defaulting to
+ * "show nutrition facts for everything."
+ */
+export function isNutritionRelevant(input: { category?: string | null; productName?: string | null }): boolean {
+  const category = (input.category ?? "").trim();
+  if (category) return NUTRITION_RELEVANT_SUBCATEGORIES.has(category);
+  const guessed = input.productName ? inferCategory(input.productName) : null;
+  return guessed ? NUTRITION_RELEVANT_SUBCATEGORIES.has(guessed.subcategory) : false;
+}

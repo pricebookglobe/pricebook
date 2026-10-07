@@ -69,13 +69,18 @@ export function InPageCamera({
       }
     }
 
-    // Higher than BarcodeScanner's 1280x720 — this is capturing a photo a
-    // person will look at (a product, a price tag, a store front), not
-    // feeding a per-frame decoder, so it's worth the extra detail. Still
-    // capped well below a modern sensor's native resolution to keep
-    // memory/upload size sane, matching the width Snap already asked
-    // Capacitor's plugin for.
-    const baseVideo: MediaTrackConstraints = { width: { ideal: 1600 }, height: { ideal: 1600 } };
+    // Was 1600x1600 — higher than BarcodeScanner's 1280x720 on the theory
+    // that a photo a person will actually look at deserves more detail
+    // than a per-frame decoder feed. In practice, on Android this request
+    // (plus whatever the rest of the app already has resident) is enough
+    // extra memory pressure on the WebView's renderer process to be one
+    // of the things Android's low-memory killer reclaims it over — which
+    // MainActivity.java's onRenderProcessGone handler survives, but only
+    // by relaunching the whole app, losing the in-progress add-item draft
+    // ("Snap doesn't continue, lands back on an unrelated screen").
+    // 1280x1280 still comfortably beats what a phone camera needs for a
+    // product photo, at a real reduction in peak memory during capture.
+    const baseVideo: MediaTrackConstraints = { width: { ideal: 1280 }, height: { ideal: 1280 } };
 
     async function ensureStandardBackLens(stream: MediaStream): Promise<MediaStream> {
       const label = stream.getVideoTracks()[0]?.label ?? "";
