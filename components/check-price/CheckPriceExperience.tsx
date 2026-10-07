@@ -1737,8 +1737,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               <button
                 key="price"
                 onClick={() => setSortMode("price")}
-                className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
-                  sortMode === "price" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-105"
+                className={`btn-shine rounded-full bg-value-soft px-2.5 py-1 font-display text-[13px] text-value-dark transition-all duration-200 hover:scale-105 ${
+                  sortMode === "price" ? "border-2 border-value-dark font-bold" : "border-2 border-transparent font-medium"
                 }`}
               >
                 {t("Best price")}
@@ -1748,8 +1748,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               <button
                 key="distance"
                 onClick={() => setSortMode("distance")}
-                className={`rounded-sm px-2 py-1 font-display text-[13px] transition-colors ${
-                  sortMode === "distance" ? "bg-ink text-white" : "btn-shine border border-value bg-value text-white hover:border-value-soft hover:text-white transition-all duration-200 hover:scale-105"
+                className={`btn-shine rounded-full bg-value-soft px-2.5 py-1 font-display text-[13px] text-value-dark transition-all duration-200 hover:scale-105 ${
+                  sortMode === "distance" ? "border-2 border-value-dark font-bold" : "border-2 border-transparent font-medium"
                 }`}
               >
                 {t("Nearest")}

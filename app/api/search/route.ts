@@ -185,11 +185,17 @@ export async function POST(req: NextRequest) {
     // every other water brand kept passing.
     const queryName = displayProductName(structured.brand, structured.product_name ?? "");
     const barcodeKeys = new Set(cityWideBarcode.map((r: any) => `${r.store_id}::${r.product_id}`));
-    const cityWide = cityWideMerged.filter(
-      (r: any) =>
-        barcodeKeys.has(`${r.store_id}::${r.product_id}`) ||
-        namesMatch(displayProductName(r.brand, r.product_name ?? ""), queryName)
-    );
+    const isNameMatch = (r: any) =>
+      barcodeKeys.has(`${r.store_id}::${r.product_id}`) ||
+      namesMatch(displayProductName(r.brand, r.product_name ?? ""), queryName);
+    const cityWide = cityWideMerged.filter(isNameMatch);
+    // Everything that scored well enough to have been a match (by text or
+    // embedding) but failed the name check — i.e. genuinely the same
+    // category/type, just not the same product — is exactly what "Similar
+    // items" is supposed to show (see search_similar_products below, which
+    // only covers the lower 0.6–0.75 embedding band; this covers the
+    // ≥0.75/text-matched band that the name gate just rejected).
+    const sameCategoryDifferentItem = cityWideMerged.filter((r: any) => !isNameMatch(r));
 
     const strongMatches = cityWide.filter((r: any) => r.similarity > SIMILARITY_FALLBACK_THRESHOLD);
     // unit_price (price per gram/ml/cm/item, pack size included) backs every
@@ -248,9 +254,16 @@ export async function POST(req: NextRequest) {
         exclude_product_ids: excludeIds
       });
       if (similarError) throw similarError;
-      similarResults = (similarData ?? []).map(withUnitPrice);
+      // Merge in the same-category-different-item matches the name gate
+      // rejected above — mergeByStoreAndProduct takes later sets as higher
+      // confidence, so a real embedding-based similarity score (from the
+      // RPC) wins over the rejected rows' own similarity field, which can
+      // be a meaningless hardcoded 0.99 when the row came in via the text
+      // match path rather than embeddings.
+      similarResults = mergeByStoreAndProduct(sameCategoryDifferentItem, similarData ?? []).map(withUnitPrice);
     } catch (similarErr) {
       console.error("search_similar_products failed (non-fatal)", similarErr);
+      similarResults = sameCategoryDifferentItem.map(withUnitPrice);
     }
 
     // Log to search history if the caller is logged in — best-effort, never
