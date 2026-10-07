@@ -1044,8 +1044,36 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   function fieldsConflict(a: string, b: string): boolean {
     return a !== "" && b !== "" && a !== b;
   }
+  // Two listings' names rarely come in typed identically — one merchant's
+  // "Ultra water" and another's "Ultra Bottled Drinking Water" are the same
+  // product, just entered with extra descriptive words. An exact string
+  // match missed that pairing entirely, so "same item" comparisons (Save
+  // badges, cheapest-nearby) silently skipped real matches whenever the
+  // wording differed even slightly. This matches on either name containing
+  // the other, or — when neither does — sharing most of their meaningful
+  // words (ignoring short/generic filler like "bottled" or "drinking"), so
+  // wording differences don't block a real match while still keeping
+  // genuinely different products (different brands, different items) apart.
+  const NAME_MATCH_STOPWORDS = new Set([
+    "the", "and", "with", "for", "pack", "bottle", "bottled", "drinking", "pure", "natural", "fresh", "brand", "new"
+  ]);
+  function significantWords(s: string): string[] {
+    return s.split(/\s+/).filter((w) => w.length >= 3 && !NAME_MATCH_STOPWORDS.has(w));
+  }
+  function namesMatch(a: string | null | undefined, b: string | null | undefined): boolean {
+    const na = norm(a);
+    const nb = norm(b);
+    if (!na || !nb) return false;
+    if (na === nb || na.includes(nb) || nb.includes(na)) return true;
+    const wa = significantWords(na);
+    const wb = significantWords(nb);
+    if (!wa.length || !wb.length) return false;
+    const [shorter, longer] = wa.length <= wb.length ? [wa, wb] : [wb, wa];
+    const hits = shorter.filter((w) => longer.includes(w)).length;
+    return hits >= Math.max(1, Math.ceil(shorter.length / 2));
+  }
   function sameItem(a: SearchResult, b: SearchResult): boolean {
-    if (norm(a.product_name) !== norm(b.product_name)) return false;
+    if (!namesMatch(a.product_name, b.product_name)) return false;
     if (fieldsConflict(norm(a.size), norm(b.size))) return false;
     if (fieldsConflict(norm(a.unit), norm(b.unit))) return false;
     // A 6-pack and a 12-pack of the same-named, same-sized item are not the
@@ -1058,24 +1086,27 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     return true;
   }
   const bestWithin5kmByProduct = (() => {
-    // Bucketed by name only — sameItem's size/unit/manufacturer leniency
-    // isn't guaranteed transitive (a blank-size listing can match both a
-    // 50g one and a 100g one without those two matching each other), so
-    // grouping has to go through sameItem() against a chosen "best" row
-    // rather than a single shared key standing in for the whole bucket.
-    const nameGroups = new Map<string, SearchResult[]>();
-    for (const r of sorted) {
-      if (r.distance_m > 5000) continue;
-      const key = norm(r.product_name);
-      const arr = nameGroups.get(key) ?? [];
-      arr.push(r);
-      nameGroups.set(key, arr);
+    // Grouped by namesMatch (fuzzy), not an exact name key — "Ultra water"
+    // and "Ultra Bottled Drinking Water" need to land in the same bucket
+    // even though neither string is identical. sameItem's size/unit/
+    // manufacturer leniency isn't guaranteed transitive (a blank-size
+    // listing can match both a 50g one and a 100g one without those two
+    // matching each other), so grouping still goes through sameItem()
+    // against a chosen "best" row rather than a single shared key standing
+    // in for the whole bucket. Keyed by store+product (not name) in the
+    // output map, since a fuzzy name is no longer a safe, unique lookup key.
+    const items = sorted.filter((r) => r.distance_m <= 5000);
+    const groups: SearchResult[][] = [];
+    for (const r of items) {
+      const group = groups.find((g) => namesMatch(g[0].product_name, r.product_name));
+      if (group) group.push(r);
+      else groups.push([r]);
     }
-    const map = new Map<string, { key: string; savings: number }>();
-    for (const [name, items] of nameGroups) {
-      if (items.length < 2) continue;
-      const best = items.reduce((m, r) => (r.unit_price < m.unit_price ? r : m), items[0]);
-      const comparable = items.filter((r) => sameItem(r, best));
+    const map = new Map<string, number>();
+    for (const group of groups) {
+      if (group.length < 2) continue;
+      const best = group.reduce((m, r) => (r.unit_price < m.unit_price ? r : m), group[0]);
+      const comparable = group.filter((r) => sameItem(r, best));
       if (comparable.length < 2) continue;
       // sameItem now guarantees matching pack_size/size/unit within
       // `comparable`, so the raw price difference is a real, directly
@@ -1084,14 +1115,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       const worst = comparable.reduce((m, r) => (r.price > m.price ? r : m), comparable[0]);
       const savings = worst.price - best.price;
       if (savings > 0) {
-        map.set(name, { key: `${best.store_id}::${best.product_id}`, savings });
+        map.set(`${best.store_id}::${best.product_id}`, savings);
       }
     }
     return map;
   })();
   function savingsFor(r: SearchResult): number | undefined {
-    const entry = bestWithin5kmByProduct.get(norm(r.product_name));
-    return entry && entry.key === `${r.store_id}::${r.product_id}` ? entry.savings : undefined;
+    return bestWithin5kmByProduct.get(`${r.store_id}::${r.product_id}`);
   }
 
   // Same "Save: X" idea, for the "Best price within 5km" callout box
@@ -1676,10 +1706,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               <span className="text-ash">{t("Select size")}:</span>
               <button
                 onClick={() => setSelectedSize(null)}
-                className={`btn-shine rounded-full px-2.5 py-1 text-[13px] font-medium transition-all duration-200 hover:scale-105 ${
-                  selectedSize === null
-                    ? "bg-value-dark text-white"
-                    : "bg-value-soft text-value-dark hover:bg-value-light hover:text-white"
+                className={`btn-shine rounded-full bg-value-soft px-2.5 py-1 text-[13px] text-value-dark transition-all duration-200 hover:scale-105 ${
+                  selectedSize === null ? "border-2 border-value-dark font-bold" : "border-2 border-transparent font-medium"
                 }`}
               >
                 {t("All")}
@@ -1688,10 +1716,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 <button
                   key={opt.key}
                   onClick={() => setSelectedSize((s) => (s === opt.key ? null : opt.key))}
-                  className={`btn-shine rounded-full px-2.5 py-1 text-[13px] font-medium transition-all duration-200 hover:scale-105 ${
-                    selectedSize === opt.key
-                      ? "bg-value-dark text-white"
-                      : "bg-value-soft text-value-dark hover:bg-value-light hover:text-white"
+                  className={`btn-shine rounded-full bg-value-soft px-2.5 py-1 text-[13px] text-value-dark transition-all duration-200 hover:scale-105 ${
+                    selectedSize === opt.key ? "border-2 border-value-dark font-bold" : "border-2 border-transparent font-medium"
                   }`}
                 >
                   {opt.label}
@@ -1704,10 +1730,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               <span className="text-ash">{t("Select pack")}:</span>
               <button
                 onClick={() => setSelectedPack(null)}
-                className={`btn-shine rounded-full px-2.5 py-1 text-[13px] font-medium transition-all duration-200 hover:scale-105 ${
-                  selectedPack === null
-                    ? "bg-value-dark text-white"
-                    : "bg-value-soft text-value-dark hover:bg-value-light hover:text-white"
+                className={`btn-shine rounded-full bg-value-soft px-2.5 py-1 text-[13px] text-value-dark transition-all duration-200 hover:scale-105 ${
+                  selectedPack === null ? "border-2 border-value-dark font-bold" : "border-2 border-transparent font-medium"
                 }`}
               >
                 {t("All")}
@@ -1716,10 +1740,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 <button
                   key={opt.key}
                   onClick={() => setSelectedPack((s) => (s === opt.key ? null : opt.key))}
-                  className={`btn-shine rounded-full px-2.5 py-1 text-[13px] font-medium transition-all duration-200 hover:scale-105 ${
-                    selectedPack === opt.key
-                      ? "bg-value-dark text-white"
-                      : "bg-value-soft text-value-dark hover:bg-value-light hover:text-white"
+                  className={`btn-shine rounded-full bg-value-soft px-2.5 py-1 text-[13px] text-value-dark transition-all duration-200 hover:scale-105 ${
+                    selectedPack === opt.key ? "border-2 border-value-dark font-bold" : "border-2 border-transparent font-medium"
                   }`}
                 >
                   {opt.label}
