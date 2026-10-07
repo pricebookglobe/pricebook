@@ -509,14 +509,15 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // could differ in size, brand, and/or manufacturer. Independent of
   // sortMode, which still orders whichever list is currently shown.
   const [showSimilar, setShowSimilar] = useState(false);
-  // Which pack-size/size "variant" chip is selected above the exact-match
-  // table (null = "All"). Lets someone disambiguate AFTER seeing what's
-  // actually on offer — a search can genuinely match a 6-pack and a
-  // 24-pack of the same drink, or a 330ml can and a 1.5L bottle, under one
-  // query, and asking the shopper to know and type the exact pack/size
-  // before searching is worse UX than just letting them tap the one they
+  // Independent Size and Pack filter chips above the exact-match table
+  // (null = "All" for each). Lets someone disambiguate AFTER seeing what's
+  // actually on offer — a search can genuinely match a 500ml and a 1.5L
+  // bottle, or a single bottle and a 6-pack of the same bottle, under one
+  // query, and asking the shopper to know and type the exact size/pack
+  // before searching is worse UX than just letting them tap what they
   // actually want once it's in front of them. Reset on every new search.
-  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedPack, setSelectedPack] = useState<number | null>(null);
   // This screen's own per-store review summary cache (average emoji rating
   // + count), keyed by store_id — fetched once per result set, in a single
   // batched request for every store on screen, rather than one request per
@@ -682,7 +683,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     // anything — the searching indicator below takes its place instead.
     setResult(null);
     setShowSimilar(false);
-    setSelectedVariant(null);
+    setSelectedSize(null);
+    setSelectedPack(null);
     try {
       const supabase = createBrowserSupabase();
       const { data } = await supabase.auth.getSession();
@@ -894,34 +896,47 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
         sortMode === "price" ? a.unit_price - b.unit_price : a.distance_m - b.distance_m
       )
     : [];
-  // Groups the exact-match table by pack size + size, so a search that
-  // genuinely spans more than one (a 6-pack and a 24-pack, a 330ml can and
-  // a 1.5L bottle) can be disambiguated AFTER seeing what's really on
-  // offer, instead of asking the shopper to know and type that detail
-  // before searching at all. Only meaningful when there's more than one
-  // distinct combination — a single-variant result set shows no chips.
-  function variantKey(r: SearchResult): string {
-    const pack = r.pack_size ?? 1;
-    if (r.size_type === "units" || r.size == null) return `p${pack}`;
-    return `p${pack}-${r.size}-${(r.unit ?? "").toLowerCase()}`;
+  // Two INDEPENDENT filters over the exact-match table — one for the size
+  // of a single unit (weight/volume/length, whichever this item actually
+  // uses), one for how many of them come in the listing (pack size) — so
+  // a search that genuinely spans more than one of either (a 500ml and a
+  // 1.5L bottle; a single bottle and a 6-pack of the same bottle) can be
+  // disambiguated AFTER seeing what's really on offer, in whatever
+  // combination the shopper actually wants (just "1.5L", just "6×", or
+  // both together). Each filter only shows its own chip row when there's
+  // more than one real value to choose between.
+  function sizeKey(r: SearchResult): string | null {
+    if (r.size_type === "units" || r.size == null) return null;
+    return `${r.size}-${(r.unit ?? "").toLowerCase()}`;
   }
-  function variantLabel(r: SearchResult): string {
-    const pack = r.pack_size ?? 1;
-    const sizePart = r.size_type !== "units" && r.size != null ? formatSizeTag(r.size, r.unit).replace(/[[\]]/g, "") : "";
-    if (pack > 1) return sizePart ? `${pack}× ${sizePart}` : `${pack}×`;
-    return sizePart || t("Single item");
+  function sizeLabel(r: SearchResult): string {
+    return formatSizeTag(r.size, r.unit).replace(/[[\]]/g, "");
   }
-  const variants = (() => {
-    const byKey = new Map<string, { key: string; label: string; count: number }>();
+  function packKey(r: SearchResult): number {
+    return r.pack_size ?? 1;
+  }
+  function packLabel(pack: number): string {
+    return pack > 1 ? `${pack}×` : t("Single");
+  }
+  const sizeOptions = (() => {
+    const byKey = new Map<string, { key: string; label: string }>();
     for (const r of sorted) {
-      const key = variantKey(r);
-      const existing = byKey.get(key);
-      if (existing) existing.count++;
-      else byKey.set(key, { key, label: variantLabel(r), count: 1 });
+      const key = sizeKey(r);
+      if (key && !byKey.has(key)) byKey.set(key, { key, label: sizeLabel(r) });
     }
     return Array.from(byKey.values()).sort((a, b) => a.label.localeCompare(b.label));
   })();
-  const sortedFiltered = selectedVariant ? sorted.filter((r) => variantKey(r) === selectedVariant) : sorted;
+  const packOptions = (() => {
+    const byKey = new Map<number, { key: number; label: string }>();
+    for (const r of sorted) {
+      const key = packKey(r);
+      if (!byKey.has(key)) byKey.set(key, { key, label: packLabel(key) });
+    }
+    return Array.from(byKey.values()).sort((a, b) => a.key - b.key);
+  })();
+  const sortedFiltered = sorted.filter(
+    (r) => (!selectedSize || sizeKey(r) === selectedSize) && (selectedPack == null || packKey(r) === selectedPack)
+  );
   // One product image for the whole results screen — not per-row. Every
   // row here is the same searched-for item at a different store, so
   // there's one real photo to show, not several; picks the first one
@@ -1631,37 +1646,67 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             />
           )}
 
-          {/* Pack/size chips — only when this search genuinely turned up
-              more than one (a 6-pack and a 24-pack of the same drink, a
-              330ml can and a 1.5L bottle). Lets the shopper pick the one
-              they actually want after seeing what's really on offer,
-              instead of having to know and type it before searching.
-              Hidden under "Similar items", which is deliberately a
-              different-products view, not a size variant of this one. */}
-          {!showSimilar && variants.length > 1 && (
+          {/* Size and Pack chips — two independent filters, each shown
+              only when this search genuinely turned up more than one real
+              value for it (a 500ml and a 1.5L bottle; a single bottle and
+              a 6-pack of the same bottle). Lets the shopper pick exactly
+              what they want — a size, a pack count, or both together —
+              after seeing what's really on offer, instead of having to
+              know and type it before searching. Hidden under "Similar
+              items", which is deliberately a different-products view, not
+              a size/pack variant of this one. */}
+          {!showSimilar && sizeOptions.length > 1 && (
             <div className="mb-2 flex flex-wrap items-center gap-1.5 text-sm">
-              <span className="text-ash">{t("Pack Size")}:</span>
+              <span className="text-ash">{t("Size")}:</span>
               <button
-                onClick={() => setSelectedVariant(null)}
+                onClick={() => setSelectedSize(null)}
                 className={`rounded-full px-2.5 py-1 text-[13px] transition-colors ${
-                  selectedVariant === null
+                  selectedSize === null
                     ? "bg-ink text-white"
                     : "border border-line bg-field text-ink hover:bg-field-raised"
                 }`}
               >
                 {t("All")}
               </button>
-              {variants.map((v) => (
+              {sizeOptions.map((opt) => (
                 <button
-                  key={v.key}
-                  onClick={() => setSelectedVariant((s) => (s === v.key ? null : v.key))}
+                  key={opt.key}
+                  onClick={() => setSelectedSize((s) => (s === opt.key ? null : opt.key))}
                   className={`rounded-full px-2.5 py-1 text-[13px] transition-colors ${
-                    selectedVariant === v.key
+                    selectedSize === opt.key
                       ? "bg-ink text-white"
                       : "border border-line bg-field text-ink hover:bg-field-raised"
                   }`}
                 >
-                  {v.label}
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {!showSimilar && packOptions.length > 1 && (
+            <div className="mb-2 flex flex-wrap items-center gap-1.5 text-sm">
+              <span className="text-ash">{t("Pack")}:</span>
+              <button
+                onClick={() => setSelectedPack(null)}
+                className={`rounded-full px-2.5 py-1 text-[13px] transition-colors ${
+                  selectedPack === null
+                    ? "bg-ink text-white"
+                    : "border border-line bg-field text-ink hover:bg-field-raised"
+                }`}
+              >
+                {t("All")}
+              </button>
+              {packOptions.map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => setSelectedPack((s) => (s === opt.key ? null : opt.key))}
+                  className={`rounded-full px-2.5 py-1 text-[13px] transition-colors ${
+                    selectedPack === opt.key
+                      ? "bg-ink text-white"
+                      : "border border-line bg-field text-ink hover:bg-field-raised"
+                  }`}
+                >
+                  {opt.label}
                 </button>
               ))}
             </div>

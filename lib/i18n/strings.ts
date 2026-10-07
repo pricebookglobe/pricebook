@@ -129,6 +129,8 @@ export const UI_STRINGS = [
   "Length",
   "Units",
   "Size",
+  "Pack",
+  "Single",
   "Unit",
   "Currency",
   "Save item",
