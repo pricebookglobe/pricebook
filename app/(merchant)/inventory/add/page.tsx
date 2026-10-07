@@ -77,6 +77,17 @@ export default function AddItemPage() {
   // explicit override. Reset whenever a fresh product is loaded.
   const [categoryManuallySet, setCategoryManuallySet] = useState(false);
   const [sizeTypeManuallySet, setSizeTypeManuallySet] = useState(false);
+  // A plain text mirror of product.pack_size, not the number itself — a
+  // controlled <input type="number"> bound straight to product.pack_size
+  // snaps back to "1" the instant the field is cleared (parseInt("") is
+  // NaN, which the old onChange immediately corrected to 1), so selecting
+  // the default "1" and typing a replacement like "24" could silently
+  // turn into "124" once the field un-clears itself mid-keystroke. This
+  // stays free-form while typing and only resolves to a real number (on
+  // product.pack_size) once it parses, defaulting back to "1" on blur if
+  // left empty or invalid — so the default is always there to just leave
+  // alone, but never fights someone actively replacing it.
+  const [packSizeText, setPackSizeText] = useState("1");
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
@@ -114,6 +125,7 @@ export default function AddItemPage() {
       setSizeTypeManuallySet(false);
       const normalized = normalizeProduct(extracted);
       setProduct(normalized);
+      setPackSizeText(String(normalized.pack_size ?? 1));
       // Runs in the background while the merchant sets a price — not
       // awaited, so it doesn't block the confirm screen from appearing.
       // Barcode-scanned items skip this entirely (they already have real
@@ -207,6 +219,7 @@ export default function AddItemPage() {
       setSizeTypeManuallySet(false);
       const normalized = normalizeProduct(data.structured);
       setProduct(normalized);
+      setPackSizeText(String(normalized.pack_size ?? 1));
       setProductImageUrl(data.image_url ?? null);
       setLastImageBase64(null);
       setScannedBarcode(barcode);
@@ -313,6 +326,7 @@ export default function AddItemPage() {
     setScannedBarcode(null);
     setCategoryManuallySet(false);
     setSizeTypeManuallySet(false);
+    setPackSizeText("1");
   }
 
   return (
@@ -561,10 +575,24 @@ export default function AddItemPage() {
                 type="number"
                 min={1}
                 step={1}
-                value={product.pack_size ?? 1}
+                value={packSizeText}
                 onChange={(e) => {
-                  const n = parseInt(e.target.value, 10);
-                  updateProductField("pack_size", Number.isFinite(n) && n > 0 ? n : 1);
+                  const text = e.target.value;
+                  setPackSizeText(text);
+                  // Updates the real value the moment it's a valid pack
+                  // size, but doesn't force the visible text back to "1"
+                  // just because it's momentarily empty mid-edit — that
+                  // snap-back is what let a cleared "1" turn into "124"
+                  // instead of "24" when a keystroke landed right after
+                  // the field silently reset itself.
+                  const n = parseInt(text, 10);
+                  if (Number.isFinite(n) && n > 0) updateProductField("pack_size", n);
+                }}
+                onBlur={() => {
+                  const n = parseInt(packSizeText, 10);
+                  const resolved = Number.isFinite(n) && n > 0 ? n : 1;
+                  setPackSizeText(String(resolved));
+                  updateProductField("pack_size", resolved);
                 }}
                 className="mt-1 w-full rounded border border-line bg-field px-3 py-2 text-ink outline-none"
               />
