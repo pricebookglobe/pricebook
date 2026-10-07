@@ -37,13 +37,16 @@ export type InventoryRow = {
   report_negative?: number;
 };
 
-// "12 × 330 ml" for a multi-pack listing, plain "330 ml" for a single
-// item (pack_size 1 or unset) — the pack count only earns space in the
-// table when it's actually more than one.
+// Always shows the pack count explicitly — "1 × 330 ml" for a single
+// item, "12 × 330 ml" for a 12-pack — rather than hiding it for the
+// common single-item case, so a merchant scanning their list can tell at
+// a glance whether a row is a single item or a multi-pack without having
+// to open it. Falls back to just "{pack} ×" when there's no size at all
+// (a plain Units item with no weight/volume/length recorded).
 function formatSize(products: InventoryRow["products"]): string {
-  if (!products.size) return "—";
-  const base = `${products.size} ${products.unit ?? ""}`.trim();
-  return products.pack_size && products.pack_size > 1 ? `${products.pack_size} × ${base}` : base;
+  const pack = products.pack_size && products.pack_size > 0 ? products.pack_size : 1;
+  const base = products.size ? `${products.size} ${products.unit ?? ""}`.trim() : null;
+  return base ? `${pack} × ${base}` : `${pack} ×`;
 }
 
 // Small colored circle with the report count inside — green when mostly

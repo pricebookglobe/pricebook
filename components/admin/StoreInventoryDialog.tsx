@@ -14,8 +14,25 @@ type InventoryRow = {
   currency: string;
   in_stock: boolean;
   is_hidden: boolean;
-  products: { id: string; canonical_name: string; brand: string | null; image_url: string | null; size?: number | null; unit?: string | null };
+  products: {
+    id: string;
+    canonical_name: string;
+    brand: string | null;
+    image_url: string | null;
+    size?: number | null;
+    unit?: string | null;
+    pack_size?: number | null;
+  };
 };
+
+// Always shows the pack count explicitly — "1 × 330 ml" for a single
+// item, "6 × 330 ml" for a 6-pack — same reasoning as the merchant's own
+// Registered items table (components/merchant/InventoryTable.tsx).
+function formatSize(products: InventoryRow["products"]): string {
+  const pack = products.pack_size && products.pack_size > 0 ? products.pack_size : 1;
+  const base = products.size ? `${products.size} ${products.unit ?? ""}`.trim() : null;
+  return base ? `${pack} × ${base}` : `${pack} ×`;
+}
 
 export function StoreInventoryDialog({
   store,
@@ -127,7 +144,7 @@ export function StoreInventoryDialog({
                     </div>
                   </td>
                   <td className="font-mono text-xs text-ash">
-                    {row.products.size ? `${row.products.size} ${row.products.unit ?? ""}` : "—"}
+                    {formatSize(row.products)}
                   </td>
                   <td className="font-mono text-xs">
                     <span className={row.in_stock ? "text-green-600" : "text-flag"}>

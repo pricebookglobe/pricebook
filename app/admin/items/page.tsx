@@ -20,6 +20,7 @@ type ItemRow = {
   brand: string | null;
   size: number | null;
   unit: string | null;
+  pack_size: number | null;
   image_url: string | null;
   store_id: string;
   store_name: string;
@@ -27,6 +28,17 @@ type ItemRow = {
   lng: number | null;
   store_positive_pct: number | null;
 };
+
+// Always shows the pack count explicitly — "1 × 330 ml" for a single
+// item, "6 × 330 ml" for a 6-pack — rather than hiding it for the common
+// single-item case, so an admin scanning the list can tell at a glance
+// whether a given row is a single item or a multi-pack without having to
+// open it.
+function formatSize(item: Pick<ItemRow, "size" | "unit" | "pack_size">): string {
+  const pack = item.pack_size && item.pack_size > 0 ? item.pack_size : 1;
+  const base = item.size ? `${item.size} ${item.unit ?? ""}`.trim() : null;
+  return base ? `${pack} × ${base}` : `${pack} ×`;
+}
 
 export default function AdminItemsPage() {
   const router = useRouter();
@@ -141,7 +153,7 @@ export default function AdminItemsPage() {
                     <span>{displayProductName(i.brand, i.product_name)}</span>
                   </div>
                 </td>
-                <td className="font-mono text-xs text-ash">{i.size ? `${i.size} ${i.unit ?? ""}` : "—"}</td>
+                <td className="font-mono text-xs text-ash">{formatSize(i)}</td>
                 <td>
                   <div className="flex items-center gap-2">
                     <TrustDot positivePct={i.store_positive_pct} />

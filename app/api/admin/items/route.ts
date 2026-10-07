@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const storeIds = [...new Set(inventory.map((i) => i.store_id))];
 
   const [{ data: products, error: productsError }, { data: stores, error: storesError }] = await Promise.all([
-    auth.supabase.from("products").select("id, canonical_name, brand, size, unit, image_url").in("id", productIds),
+    auth.supabase.from("products").select("id, canonical_name, brand, size, unit, pack_size, image_url").in("id", productIds),
     auth.supabase.from("stores").select("id, name").in("id", storeIds)
   ]);
 
@@ -64,6 +64,7 @@ export async function GET(req: NextRequest) {
       brand: product?.brand ?? null,
       size: product?.size ?? null,
       unit: product?.unit ?? null,
+      pack_size: product?.pack_size ?? 1,
       image_url: product?.image_url ?? null,
       store_id: i.store_id,
       store_name: store?.name ?? "—",
