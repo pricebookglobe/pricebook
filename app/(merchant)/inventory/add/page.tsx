@@ -77,6 +77,15 @@ export default function AddItemPage() {
   // explicit override. Reset whenever a fresh product is loaded.
   const [categoryManuallySet, setCategoryManuallySet] = useState(false);
   const [sizeTypeManuallySet, setSizeTypeManuallySet] = useState(false);
+  // A Snap photo can surface more than one product at once (a shelf, a
+  // few items together) — extractedQueue holds whatever was detected
+  // beyond the one currently loaded into `product` for review. queueTotal/
+  // queuePosition are purely for the "Item 2 of 5" progress label; both
+  // stay at 1 for the ordinary single-item case (barcode, text, or a
+  // photo of just one product) so that path's UI is unchanged.
+  const [extractedQueue, setExtractedQueue] = useState<StructuredProduct[]>([]);
+  const [queueTotal, setQueueTotal] = useState(1);
+  const [queuePosition, setQueuePosition] = useState(1);
   // A plain text mirror of product.pack_size, not the number itself — a
   // controlled <input type="number"> bound straight to product.pack_size
   // snaps back to "1" the instant the field is cleared (parseInt("") is
@@ -120,12 +129,16 @@ export default function AddItemPage() {
         body: JSON.stringify(input)
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      const extracted = await res.json();
+      const { items } = await res.json();
+      const normalizedItems: StructuredProduct[] = (items as StructuredProduct[]).map(normalizeProduct);
       setCategoryManuallySet(false);
       setSizeTypeManuallySet(false);
-      const normalized = normalizeProduct(extracted);
-      setProduct(normalized);
-      setPackSizeText(String(normalized.pack_size ?? 1));
+      const [first, ...rest] = normalizedItems;
+      setProduct(first);
+      setPackSizeText(String(first.pack_size ?? 1));
+      setExtractedQueue(rest);
+      setQueueTotal(normalizedItems.length);
+      setQueuePosition(1);
       // Runs in the background while the merchant sets a price — not
       // awaited, so it doesn't block the confirm screen from appearing.
       // Barcode-scanned items skip this entirely (they already have real
@@ -133,8 +146,8 @@ export default function AddItemPage() {
       // Skipped outright for anything that isn't food/supplements — a GPT
       // nutrition estimate on a phone case or a bottle of engine oil is
       // just invented numbers with nowhere real to come from.
-      if (isNutritionRelevant({ category: normalized.category, productName: normalized.product_name })) {
-        lookupNutrition(normalized);
+      if (isNutritionRelevant({ category: first.category, productName: first.product_name })) {
+        lookupNutrition(first);
       } else {
         setNutrition(null);
         setNutritionFromDatabase(false);
@@ -220,6 +233,11 @@ export default function AddItemPage() {
       const normalized = normalizeProduct(data.structured);
       setProduct(normalized);
       setPackSizeText(String(normalized.pack_size ?? 1));
+      // A barcode scan always identifies exactly one specific product —
+      // never a batch, so the queue resets to just this one item.
+      setExtractedQueue([]);
+      setQueueTotal(1);
+      setQueuePosition(1);
       setProductImageUrl(data.image_url ?? null);
       setLastImageBase64(null);
       setScannedBarcode(barcode);
@@ -300,19 +318,53 @@ export default function AddItemPage() {
       if (!invRes.ok) throw new Error((await invRes.json()).error);
 
       setSaved(true);
-      setProduct(null);
-      setPrice("");
-      setTextQuery("");
-      setLastImageBase64(null);
-      setProductImageUrl(null);
-      setNutrition(null);
-      setNutritionFromDatabase(false);
-      setNutritionError(null);
-      setScannedBarcode(null);
+      // A multi-item Snap batch still has more detected items waiting —
+      // load the next one for review instead of returning to the main
+      // menu, so the merchant works through the whole shelf in one pass.
+      if (extractedQueue.length > 0) {
+        advanceQueue();
+      } else {
+        setProduct(null);
+        setPrice("");
+        setTextQuery("");
+        setLastImageBase64(null);
+        setProductImageUrl(null);
+        setNutrition(null);
+        setNutritionFromDatabase(false);
+        setNutritionError(null);
+        setScannedBarcode(null);
+        setQueueTotal(1);
+        setQueuePosition(1);
+      }
     } catch (e: any) {
       setError(e.message ?? "Couldn't save this item.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  // Moves on to the next item in a multi-item Snap batch (after saving
+  // the current one, or when the merchant chooses to skip it) — keeps
+  // the same source photo (lastImageBase64/productImageUrl) since every
+  // item in the queue came from that one shelf photo, just resets the
+  // per-item fields (price, category-override flags, nutrition).
+  function advanceQueue() {
+    const [next, ...rest] = extractedQueue;
+    if (!next) return;
+    setProduct(next);
+    setPackSizeText(String(next.pack_size ?? 1));
+    setExtractedQueue(rest);
+    setQueuePosition((p) => p + 1);
+    setPrice("");
+    setCategoryManuallySet(false);
+    setSizeTypeManuallySet(false);
+    setError(null);
+    if (isNutritionRelevant({ category: next.category, productName: next.product_name })) {
+      lookupNutrition(next);
+    } else {
+      setNutrition(null);
+      setNutritionFromDatabase(false);
+      setNutritionError(null);
     }
   }
 
@@ -327,6 +379,9 @@ export default function AddItemPage() {
     setCategoryManuallySet(false);
     setSizeTypeManuallySet(false);
     setPackSizeText("1");
+    setExtractedQueue([]);
+    setQueueTotal(1);
+    setQueuePosition(1);
   }
 
   return (
@@ -336,7 +391,9 @@ export default function AddItemPage() {
       </Link>
       <header className="mb-6">
         <h1 className="font-display text-xl font-semibold text-ink">{t("Add an item")}</h1>
-        <p className="mt-1 text-sm text-ash">{t("Snap a photo or enter the details — then set your price.")}</p>
+        <p className="mt-1 text-sm text-ash">
+          {t("Snap a photo (one item or a whole shelf) or enter the details — then set your price.")}
+        </p>
       </header>
 
       {!product && (
@@ -469,7 +526,17 @@ export default function AddItemPage() {
           >
             ← {t("Back to add item")}
           </button>
-          <p className="font-mono text-xs uppercase tracking-wide text-ash">{t("Confirm the details")}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-mono text-xs uppercase tracking-wide text-ash">{t("Confirm the details")}</p>
+            {/* Only shown for a Snap photo that found more than one
+                product — ordinary single-item adds (barcode, text, or a
+                photo of just one item) never show this. */}
+            {queueTotal > 1 && (
+              <p className="font-mono text-xs uppercase tracking-wide text-value">
+                {t("Item {n} of {total}").replace("{n}", String(queuePosition)).replace("{total}", String(queueTotal))}
+              </p>
+            )}
+          </div>
 
           <label className="text-sm text-ash">
             {t("Item") /* product name label */}
@@ -787,8 +854,23 @@ export default function AddItemPage() {
             >
               {saving ? t("Saving…") : t("Save item")}
             </button>
+            {/* Mid-batch (more items already queued from this photo), skip
+                just this one misread/unwanted item and move on — don't
+                throw away the rest of the batch along with it. The plain
+                Cancel/discard-everything option stays available right
+                after, for abandoning the whole batch instead. */}
+            {extractedQueue.length > 0 && (
+              <button
+                type="button"
+                onClick={advanceQueue}
+                disabled={saving}
+                className="rounded-sm px-4 py-2 font-display text-sm text-ash underline hover:text-ink disabled:opacity-40"
+              >
+                {t("Skip this item")}
+              </button>
+            )}
             <button onClick={resetProduct} className="rounded-sm px-4 py-2 font-display text-sm text-ash">
-              {t("Cancel")}
+              {queueTotal > 1 ? t("Cancel remaining items") : t("Cancel")}
             </button>
           </div>
         </div>

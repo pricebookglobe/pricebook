@@ -94,6 +94,58 @@ export async function extractProductFromImage(
   });
 }
 
+/**
+ * Same idea as extractProductFromImage, but for a photo that may show
+ * SEVERAL different products at once — a shelf, a counter, a few items
+ * lined up — used by the merchant Add Item flow so one photo can start
+ * several listings instead of exactly one. Still works fine for a photo
+ * of a single item (returns a one-element array), so callers that want
+ * "detect however many products are really in this photo" can use this
+ * unconditionally rather than needing to know in advance which case
+ * they're in.
+ */
+export async function extractProductsFromImage(
+  imageBase64: string
+): Promise<StructuredProduct[]> {
+  return withRetry(async () => {
+    const response = await openai().chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text:
+                "Identify every DISTINCT grocery product visible in this image — it may show just one " +
+                "item, or several different products together (a shelf, a counter, a few items lined up). " +
+                'Return ONLY JSON matching this shape, no prose: {"items":[' +
+                EXTRACTION_SHAPE +
+                ']}. List each distinct product ONCE — if the same product appears more than once (several ' +
+                "facings of the same item on a shelf), include it only a single time, not once per copy. " +
+                "size/unit describe ONE individual item (a single can/bottle/piece), never the pack as a " +
+                "whole. pack_size is how many of those individual items this listing sells together — 1 for " +
+                "a single item, or the real count for a visible multi-pack/bundle (a 6-pack of cans is " +
+                'pack_size 6). size_type is one of "weight", "volume", "length", or "units" — weight/volume/' +
+                "length for anything with a real physical measurement (use unit g/kg, ml/L, or cm/m to " +
+                'match), otherwise "units" with unit "pcs" and size 1 (canned drinks sold by the can, ' +
+                "electronics, general packaged goods with no inherent size)."
+            },
+            {
+              type: "image_url",
+              image_url: { url: `data:image/jpeg;base64,${imageBase64}` }
+            }
+          ]
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const parsed = JSON.parse(response.choices[0].message.content ?? "{}");
+    return Array.isArray(parsed.items) ? parsed.items : [];
+  });
+}
+
 /** Free-text query -> the same structured shape (handles typos, synonyms, local phrasing). */
 export async function parseTextQuery(text: string): Promise<StructuredProduct> {
   return withRetry(async () => {
