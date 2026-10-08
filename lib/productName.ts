@@ -20,8 +20,10 @@ export function displayProductName(brand: string | null | undefined, name: strin
 
 /**
  * The item's size/unit shown next to its name as a bracketed tag, e.g.
- * "Snickers [75g]" — "" (nothing to render) when either half is missing,
+ * "Snickers [75 g]" — "" (nothing to render) when either half is missing,
  * since a size with no unit (or vice versa) isn't meaningful on its own.
+ * A space always separates the number from the unit ("75 g", not "75g") —
+ * easier to read, especially for a count like "200 pcs" or "200 teabags".
  *
  * Always normalizes the unit first (normalizeUnit) so the same physical
  * unit always displays the same way regardless of how it happened to be
@@ -34,7 +36,7 @@ export function formatSizeTag(size: number | null | undefined, unit: string | nu
   // Size values come through as numeric (often a float like 75.0) — show
   // whole numbers cleanly, keep decimals when they're actually meaningful.
   const sizeStr = Number.isInteger(size) ? String(size) : String(Number(size.toFixed(2)));
-  return `[${sizeStr}${normalizedUnit}]`;
+  return `[${sizeStr} ${normalizedUnit}]`;
 }
 
 /**

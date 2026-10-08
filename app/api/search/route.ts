@@ -6,6 +6,7 @@ import { withUnitPrice } from "@/lib/unitPrice";
 import { namesMatch } from "@/lib/nameMatch";
 import { displayProductName } from "@/lib/productName";
 import { normalizeUnit } from "@/lib/units";
+import { inferCategory } from "@/lib/productCategorization";
 
 // "city" is an approximation (a large fixed radius), not a real
 // city/country-boundary-aware query — good enough for an MVP, worth
@@ -293,9 +294,21 @@ export async function POST(req: NextRequest) {
       const excludeIds = Array.from(new Set(cityWide.map((r: any) => r.product_id)));
 
       let categoryData: any[] = [];
-      if (structured.category) {
+      // structured.category is GPT's free-text guess (lib/aiVision.ts), not
+      // constrained to the app's controlled CATEGORY_TREE vocabulary that
+      // merchants' own products are actually saved under (via the Add Item
+      // form's auto-categorization) — so trusting it directly here can
+      // silently miss real matches whenever GPT's wording doesn't exactly
+      // equal the merchant's dropdown value (e.g. query guesses "Tea" while
+      // the product was saved under "Beverages"). inferCategory() runs the
+      // same deterministic keyword-matcher the Add Item form itself uses
+      // against that same controlled vocabulary, so it's far more likely to
+      // agree with how real listings are actually categorized. Fall back to
+      // the raw GPT guess only when inferCategory recognizes nothing.
+      const categoryForMatch = inferCategory(structured.product_name)?.subcategory ?? structured.category ?? null;
+      if (categoryForMatch) {
         const { data, error: categoryError } = await supabase.rpc("search_similar_products_by_category", {
-          query_category: structured.category,
+          query_category: categoryForMatch,
           user_lat: lat,
           user_lng: lng,
           radius_meters: RADII_M.city,

@@ -698,6 +698,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       });
       setResult(res);
       setMode(initialMode);
+      // A bare category-style search ("Tea") can legitimately find zero
+      // exact-product matches (namesMatch requires full word coverage, and
+      // a single shared word isn't enough on its own — see lib/nameMatch.ts)
+      // while still having real same-category matches under Similar items.
+      // Jump straight to that view instead of leaving the person looking at
+      // an empty result with an easy-to-miss toggle.
+      setShowSimilar(res.local_results.length === 0 && res.similar_results.length > 0);
     } catch (e: any) {
       setError(e.message ?? "Something went wrong.");
     } finally {
@@ -1657,7 +1664,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             </p>
           )}
 
-          {sorted.length === 0 && (
+          {sorted.length === 0 && similarSorted.length === 0 && (
             <p className="text-sm text-ash">
               {t("No store nearby carries this yet.")}
               {result.web_estimate?.source_url && (
@@ -1670,6 +1677,16 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                   .
                 </>
               )}
+            </p>
+          )}
+
+          {/* Nothing matched this exact product, but other brands/names in
+              the same category turned up nearby — say so plainly instead of
+              implying nothing is available (the Similar items view below is
+              already auto-selected for this case). */}
+          {sorted.length === 0 && similarSorted.length > 0 && (
+            <p className="text-sm text-ash">
+              {t("No store nearby carries this exact item, but similar products are available below.")}
             </p>
           )}
 
