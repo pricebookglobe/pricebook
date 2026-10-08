@@ -1866,31 +1866,21 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             const hasSimilar = similarSorted.length > 0;
             if (!hasSort && !hasSimilar) return null;
 
-            const allThree = hasSort && hasSimilar;
+            // All of Best price/Nearest/Similar items sit on the same line
+            // as the "Sort by:" label itself — the same row layout as
+            // Select size/Select pack above — and only wrap onto a second
+            // line on their own (via flex-wrap) if the screen is too
+            // narrow to fit all three, never forced there outright.
             return (
-              <div className="mb-2 text-sm">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-ash inline-block w-[90px] shrink-0">{t("Sort by")}:</span>
-                  {!allThree && hasSort && (
-                    <>
-                      {bestPriceButton}
-                      {nearestButton}
-                    </>
-                  )}
-                  {!allThree && hasSimilar && similarButton}
-                </div>
-                {/* Buttons move to their own line once there are three of
-                    them, but still start at the same x position as the
-                    Select size/pack button rows above — ml matches that
-                    row's label width + gap, instead of sitting flush left
-                    under the "Sort by:" text. */}
-                {allThree && (
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5 ml-[96px]">
+              <div className="mb-2 flex flex-wrap items-center gap-1.5 text-sm">
+                <span className="text-ash inline-block w-[90px] shrink-0">{t("Sort by")}:</span>
+                {hasSort && (
+                  <>
                     {bestPriceButton}
                     {nearestButton}
-                    {similarButton}
-                  </div>
+                  </>
                 )}
+                {hasSimilar && similarButton}
               </div>
             );
           })()}
