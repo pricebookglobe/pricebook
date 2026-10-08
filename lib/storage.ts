@@ -1,6 +1,22 @@
 import { createServiceSupabase } from "./supabaseClient";
 import { cutoutProductImage } from "./removeBackground";
 
+// TEMPORARILY DISABLED: the native cutout pipeline (@imgly/background-
+// removal-node's ONNX runtime, invoked via lib/removeBackground.ts) is
+// segfaulting the whole Node process on THIS production host — confirmed
+// in Render logs crashing at the exact moment of every recent Add Item
+// photo save, single-item or batch, immediately on its first real call
+// after a fresh deploy. A segfault kills the process outright; it can't
+// be caught by the try/catch below the way an ordinary thrown error can,
+// so every photo save was failing (and taking the whole server down with
+// it, dropping whoever else was using the app at that moment) until this
+// step stopped running entirely. Product photos upload as the plain
+// original photo for now — worse-looking (no transparent cutout/
+// centering) but working, which matters more right now. Re-enable once
+// this native dependency/host incompatibility is actually fixed, ideally
+// verified outside of production first.
+const BACKGROUND_REMOVAL_ENABLED = false;
+
 /**
  * Uploads a base64 image to the public product-images bucket, returns its
  * public URL. Every photo is run through background removal first — the
@@ -40,7 +56,7 @@ export async function uploadProductImage(
     if (options?.skipCutout) {
       contentType = "image/png";
       ext = "png";
-    } else {
+    } else if (BACKGROUND_REMOVAL_ENABLED) {
       try {
         bytes = await cutoutProductImage(original);
         contentType = "image/png";
@@ -49,6 +65,9 @@ export async function uploadProductImage(
         console.error("background removal failed, uploading original photo instead", err);
       }
     }
+    // When BACKGROUND_REMOVAL_ENABLED is false, bytes/contentType/ext stay at
+    // their original-photo defaults set above — the native cutout call is
+    // never reached, so it can't crash the process.
 
     const path = `${productId}-${Date.now()}.${ext}`;
 

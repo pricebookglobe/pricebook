@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cutoutProductImage } from "@/lib/removeBackground";
 
+// TEMPORARILY DISABLED — see the matching flag/comment in lib/storage.ts.
+// The native cutout pipeline (@imgly/background-removal-node's ONNX
+// runtime + sharp) segfaults the whole Node process on this production
+// host. A segfault can't be caught by the try/catch below the way an
+// ordinary thrown error can, so leaving this call in place was still a
+// crash vector even with that try/catch. Flip back to true only once the
+// underlying native-dependency/host issue is actually fixed, ideally
+// verified outside of production first.
+const BACKGROUND_REMOVAL_ENABLED = false;
+
 // Runs the (native, relatively heavy) background-removal pipeline on a
 // photo ONCE, separately from saving any particular product. The Add
 // Item page calls this exactly once per Snap photo — including for a
@@ -20,6 +30,10 @@ export async function POST(req: NextRequest) {
   const { imageBase64 } = await req.json();
   if (!imageBase64) {
     return NextResponse.json({ error: "Provide imageBase64" }, { status: 400 });
+  }
+
+  if (!BACKGROUND_REMOVAL_ENABLED) {
+    return NextResponse.json({ imageBase64, cutout: false });
   }
 
   try {
