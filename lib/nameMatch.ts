@@ -31,9 +31,31 @@
  * being a substring of "Snickers Duo" — can't be used as a shortcut to
  * skip the word-coverage check below: it would let that exact bare-brand
  * case right back in through the side door.)
+ *
+ * That single-shared-word rule has one deliberate exception: a GENERIC
+ * product-type word ("water", "tea", "coffee"...) is not a brand, and
+ * someone typing just "water" or "tea" into search means "show me every
+ * water/tea product," not "treat every water product as literally the
+ * same item." Rejecting that bare word the same way a bare brand gets
+ * rejected was hiding every real result behind the separate "Similar
+ * items" view — "Tea" found zero matches even with actual tea bags sold
+ * two km away, and "Water" showed only whichever one product happened to
+ * be named the bare single word "Water." So a shared single word only
+ * fails the match when it's NOT one of these recognized generic terms —
+ * when it is, full coverage (already checked above) is enough on its own.
  */
 const NAME_MATCH_STOPWORDS = new Set([
   "the", "and", "with", "for", "pack", "bottle", "bottled", "drinking", "pure", "natural", "fresh", "brand", "new"
+]);
+
+// Mirrors the finer "type" keywords in lib/productCategorization.ts
+// (kept as a separate, lower-level list here to avoid a cross-module
+// dependency) — generic nouns naming a KIND of product, never a brand,
+// so a bare search for one of these is a deliberate category-wide
+// request rather than an ambiguous single-word product name.
+const GENERIC_PRODUCT_WORDS = new Set([
+  "water", "tea", "coffee", "soda", "cola", "juice", "milk", "drink", "beverage",
+  "chocolate", "chips", "crisps", "cookie", "biscuit", "candy", "sweet", "sweets", "snack", "snacks"
 ]);
 
 function normalizeName(s: string | null | undefined): string {
@@ -58,6 +80,10 @@ export function namesMatch(a: string | null | undefined, b: string | null | unde
   // brings in MORE words (extra descriptors it never mentioned) — a
   // bare "Snickers" query matching "Snickers Duo" or "Snickers Mini"
   // would wrongly treat genuinely different products as the same item.
-  if (shorter.length === 1 && longer.length > shorter.length) return false;
+  // Unless that one word is a generic product-type term, not a brand —
+  // see GENERIC_PRODUCT_WORDS above.
+  if (shorter.length === 1 && longer.length > shorter.length && !GENERIC_PRODUCT_WORDS.has(shorter[0])) {
+    return false;
+  }
   return true;
 }
