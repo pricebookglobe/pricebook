@@ -25,6 +25,7 @@ import {
   type SizeType
 } from "@/lib/productCategorization";
 import { CATEGORY_TREE } from "@/lib/categories";
+import { displayProductName } from "@/lib/productName";
 
 // Fills in sensible defaults for whatever a given extraction source
 // (GPT vision/text, or the barcode DB lookup) didn't already provide —
@@ -63,6 +64,12 @@ export default function AddItemPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // Transient confirmation banner, shown right on the product-review
+  // screen itself (not just after the whole batch finishes) so saving
+  // item 1 of a batch and landing on item 2's form is unmistakably "that
+  // one saved, here's the next one" rather than looking like nothing
+  // happened. Cleared automatically the next time Save runs.
+  const [justSavedName, setJustSavedName] = useState<string | null>(null);
   const [mode, setMode] = useState<"menu" | "text">("menu");
   const [nutrition, setNutrition] = useState<NutritionFacts | null>(null);
   const [nutritionFromDatabase, setNutritionFromDatabase] = useState(false);
@@ -121,6 +128,7 @@ export default function AddItemPage() {
   async function extract(input: { text?: string; imageBase64?: string }) {
     setExtracting(true);
     setError(null);
+    setJustSavedName(null);
     setLastImageBase64(input.imageBase64 ?? null);
     try {
       const res = await fetch("/api/products/extract", {
@@ -318,6 +326,12 @@ export default function AddItemPage() {
       if (!invRes.ok) throw new Error((await invRes.json()).error);
 
       setSaved(true);
+      // Named confirmation so a batch save visibly says what just got
+      // saved, right before (or while) the next item's form appears —
+      // otherwise advancing to item 2 of a batch can look identical to
+      // "the Save click did nothing," especially if the next item's
+      // fields happen to look similar.
+      setJustSavedName(displayProductName(product.brand, product.product_name));
       // A multi-item Snap batch still has more detected items waiting —
       // load the next one for review instead of returning to the main
       // menu, so the merchant works through the whole shelf in one pass.
@@ -382,6 +396,7 @@ export default function AddItemPage() {
     setExtractedQueue([]);
     setQueueTotal(1);
     setQueuePosition(1);
+    setJustSavedName(null);
   }
 
   return (
@@ -526,6 +541,15 @@ export default function AddItemPage() {
           >
             ← {t("Back to add item")}
           </button>
+          {/* Confirms the PREVIOUS item in this batch actually saved —
+              without this, landing on item 2's (empty-price) form right
+              after clicking Save on item 1 can look identical to the
+              click having done nothing at all. */}
+          {justSavedName && (
+            <p className="rounded bg-value-soft px-3 py-2 text-sm font-medium text-value-dark">
+              {t("✓ Saved \"{name}\" — now showing the next item.").replace("{name}", justSavedName)}
+            </p>
+          )}
           <div className="flex items-center justify-between gap-2">
             <p className="font-mono text-xs uppercase tracking-wide text-ash">{t("Confirm the details")}</p>
             {/* Only shown for a Snap photo that found more than one
@@ -862,7 +886,10 @@ export default function AddItemPage() {
             {extractedQueue.length > 0 && (
               <button
                 type="button"
-                onClick={advanceQueue}
+                onClick={() => {
+                  setJustSavedName(null);
+                  advanceQueue();
+                }}
                 disabled={saving}
                 className="rounded-sm px-4 py-2 font-display text-sm text-ash underline hover:text-ink disabled:opacity-40"
               >
