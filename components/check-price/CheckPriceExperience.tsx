@@ -1775,7 +1775,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
               a size/pack variant of this one. */}
           {!showSimilar && sizeOptions.length > 1 && (
             <div className="mb-2 flex flex-wrap items-center gap-1.5 text-sm">
-              <span className="text-ash">{t("Select size")}:</span>
+              <span className="text-ash inline-block w-[90px] shrink-0">{t("Select size")}:</span>
               <button
                 onClick={() => setSelectedSize(null)}
                 className={`btn-shine rounded-full bg-value-soft px-2.5 py-1 text-[13px] text-value-dark transition-all duration-200 hover:scale-105 ${
@@ -1799,7 +1799,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           )}
           {!showSimilar && packOptions.length > 1 && (
             <div className="mb-2 flex flex-wrap items-center gap-1.5 text-sm">
-              <span className="text-ash">{t("Select pack")}:</span>
+              <span className="text-ash inline-block w-[90px] shrink-0">{t("Select pack")}:</span>
               <button
                 onClick={() => setSelectedPack(null)}
                 className={`btn-shine rounded-full bg-value-soft px-2.5 py-1 text-[13px] text-value-dark transition-all duration-200 hover:scale-105 ${
@@ -1869,8 +1869,8 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             const allThree = hasSort && hasSimilar;
             return (
               <div className="mb-2 text-sm">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-ash">{t("Sort by")}:</span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-ash inline-block w-[90px] shrink-0">{t("Sort by")}:</span>
                   {!allThree && hasSort && (
                     <>
                       {bestPriceButton}
@@ -1879,8 +1879,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                   )}
                   {!allThree && hasSimilar && similarButton}
                 </div>
+                {/* Buttons move to their own line once there are three of
+                    them, but still start at the same x position as the
+                    Select size/pack button rows above — ml matches that
+                    row's label width + gap, instead of sitting flush left
+                    under the "Sort by:" text. */}
                 {allThree && (
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 ml-[96px]">
                     {bestPriceButton}
                     {nearestButton}
                     {similarButton}
