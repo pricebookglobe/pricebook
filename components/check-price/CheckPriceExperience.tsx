@@ -1207,6 +1207,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   };
   const similarSorted = result?.similar_results.length
     ? [...result.similar_results].sort((a, b) => {
+        // How genuinely relevant the match is comes first — otherwise a
+        // bare same-category row (any product sharing the category, fixed
+        // placeholder similarity) can outrank a real embedding match just
+        // because of merge order, which is how a "tea" search ended up
+        // listing water and Coca-Cola above actual tea products.
+        const simDiff = (b.similarity ?? 0) - (a.similarity ?? 0);
+        if (simDiff !== 0) return simDiff;
         const d = similarSizeDistance(a) - similarSizeDistance(b);
         if (d !== 0) return d;
         return sortMode === "price" ? a.unit_price - b.unit_price : a.distance_m - b.distance_m;

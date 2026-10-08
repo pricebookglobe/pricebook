@@ -336,27 +336,33 @@ export async function POST(req: NextRequest) {
       similarResults = sameCategoryDifferentItem.map(withUnitPrice);
     }
 
-    // Ranked so the closest size/pack to what was actually searched for
-    // shows first — a different brand's tea bags in roughly the same box
-    // size is a much more useful substitute to surface first than one in
-    // a wildly different size, even though both are equally valid
-    // "similar" matches. Only meaningful when the query itself names a
-    // concrete size (hasQuerySku, computed above) and the unit actually
-    // matches; anything else (no size to compare, or a different unit
-    // entirely — can't meaningfully compare a weight to a volume) sorts
-    // after, by price, same as before this existed.
-    if (hasQuerySku) {
-      const sizeDistance = (r: any): number => {
-        if (r.size == null || normalizeUnit(r.unit) !== queryUnit) return Infinity;
-        const sizeDiff = Math.abs(Number(r.size) - Number(querySize)) / Math.max(Number(querySize), 1);
-        const packDiff = Math.abs((r.pack_size ?? 1) - queryPackSize) / Math.max(queryPackSize, 1);
-        return sizeDiff + packDiff;
-      };
-      similarResults.sort((a, b) => {
-        const d = sizeDistance(a) - sizeDistance(b);
-        return d !== 0 ? d : a.unit_price - b.unit_price;
-      });
-    }
+    // Ranked so the most genuinely relevant match shows first, THEN (when
+    // there's a concrete size to compare) the closest size/pack, with
+    // price as the final tiebreaker.
+    //
+    // Relevance (similarity) has to be the first sort key, not an
+    // afterthought: mergeByStoreAndProduct only decides which of three
+    // sources WINS for a given store+product, it doesn't reorder the
+    // combined list by how good a match each row actually is. Without an
+    // explicit similarity sort here, a bare category-match row (e.g. water
+    // or soda, same "Beverages" category as a "tea" search, fixed
+    // placeholder similarity 0.5) can sit ahead of the one row that's
+    // actually about tea (a real embedding match, similarity 0.6+) purely
+    // because of merge/insertion order — which is exactly what made a
+    // "tea" search list Coca-Cola and water above actual tea products.
+    const sizeDistance = (r: any): number => {
+      if (!hasQuerySku || r.size == null || normalizeUnit(r.unit) !== queryUnit) return Infinity;
+      const sizeDiff = Math.abs(Number(r.size) - Number(querySize)) / Math.max(Number(querySize), 1);
+      const packDiff = Math.abs((r.pack_size ?? 1) - queryPackSize) / Math.max(queryPackSize, 1);
+      return sizeDiff + packDiff;
+    };
+    similarResults.sort((a, b) => {
+      const simDiff = (b.similarity ?? 0) - (a.similarity ?? 0);
+      if (simDiff !== 0) return simDiff;
+      const d = sizeDistance(a) - sizeDistance(b);
+      if (d !== 0) return d;
+      return a.unit_price - b.unit_price;
+    });
 
     // Log to search history if the caller is logged in — best-effort, never
     // fails the search itself if this insert has a problem. This is wrapped
