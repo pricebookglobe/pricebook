@@ -6,7 +6,7 @@ import { withUnitPrice } from "@/lib/unitPrice";
 import { namesMatch } from "@/lib/nameMatch";
 import { displayProductName } from "@/lib/productName";
 import { normalizeUnit } from "@/lib/units";
-import { inferCategory } from "@/lib/productCategorization";
+import { inferCategory, inferProductType } from "@/lib/productCategorization";
 
 // "city" is an approximation (a large fixed radius), not a real
 // city/country-boundary-aware query — good enough for an MVP, worth
@@ -317,6 +317,23 @@ export async function POST(req: NextRequest) {
         });
         if (categoryError) throw categoryError;
         categoryData = data ?? [];
+
+        // "Same category" is a much looser bar than it sounds — "Beverages"
+        // covers water, soda, juice, coffee AND dry tea bags; "Snacks &
+        // Sweets" covers chocolate, chips AND cookies. A bare category match
+        // alone let water/Coca-Cola outrank — and clutter — a "tea" search's
+        // Similar Items. When the query's own name hints at a finer type
+        // (tea, coffee, chocolate, chips...), keep only category rows that
+        // either share that same finer type or give no finer signal either
+        // way (an unrecognized name shouldn't be wrongly excluded just for
+        // lack of a keyword hit).
+        const queryType = inferProductType(structured.product_name);
+        if (queryType) {
+          categoryData = categoryData.filter((r: any) => {
+            const rowType = inferProductType(r.product_name);
+            return !rowType || rowType === queryType;
+          });
+        }
       }
 
       const { data: similarData, error: similarError } = await supabase.rpc("search_similar_products", {

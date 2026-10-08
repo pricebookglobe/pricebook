@@ -124,6 +124,56 @@ const NAME_CATEGORY_KEYWORDS: { pattern: RegExp; subcategory: string }[] = [
   { pattern: /\b(vitamin|supplement|protein powder)\b/i, subcategory: "Vitamins & Supplements" }
 ];
 
+// A finer-grained "what kind of thing is this, really" signal, used ONLY
+// for matching "similar" products — never shown to merchants and never
+// stored. The Category dropdown (CATEGORY_TREE) is deliberately broad
+// ("Beverages", "Snacks & Sweets") so merchants aren't stuck picking from
+// a huge list, but that same breadth makes "same category" far too loose
+// a bar for "is this a reasonable substitute": bottled water, soda and
+// dry tea bags are all "Beverages," but a shopper comparing tea prices
+// has no use for water or Coca-Cola showing up as a "similar item." This
+// splits the broadest, most heterogeneous categories into tighter buckets
+// (tea vs. coffee vs. water vs. soda, chocolate vs. chips vs. cookies...)
+// so the Similar Items match can require the SAME type of product, not
+// just the same aisle. Returns null when nothing matches — callers treat
+// "unknown type" as "don't exclude it," since a missed finer signal
+// shouldn't make a real match disappear, it should just fall back to the
+// broader category check.
+const NAME_TYPE_KEYWORDS: { pattern: RegExp; type: string }[] = [
+  // Beverages, split apart — the case that prompted this.
+  { pattern: /\b(tea|teabags?|tea bags?)\b/i, type: "tea" },
+  { pattern: /\bcoffee\b/i, type: "coffee" },
+  { pattern: /\b(energy drink)\b/i, type: "energy_drink" },
+  { pattern: /\b(soda|cola|fizzy drink|sparkling drink|carbonated drink)\b/i, type: "soda" },
+  { pattern: /\bjuice\b/i, type: "juice" },
+  { pattern: /\bwater\b/i, type: "water" },
+  { pattern: /\bmilk\b/i, type: "milk" },
+  // Snacks & Sweets, same problem — chips and chocolate aren't substitutes
+  // just because they're both "Snacks & Sweets."
+  {
+    pattern: /\b(chocolate|twix|snickers|kitkat|kit kat|mars|bounty|milky way|m&ms?|galaxy|toblerone|aero|crunch|kinder|lindt|cadbury)\b/i,
+    type: "chocolate"
+  },
+  { pattern: /\b(chips|crisps)\b/i, type: "chips" },
+  { pattern: /\b(cookie|biscuit)\b/i, type: "cookies" },
+  { pattern: /\b(candy|sweet|sweets|gummy|gummies)\b/i, type: "candy" }
+];
+
+/**
+ * Finer-than-category "type of product" guess, for deciding whether two
+ * products in the same broad category are actually reasonable substitutes
+ * for each other. Returns null when the name doesn't hint at a known
+ * finer type — treat that as "no signal," not "no match."
+ */
+export function inferProductType(productName: string | null | undefined): string | null {
+  const name = (productName ?? "").trim();
+  if (!name) return null;
+  for (const { pattern, type } of NAME_TYPE_KEYWORDS) {
+    if (pattern.test(name)) return type;
+  }
+  return null;
+}
+
 /** Best-effort subcategory guess from whatever's been typed into the product-name field so far. Returns null rather than guessing when nothing matches — the merchant picks manually instead. */
 export function inferCategory(productName: string): CategoryOption | null {
   const name = productName.trim();
