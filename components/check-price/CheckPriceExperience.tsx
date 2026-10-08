@@ -1866,21 +1866,25 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
             const hasSimilar = similarSorted.length > 0;
             if (!hasSort && !hasSimilar) return null;
 
-            // All of Best price/Nearest/Similar items sit on the same line
-            // as the "Sort by:" label itself — the same row layout as
-            // Select size/Select pack above — and only wrap onto a second
-            // line on their own (via flex-wrap) if the screen is too
-            // narrow to fit all three, never forced there outright.
+            // Best price/Nearest sit on the "Sort by:" label's own line, the
+            // same row layout as Select size/Select pack above. Similar
+            // items is deliberately kept off that line — it's a toggle to a
+            // whole different view (other products, not a sort order), not
+            // another sort option — so it always starts its own line below,
+            // left-aligned under the row rather than sharing space with the
+            // sort buttons.
             return (
-              <div className="mb-2 flex flex-wrap items-center gap-1.5 text-sm">
-                <span className="text-ash inline-block w-[90px] shrink-0">{t("Sort by")}:</span>
-                {hasSort && (
-                  <>
-                    {bestPriceButton}
-                    {nearestButton}
-                  </>
-                )}
-                {hasSimilar && similarButton}
+              <div className="mb-2 text-sm">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-ash inline-block w-[90px] shrink-0">{t("Sort by")}:</span>
+                  {hasSort && (
+                    <>
+                      {bestPriceButton}
+                      {nearestButton}
+                    </>
+                  )}
+                </div>
+                {hasSimilar && <div className="mt-1.5 flex justify-start">{similarButton}</div>}
               </div>
             );
           })()}
