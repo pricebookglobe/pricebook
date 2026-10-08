@@ -1175,15 +1175,35 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     const worst = citywide.reduce((m, r) => (r.price > m.price ? r : m), citywide[0]);
     return worst.price > cb.price ? worst.price - cb.price : null;
   })();
-  // "Similar items" — same category, but deliberately NOT the exact
-  // product (could be a different size, brand, and/or manufacturer),
-  // sorted by the same price/distance toggle as the exact-match table.
-  // Kept entirely separate from `sorted`/cheapestKey/atStore/savingsFor
-  // above, which all intentionally stay scoped to exact matches only.
+  // "Similar items" — same category/type, but deliberately NOT the exact
+  // product (could be a different size, brand, and/or manufacturer).
+  // Primarily ranked by how close each match's size/pack is to what was
+  // actually searched for — a different brand's tea bags in roughly the
+  // same box size is a far more useful substitute to see first than one
+  // in a wildly different size, even though both are equally valid
+  // "similar" matches (same closeness logic the server applies as the
+  // base order — see app/api/search/route.ts). The price/distance toggle
+  // still breaks ties within an equally-close group, so it stays useful
+  // rather than being overridden outright. Kept entirely separate from
+  // `sorted`/cheapestKey/atStore/savingsFor above, which all intentionally
+  // stay scoped to exact matches only.
+  const queryHasSkuForSimilar = result?.query.size != null && !!result?.query.unit;
+  const similarSizeDistance = (r: SearchResult): number => {
+    if (!queryHasSkuForSimilar || r.size == null || normalizeUnit(r.unit) !== normalizeUnit(result!.query.unit)) {
+      return Infinity;
+    }
+    const querySize = Number(result!.query.size);
+    const queryPack = result!.query.pack_size ?? 1;
+    const sizeDiff = Math.abs(Number(r.size) - querySize) / Math.max(querySize, 1);
+    const packDiff = Math.abs((r.pack_size ?? 1) - queryPack) / Math.max(queryPack, 1);
+    return sizeDiff + packDiff;
+  };
   const similarSorted = result?.similar_results.length
-    ? [...result.similar_results].sort((a, b) =>
-        sortMode === "price" ? a.unit_price - b.unit_price : a.distance_m - b.distance_m
-      )
+    ? [...result.similar_results].sort((a, b) => {
+        const d = similarSizeDistance(a) - similarSizeDistance(b);
+        if (d !== 0) return d;
+        return sortMode === "price" ? a.unit_price - b.unit_price : a.distance_m - b.distance_m;
+      })
     : [];
   // Always show the full list of every store carrying the item — it used
   // to be hidden behind a "See best prices nearby too" link whenever you

@@ -218,6 +218,16 @@ export async function POST(req: NextRequest) {
       tierUsed = closest <= RADII_M.neighborhood ? "neighborhood" : closest <= RADII_M.town ? "town" : "city";
     }
 
+    // The query's own size/unit/pack_size identity — shared by the
+    // best-price picks below (same reasoning both places: a match is only
+    // a real comparison when it's the SAME size/pack, not just the same
+    // name) and the Similar items ranking further down (closest size/pack
+    // to what was actually scanned/searched should surface first).
+    const querySize = structured.size ?? null;
+    const queryUnit = normalizeUnit(structured.unit) ?? null;
+    const queryPackSize = structured.pack_size ?? 1;
+    const hasQuerySku = querySize != null && queryUnit != null;
+
     let nearBest: any = null;
     let cityBest: any = null;
     if (results.length) {
@@ -233,10 +243,6 @@ export async function POST(req: NextRequest) {
       // restricted to listings with that SAME size/unit/pack_size. A
       // vague text search with no concrete size has nothing to restrict
       // to, so every size/pack variant stays eligible there, same as before.
-      const querySize = structured.size ?? null;
-      const queryUnit = normalizeUnit(structured.unit) ?? null;
-      const queryPackSize = structured.pack_size ?? 1;
-      const hasQuerySku = querySize != null && queryUnit != null;
       const skuMatches = (r: any) =>
         Number(r.size) === Number(querySize) &&
         normalizeUnit(r.unit) === queryUnit &&
@@ -250,25 +256,56 @@ export async function POST(req: NextRequest) {
       cityBest = cityEligible.length ? [...cityEligible].sort((a: any, b: any) => a.unit_price - b.unit_price)[0] : null;
     }
 
-    // "Similar items" — other products that are semantically close to the
-    // search (could be a different size, brand, and/or manufacturer), not
-    // just other stores selling the exact same thing. Reuses the same
-    // embedding already computed for the exact-match search above, just
-    // with a lower similarity floor than SIMILARITY_FALLBACK_THRESHOLD —
-    // products.category turned out to be free text set per-product
-    // ("Snacks" vs "snacks" vs "Confectionery" vs "Candy Bar"), too
-    // inconsistent to filter on directly (see migration 0035). Best-effort:
-    // a failure here shouldn't turn a working exact-match search into a
-    // 500, so this never throws past its own catch.
+    // "Similar items" — other products that are the same TYPE of thing as
+    // the search (tea bags, milk, chocolate…), not necessarily the same
+    // brand or name, and not just other stores selling the exact same
+    // thing. Three sources feed this, weakest confidence first (merged via
+    // mergeByStoreAndProduct, which lets a later/stronger set overwrite an
+    // earlier/weaker one for the same store+product):
     //
-    // min_similarity started at 0.35, which was too loose in practice —
-    // "Mixed Nuts" showed up as "similar" to a Snickers search. Raised to
-    // 0.6: still comfortably below the 0.75 exact-match floor (so it's
-    // never just repeating local_results), but close enough to it that
-    // what comes back reads as "other chocolate bars," not "other food."
+    // 1. Category match — same products.category as the query, any brand/
+    //    name, via the new search_similar_products_by_category RPC. This
+    //    used to be skipped entirely because category was free text set
+    //    per-product ("Snacks" vs "snacks" vs "Confectionery" — see
+    //    migration 0035) and too inconsistent to filter on. The Add Item
+    //    flow now picks category from a fixed dropdown (lib/categories.ts),
+    //    so new listings share real, comparable values — this is what
+    //    actually lets "Lipton tea bags" surface a different brand's tea
+    //    bags instead of only more Lipton. A plain match, not a fuzzy one,
+    //    so it's given the lowest confidence of the three (merged first).
+    // 2. The same-category-different-item matches the name gate rejected
+    //    above (cleared the exact-match text/embedding bar, just not the
+    //    name check) — a stronger signal than a bare category match.
+    // 3. A broader embedding search (search_similar_products), same
+    //    embedding as the exact-match search but a lower similarity floor.
+    //    min_similarity started at 0.35, which was too loose in practice —
+    //    "Mixed Nuts" showed up as "similar" to a Snickers search. Raised
+    //    to 0.6: still comfortably below the 0.75 exact-match floor, but
+    //    close enough that what comes back reads as "other chocolate
+    //    bars," not "other food." Carries a real similarity score, so it's
+    //    merged last/strongest — it should win over a bare category match
+    //    or the rejected rows' own meaningless hardcoded 0.99.
+    //
+    // Best-effort throughout: a failure here shouldn't turn a working
+    // exact-match search into a 500.
     let similarResults: any[] = [];
     try {
       const excludeIds = Array.from(new Set(cityWide.map((r: any) => r.product_id)));
+
+      let categoryData: any[] = [];
+      if (structured.category) {
+        const { data, error: categoryError } = await supabase.rpc("search_similar_products_by_category", {
+          query_category: structured.category,
+          user_lat: lat,
+          user_lng: lng,
+          radius_meters: RADII_M.city,
+          match_limit: 50,
+          exclude_product_ids: excludeIds
+        });
+        if (categoryError) throw categoryError;
+        categoryData = data ?? [];
+      }
+
       const { data: similarData, error: similarError } = await supabase.rpc("search_similar_products", {
         query_embedding: embedding,
         user_lat: lat,
@@ -279,16 +316,33 @@ export async function POST(req: NextRequest) {
         exclude_product_ids: excludeIds
       });
       if (similarError) throw similarError;
-      // Merge in the same-category-different-item matches the name gate
-      // rejected above — mergeByStoreAndProduct takes later sets as higher
-      // confidence, so a real embedding-based similarity score (from the
-      // RPC) wins over the rejected rows' own similarity field, which can
-      // be a meaningless hardcoded 0.99 when the row came in via the text
-      // match path rather than embeddings.
-      similarResults = mergeByStoreAndProduct(sameCategoryDifferentItem, similarData ?? []).map(withUnitPrice);
+
+      similarResults = mergeByStoreAndProduct(categoryData, sameCategoryDifferentItem, similarData ?? []).map(withUnitPrice);
     } catch (similarErr) {
-      console.error("search_similar_products failed (non-fatal)", similarErr);
+      console.error("similar items lookup failed (non-fatal)", similarErr);
       similarResults = sameCategoryDifferentItem.map(withUnitPrice);
+    }
+
+    // Ranked so the closest size/pack to what was actually searched for
+    // shows first — a different brand's tea bags in roughly the same box
+    // size is a much more useful substitute to surface first than one in
+    // a wildly different size, even though both are equally valid
+    // "similar" matches. Only meaningful when the query itself names a
+    // concrete size (hasQuerySku, computed above) and the unit actually
+    // matches; anything else (no size to compare, or a different unit
+    // entirely — can't meaningfully compare a weight to a volume) sorts
+    // after, by price, same as before this existed.
+    if (hasQuerySku) {
+      const sizeDistance = (r: any): number => {
+        if (r.size == null || normalizeUnit(r.unit) !== queryUnit) return Infinity;
+        const sizeDiff = Math.abs(Number(r.size) - Number(querySize)) / Math.max(Number(querySize), 1);
+        const packDiff = Math.abs((r.pack_size ?? 1) - queryPackSize) / Math.max(queryPackSize, 1);
+        return sizeDiff + packDiff;
+      };
+      similarResults.sort((a, b) => {
+        const d = sizeDistance(a) - sizeDistance(b);
+        return d !== 0 ? d : a.unit_price - b.unit_price;
+      });
     }
 
     // Log to search history if the caller is logged in — best-effort, never
