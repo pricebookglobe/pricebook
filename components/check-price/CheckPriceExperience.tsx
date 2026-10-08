@@ -1850,6 +1850,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                 {t("Nearest")}
               </button>
             );
+            // The label itself changes once toggled on — "Similar items" is
+            // what invites someone INTO that view, but once they're already
+            // in it, repeating the same label gives no hint that pressing
+            // it again is what takes them back. "← Back to results" says
+            // that directly, so the button explains its own two states
+            // rather than relying on the border/bold styling alone (which
+            // is a subtle, easy-to-miss "pressed" look).
             const similarButton = (
               <button
                 key="similar"
@@ -1858,7 +1865,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
                   showSimilar ? "border-2 border-blue-800 font-bold" : "border-2 border-transparent font-medium"
                 }`}
               >
-                {t("Similar items")}
+                {showSimilar ? t("← Back to results") : t("Similar items")}
               </button>
             );
 
