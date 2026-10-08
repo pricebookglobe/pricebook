@@ -20,8 +20,17 @@ export async function POST(req: NextRequest) {
 }
 
 async function handlePost(req: NextRequest) {
-  const body: StructuredProduct & { imageBase64?: string; imageUrl?: string; nutrition_facts?: NutritionFacts | null; barcode?: string } =
-    await req.json();
+  const body: StructuredProduct & {
+    imageBase64?: string;
+    imageUrl?: string;
+    // Set by the Add Item page when imageBase64 already went through
+    // /api/products/prepare-image once for this batch — see
+    // lib/storage.ts's uploadProductImage for why re-running that step
+    // per item isn't just wasteful but was crashing the server outright.
+    imagePreprocessed?: boolean;
+    nutrition_facts?: NutritionFacts | null;
+    barcode?: string;
+  } = await req.json();
   // Normalize once, here, before it's used for either the dedup lookup or
   // the insert below — every write path (Add Item, barcode scan, photo
   // extraction) funnels through this one endpoint, so this is the single
@@ -136,7 +145,7 @@ async function handlePost(req: NextRequest) {
   // A barcode lookup instead passes a direct image URL (from the product
   // database) that we can just store as-is, no upload needed.
   if (body.imageBase64) {
-    const imageUrl = await uploadProductImage(body.imageBase64, created.id);
+    const imageUrl = await uploadProductImage(body.imageBase64, created.id, { skipCutout: body.imagePreprocessed });
     if (imageUrl) await supabase.from("products").update({ image_url: imageUrl }).eq("id", created.id);
   } else if (body.imageUrl) {
     await supabase.from("products").update({ image_url: body.imageUrl }).eq("id", created.id);

@@ -54,6 +54,14 @@ export default function AddItemPage() {
   const [storeId, setStoreId] = useState<string | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [lastImageBase64, setLastImageBase64] = useState<string | null>(null);
+  // Background-removal (cutting the product out onto a clean canvas) is a
+  // heavy, native-library step — run once per Snap photo (right after
+  // extraction) rather than once per item, since a multi-item batch would
+  // otherwise re-run it redundantly for every single item sharing that
+  // same photo. imagePreprocessed tells the server this already happened
+  // so it doesn't repeat the step again on save.
+  const [processedImageBase64, setProcessedImageBase64] = useState<string | null>(null);
+  const [imagePreprocessed, setImagePreprocessed] = useState(false);
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
   const [textQuery, setTextQuery] = useState("");
@@ -125,11 +133,38 @@ export default function AddItemPage() {
     });
   }, [router]);
 
+  // Runs the heavy background-removal step exactly once for this photo,
+  // then stores the result for every item's save to reuse (handleSave)
+  // instead of each item re-running it. Best-effort and non-blocking —
+  // called without awaiting its caller's own flow, same pattern as
+  // lookupNutrition; if it hasn't finished by the time the merchant hits
+  // Save on the first item, that save just falls back to the normal
+  // per-item path (server runs the cutout itself, as it always did), no
+  // worse than before this existed.
+  async function prepareImage(imageBase64: string) {
+    try {
+      const res = await fetch("/api/products/prepare-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64 })
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setProcessedImageBase64(data.imageBase64 ?? null);
+      setImagePreprocessed(!!data.cutout);
+    } catch (err) {
+      console.error("prepare-image failed, items will fall back to per-item processing", err);
+    }
+  }
+
   async function extract(input: { text?: string; imageBase64?: string }) {
     setExtracting(true);
     setError(null);
     setJustSavedName(null);
     setLastImageBase64(input.imageBase64 ?? null);
+    setProcessedImageBase64(null);
+    setImagePreprocessed(false);
+    if (input.imageBase64) prepareImage(input.imageBase64);
     try {
       const res = await fetch("/api/products/extract", {
         method: "POST",
@@ -248,6 +283,8 @@ export default function AddItemPage() {
       setQueuePosition(1);
       setProductImageUrl(data.image_url ?? null);
       setLastImageBase64(null);
+      setProcessedImageBase64(null);
+      setImagePreprocessed(false);
       setScannedBarcode(barcode);
       if (
         data.nutrition_facts &&
@@ -306,7 +343,12 @@ export default function AddItemPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...product,
-          imageBase64: lastImageBase64 ?? undefined,
+          // Prefer the already-background-removed version of this photo
+          // (prepareImage, run once right after extraction) when it's
+          // ready — falls back to the raw photo otherwise, which the
+          // server still processes itself exactly as before.
+          imageBase64: processedImageBase64 ?? lastImageBase64 ?? undefined,
+          imagePreprocessed: !!processedImageBase64 && imagePreprocessed,
           imageUrl: !lastImageBase64 ? productImageUrl ?? undefined : undefined,
           nutrition_facts: nutrition,
           barcode: scannedBarcode ?? undefined
@@ -342,6 +384,8 @@ export default function AddItemPage() {
         setPrice("");
         setTextQuery("");
         setLastImageBase64(null);
+        setProcessedImageBase64(null);
+        setImagePreprocessed(false);
         setProductImageUrl(null);
         setNutrition(null);
         setNutritionFromDatabase(false);
@@ -397,6 +441,8 @@ export default function AddItemPage() {
     setQueueTotal(1);
     setQueuePosition(1);
     setJustSavedName(null);
+    setProcessedImageBase64(null);
+    setImagePreprocessed(false);
   }
 
   return (

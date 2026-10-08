@@ -13,7 +13,23 @@ import { cutoutProductImage } from "./removeBackground";
  * same "never block saving the product over this" policy this function
  * already had.
  */
-export async function uploadProductImage(imageBase64: string, productId: string): Promise<string | null> {
+export async function uploadProductImage(
+  imageBase64: string,
+  productId: string,
+  options?: {
+    // Set when the caller already ran this exact photo through the
+    // cutout pipeline once (see app/api/products/prepare-image/route.ts)
+    // and is now saving several products from that same photo (a
+    // multi-item Snap batch) — skips re-running it here. Re-running the
+    // native ONNX/sharp pipeline back-to-back for every item in a batch
+    // was not just wasteful, it was crashing the whole server process
+    // (segfaults under repeated invocation — confirmed in production
+    // logs during a 4-item batch save), so the Add Item page now runs
+    // this heavy step ONCE per photo and passes the result through here
+    // for every item instead of handing back the raw original each time.
+    skipCutout?: boolean;
+  }
+): Promise<string | null> {
   try {
     const supabase = createServiceSupabase();
     const original = Buffer.from(imageBase64, "base64");
@@ -21,12 +37,17 @@ export async function uploadProductImage(imageBase64: string, productId: string)
     let bytes: Buffer = original;
     let contentType = "image/jpeg";
     let ext = "jpg";
-    try {
-      bytes = await cutoutProductImage(original);
+    if (options?.skipCutout) {
       contentType = "image/png";
       ext = "png";
-    } catch (err) {
-      console.error("background removal failed, uploading original photo instead", err);
+    } else {
+      try {
+        bytes = await cutoutProductImage(original);
+        contentType = "image/png";
+        ext = "png";
+      } catch (err) {
+        console.error("background removal failed, uploading original photo instead", err);
+      }
     }
 
     const path = `${productId}-${Date.now()}.${ext}`;
