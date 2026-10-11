@@ -33,6 +33,31 @@ export function useGeolocation() {
   return useContext(GeoContext);
 }
 
+// A single raw GPS reading can be off by anywhere from a few meters
+// (clear sky, modern phone) to 50m+ (indoors, between tall buildings, cold
+// start right after opening the app) — and consecutive readings jitter
+// around even while standing still. Feeding that raw, jumpy fix straight
+// into "which store is nearest" is exactly what let someone standing at
+// store A get told they were at store C two doors down: a single noisy
+// fix landed fractionally closer to C's registered coordinates than A's.
+//
+// Two mitigations, both standard practice for consumer GPS:
+// - Drop a fix outright if it's drastically worse than what's already on
+//   file (a momentary signal glitch) rather than letting one bad reading
+//   override several good ones.
+// - Keep a short rolling window of the last few good fixes and report an
+//   inverse-variance-weighted average position instead of the single
+//   latest one — a more accurate fix (lower reported accuracy number)
+//   counts for more than a noisier one, and single-sample jitter mostly
+//   cancels out across the window.
+const SMOOTHING_WINDOW = 4;
+// A fix reported as less precise than this is still kept for the
+// smoothing window (better than nothing indoors), but never used alone to
+// override an existing, meaningfully better position outright.
+const DEGRADED_ACCURACY_M = 75;
+
+type RawFix = { lat: number; lng: number; accuracy: number };
+
 export function GeolocationProvider({ children }: { children: React.ReactNode }) {
   const [coords, setCoords] = useState<Coords>(null);
   const [accuracy, setAccuracy] = useState<number | null>(null);
@@ -40,6 +65,51 @@ export function GeolocationProvider({ children }: { children: React.ReactNode })
   const [currency, setCurrency] = useState("USD");
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const manualRef = useRef(false);
+  const fixWindowRef = useRef<RawFix[]>([]);
+
+  // Folds a new raw device fix into the rolling window and returns the
+  // smoothed { lat, lng, accuracy } to actually expose to the rest of the
+  // app. Kept outside React state so it's not subject to batching/stale
+  // closures — called straight from the watchPosition callback.
+  function smoothFix(fix: RawFix): RawFix {
+    const window = fixWindowRef.current;
+
+    // A fix wildly less precise than the best recent one is most likely a
+    // momentary glitch (a lost satellite lock, a lift between cell towers)
+    // rather than a genuine move to a much-less-accurate environment —
+    // skip folding it in and keep reporting the last smoothed position,
+    // so one bad sample can't yank the anchor around on its own.
+    const bestRecent = window.length ? Math.min(...window.map((f) => f.accuracy)) : null;
+    if (bestRecent !== null && fix.accuracy > DEGRADED_ACCURACY_M && fix.accuracy > bestRecent * 3) {
+      return weightedAverage(window.length ? window : [fix]);
+    }
+
+    window.push(fix);
+    if (window.length > SMOOTHING_WINDOW) window.shift();
+    return weightedAverage(window);
+  }
+
+  function weightedAverage(fixes: RawFix[]): RawFix {
+    if (fixes.length === 1) return fixes[0];
+    // Inverse-variance weighting (weight ∝ 1/accuracy²) — a 5m-accurate fix
+    // counts for 16x as much as a 20m-accurate one, so one sharp reading
+    // dominates a handful of noisy ones instead of being averaged down to
+    // meet them halfway.
+    let wLat = 0;
+    let wLng = 0;
+    let wSum = 0;
+    for (const f of fixes) {
+      const w = 1 / Math.max(f.accuracy, 1) ** 2;
+      wLat += f.lat * w;
+      wLng += f.lng * w;
+      wSum += w;
+    }
+    // Report the best individual accuracy in the window (the smoothed
+    // position is at least that good, usually better) rather than a raw
+    // average of accuracies, which would understate it.
+    const bestAccuracy = Math.min(...fixes.map((f) => f.accuracy));
+    return { lat: wLat / wSum, lng: wLng / wSum, accuracy: bestAccuracy };
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -94,8 +164,10 @@ export function GeolocationProvider({ children }: { children: React.ReactNode })
               setStatus("denied");
               return;
             }
-            setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-            setAccuracy(typeof pos.coords.accuracy === "number" ? pos.coords.accuracy : null);
+            const rawAccuracy = typeof pos.coords.accuracy === "number" ? pos.coords.accuracy : DEGRADED_ACCURACY_M;
+            const smoothed = smoothFix({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: rawAccuracy });
+            setCoords({ lat: smoothed.lat, lng: smoothed.lng });
+            setAccuracy(smoothed.accuracy);
             setStatus("granted");
           }
         );
@@ -122,6 +194,7 @@ export function GeolocationProvider({ children }: { children: React.ReactNode })
 
   const setManualCity = (lat: number, lng: number) => {
     manualRef.current = true;
+    fixWindowRef.current = [];
     setCoords({ lat, lng });
     setAccuracy(null);
     setStatus("manual");

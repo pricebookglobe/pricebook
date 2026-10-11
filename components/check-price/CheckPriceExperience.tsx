@@ -428,9 +428,29 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   //   store in range at all (nearby-check now fetches a 100m radius — see
   //   that route), that store keeps being shown as long as the shopper is
   //   within 100m of it, rather than the tighter 20m buffer.
+  // - The GPS-confidence margin (new): a different store only counts as
+  //   "closer" for either of the two rules above once it beats the anchor
+  //   by more than the current fix's accuracy-based margin (see
+  //   CONFIDENCE_MARGIN_M below) — a few meters' edge is noise, not a real
+  //   move, and gets ignored outright rather than triggering a switch or
+  //   even a "moved to" prompt.
   const anchorStoreIdRef = useRef<string | null>(null);
   const BUFFER_M = 20;
   const SINGLE_STORE_RADIUS_M = 100;
+  // A raw GPS fix is only ever accurate to within some margin (reported by
+  // the device as `accuracy`, in meters — see GeolocationProvider, which
+  // now also smooths the fix itself). Treating "store B's distance_m is 3m
+  // less than store A's" as "the shopper is at B" is exactly how someone
+  // standing at A got told they were two doors down at C — that 3m gap is
+  // well inside GPS noise, not a real signal. A different store only
+  // counts as a genuinely closer candidate once its distance beats the
+  // anchor's by more than this confidence margin; a smaller edge is
+  // treated as noise and the anchor doesn't move at all. Clamped so a
+  // very good fix (a few meters) still can't be treated as perfect
+  // (minimum 15m margin — stores can sit closer together than that), and
+  // a very poor fix can't make the app refuse to ever switch (capped at
+  // 40m).
+  const CONFIDENCE_MARGIN_M = (acc: number | null) => Math.min(Math.max(acc ?? 15, 15), 40);
 
   // Sets the anchor directly — used by the automatic rules below AND by a
   // shopper's own "Modify Location" pick, so both write through the same
@@ -483,6 +503,17 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
     const anchorStore = stores.find((s) => s.store_id === currentAnchorId) ?? null;
     const anchorDistance = anchorStore?.distance_m ?? Infinity;
+
+    // The candidate is only "genuinely closer" once it beats the anchor by
+    // more than the current fix's confidence margin — otherwise this is
+    // GPS noise, not a real move, and the anchor stays exactly where it
+    // was (no switch, no "Seems you have moved to" prompt either, since
+    // that would be just as much of a false alarm).
+    const margin = CONFIDENCE_MARGIN_M(accuracy);
+    if (anchorDistance - candidate.distance_m < margin) {
+      setPendingMoveStoreId(null);
+      return stores;
+    }
 
     if (anchorDistance <= BUFFER_M) {
       // Still within the 20m buffer of the current anchor — a different
