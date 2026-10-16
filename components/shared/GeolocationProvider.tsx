@@ -33,6 +33,61 @@ export function useGeolocation() {
   return useContext(GeoContext);
 }
 
+// A one-shot "get my precise position right now" used by the merchant
+// store-location pickers (signup's "Use my location" / settings' "Update
+// Location" — the exact coordinates a shopper is later matched against).
+// Those two call sites used to call plain `navigator.geolocation.
+// getCurrentPosition` directly, with no enableHighAccuracy flag and —
+// critically — without ever going through Capacitor's native permission
+// prompt first. That's the same WebView gap documented below on the
+// watchPosition path: the device-wide Location toggle being on doesn't
+// mean the app has been granted its own runtime permission, and the plain
+// browser call has no way to trigger that native prompt itself. Depending
+// on the Android version/OEM, the result ranged from a silent failure to
+// a coarse network/cell-tower fix (accurate to hundreds of meters, not
+// the handful of meters a storefront needs) — which is exactly how a
+// store registered "in the middle of the mall" could end up pinned far
+// enough off that a shopper standing on that same spot later doesn't
+// register as being there at all. This goes through the same
+// permission + high-accuracy GPS path watchPosition uses below, just as
+// a single fresh fix instead of a running watch.
+export async function getPreciseLocation(): Promise<{ lat: number; lng: number; accuracy: number | null }> {
+  if (Capacitor.isNativePlatform()) {
+    let perms = await Geolocation.checkPermissions();
+    if (perms.location !== "granted") {
+      perms = await Geolocation.requestPermissions();
+    }
+    if (perms.location !== "granted") {
+      throw new Error("Location permission denied");
+    }
+    const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 20000 });
+    return {
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+      accuracy: typeof pos.coords.accuracy === "number" ? pos.coords.accuracy : null
+    };
+  }
+
+  if (!("geolocation" in navigator)) {
+    throw new Error("Geolocation not supported");
+  }
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        resolve({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: typeof pos.coords.accuracy === "number" ? pos.coords.accuracy : null
+        }),
+      () => reject(new Error("Couldn't read your location")),
+      // maximumAge: 0 forces a fresh fix instead of reusing a stale
+      // cached one from before the merchant walked to the register/
+      // storefront spot they actually want pinned.
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+  });
+}
+
 // A single raw GPS reading can be off by anywhere from a few meters
 // (clear sky, modern phone) to 50m+ (indoors, between tall buildings, cold
 // start right after opening the app) — and consecutive readings jitter

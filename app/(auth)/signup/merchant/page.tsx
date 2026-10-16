@@ -9,6 +9,7 @@ import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { COUNTRIES, citiesFor } from "@/lib/geography";
 import { stashLoginPrefill } from "@/lib/loginPrefill";
 import { ImageSourceSheet } from "@/components/shared/ImageSourceSheet";
+import { getPreciseLocation } from "@/components/shared/GeolocationProvider";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -53,18 +54,27 @@ export default function MerchantSignup() {
 
   const availableCities = citiesFor(form.country);
 
-  function captureLocation() {
+  // Goes through the same native-permission + high-accuracy GPS path the
+  // rest of the app uses (see getPreciseLocation's own comment) instead of
+  // calling the browser's geolocation API directly — that plain call
+  // never prompted for the native app's own location permission inside
+  // the Capacitor WebView and had no high-accuracy flag either, so the
+  // coordinates saved for a store at signup could be a loose, network-
+  // based fix off by hundreds of meters rather than the precise spot the
+  // merchant was actually standing on — exactly what let a store
+  // registered in the middle of a mall fail to recognize a shopper
+  // standing on that very same spot later.
+  async function captureLocation() {
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLocating(false);
-      },
-      () => {
-        setError("Couldn't read your location — allow location access and try again.");
-        setLocating(false);
-      }
-    );
+    setError(null);
+    try {
+      const pos = await getPreciseLocation();
+      setCoords({ lat: pos.lat, lng: pos.lng });
+    } catch {
+      setError("Couldn't read your location — allow location access and try again.");
+    } finally {
+      setLocating(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {

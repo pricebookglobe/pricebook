@@ -7,6 +7,7 @@ import { createBrowserSupabase } from "@/lib/supabaseClient";
 import { AppPage } from "@/components/shared/AppPage";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useAccount } from "@/lib/AccountProvider";
+import { getPreciseLocation } from "@/components/shared/GeolocationProvider";
 
 type Profile = { full_name: string | null; email: string; role: "customer" | "merchant" | "admin"; delete_history_on_logout: boolean };
 type StoreDetails = {
@@ -83,18 +84,23 @@ export default function SettingsPage() {
     });
   }, [router]);
 
-  function captureLocation() {
+  // Same fix as the merchant signup page's own captureLocation: goes
+  // through the native-permission + high-accuracy GPS path instead of
+  // calling the browser's geolocation API directly, which never prompted
+  // for the app's own location permission inside the Capacitor WebView
+  // and had no high-accuracy flag — this is also how a merchant corrects
+  // an imprecise pin from signup, so it needs to actually be more precise
+  // than what signup produced, not repeat the same loose fix.
+  async function captureLocation() {
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLocating(false);
-      },
-      () => {
-        setError(t("Couldn't read your location — allow location access and try again."));
-        setLocating(false);
-      }
-    );
+    try {
+      const pos = await getPreciseLocation();
+      setCoords({ lat: pos.lat, lng: pos.lng });
+    } catch {
+      setError(t("Couldn't read your location — allow location access and try again."));
+    } finally {
+      setLocating(false);
+    }
   }
 
   async function regenerateApiKey() {

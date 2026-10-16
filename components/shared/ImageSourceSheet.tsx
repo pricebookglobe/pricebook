@@ -43,19 +43,26 @@ export function ImageSourceSheet({
   uploadAccept?: string;
 }) {
   const { t } = useLanguage();
-  const takePhotoInputRef = useRef<HTMLInputElement>(null);
   const choosePhotoInputRef = useRef<HTMLInputElement>(null);
   const uploadFileInputRef = useRef<HTMLInputElement>(null);
-  // "Take Photo" on the native app no longer goes through Capacitor's
-  // Camera.getPhoto() plugin at all — see InPageCamera's own comment for
-  // why: that plugin hands off to a separate native camera Activity, and
-  // real-device testing kept showing Android's low-memory killer reclaim
-  // the app's whole process while that heavier native app was in the
-  // foreground (reported as the app crashing/resetting). InPageCamera
-  // opens an in-page getUserMedia feed instead, the same crash-proof
-  // approach BarcodeScanner already uses. "Photo" (the existing photo
-  // library) still uses the Camera plugin below — picking an existing
-  // image doesn't launch the camera itself, so it isn't this crash.
+  // "Take Photo" never goes through the OS's own camera app/Activity, on
+  // native OR plain mobile web — see InPageCamera's own comment for the
+  // native reasoning (Android's low-memory killer reclaiming the whole app
+  // while a heavier native camera Activity is in the foreground). The
+  // same class of problem turned out to hit plain mobile browsers too: a
+  // hidden `<input capture>` sends the whole browser tab to the
+  // background while the OS camera app is in front, and mobile Chrome/
+  // Safari frequently reclaim or reload a backgrounded tab under memory
+  // pressure — on return, the page (and the file that was about to be
+  // picked) is just gone, no error, nothing in the file field. That's
+  // exactly "the camera opens but the file is never uploaded." Routing
+  // Take Photo through InPageCamera's in-page getUserMedia feed instead —
+  // same crash-proof approach BarcodeScanner already uses — means the
+  // page never leaves the foreground at all, on either platform, so there
+  // is nothing for the OS to reclaim mid-capture. "Photo" (the existing
+  // photo library) still uses the native Camera plugin / a plain file
+  // input below — picking an already-saved image doesn't open the camera
+  // app and isn't this failure mode.
   const [showInPageCamera, setShowInPageCamera] = useState(false);
 
   async function nativePick(source: CameraSource) {
@@ -85,13 +92,8 @@ export function ImageSourceSheet({
   }
 
   function handleTakePhoto() {
-    if (Capacitor.isNativePlatform()) {
-      onClose();
-      setShowInPageCamera(true);
-    } else {
-      onClose();
-      takePhotoInputRef.current?.click();
-    }
+    onClose();
+    setShowInPageCamera(true);
   }
   function handleChoosePhoto() {
     if (Capacitor.isNativePlatform()) {
@@ -119,7 +121,7 @@ export function ImageSourceSheet({
 
   return (
     <>
-      {/* These three stay mounted at all times, open or closed — NOT inside
+      {/* These two stay mounted at all times, open or closed — NOT inside
           an `if (!open) return null` guard like the sheet UI below. Every
           web/non-native option (and "Upload File" even inside the native
           app) works by calling .click() on one of these right after
@@ -131,15 +133,8 @@ export function ImageSourceSheet({
           onPicked silently never runs. That's exactly what "upload/take a
           photo on Enter details does nothing at all" looks like: no
           error, no searching status, because the request was never even
-          made. */}
-      <input
-        ref={takePhotoInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleInputChange}
-      />
+          made. (Take Photo's own hidden input was removed — it now always
+          goes through InPageCamera below instead, see handleTakePhoto.) */}
       <input ref={choosePhotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleInputChange} />
       <input ref={uploadFileInputRef} type="file" accept={uploadAccept} className="hidden" onChange={handleInputChange} />
 
