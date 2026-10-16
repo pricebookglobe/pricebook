@@ -156,15 +156,38 @@ export function InPageCamera({
         }
         streamRef.current = stream;
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+          const video = videoRef.current;
+          video.srcObject = stream;
           try {
-            await videoRef.current.play();
+            await video.play();
           } catch {
             // Autoplay blocked in rare cases — the person can still tap
             // the shutter once the feed catches up.
           }
+          // `ready` (which is what shows the shutter button) used to flip
+          // true the instant play() resolved — but play() resolving only
+          // means playback started, not that a frame has actually been
+          // decoded yet. On a slower Android device there's a real gap
+          // between those two moments, and tapping the shutter inside
+          // that gap hit the videoWidth===0 guard in capture() below and
+          // silently did nothing — exactly "tap the shutter, nothing
+          // happens." Wait for an actual decoded frame (readyState >=
+          // HAVE_CURRENT_DATA / videoWidth set) before showing the
+          // button at all, not just for playback to have started.
+          if (video.readyState >= 2 && video.videoWidth > 0) {
+            setReady(true);
+          } else {
+            video.addEventListener(
+              "loadeddata",
+              () => {
+                if (!cancelled) setReady(true);
+              },
+              { once: true }
+            );
+          }
+        } else {
+          setReady(true);
         }
-        setReady(true);
 
         const track = stream.getVideoTracks()[0];
         if (track) {
@@ -209,10 +232,22 @@ export function InPageCamera({
       .catch(() => {});
   }
 
-  function capture() {
+  function capture(retriesLeft = 30) {
     if (capturingRef.current) return;
     const video = videoRef.current;
-    if (!video || video.videoWidth === 0) return;
+    if (!video) return;
+    if (video.videoWidth === 0) {
+      // Belt-and-braces alongside the loadeddata gating above: if a frame
+      // still somehow isn't there yet when the shutter is tapped, wait a
+      // few animation frames for one instead of silently doing nothing —
+      // give up with an actual error after ~0.5s rather than forever.
+      if (retriesLeft <= 0) {
+        onError?.(t("Couldn't capture — try again."));
+        return;
+      }
+      requestAnimationFrame(() => capture(retriesLeft - 1));
+      return;
+    }
     capturingRef.current = true;
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
@@ -262,7 +297,7 @@ export function InPageCamera({
 
       {!error && ready && (
         <button
-          onClick={capture}
+          onClick={() => capture()}
           aria-label={t("Take photo")}
           className="absolute bottom-10 z-10 flex h-16 w-16 items-center justify-center rounded-full border-4 border-white/80 bg-white/10 active:bg-white/30"
         >
