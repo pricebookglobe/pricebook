@@ -5,6 +5,22 @@ import { createPortal } from "react-dom";
 import { X, Zap, ZapOff, Circle } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
+// TEMPORARY DIAGNOSTIC — see app/api/client-log/route.ts's own comment.
+// Fires a one-way report of each step of the camera flow to the server
+// log so a live failure on a reporting device can actually be seen,
+// instead of guessed at. Never throws, never awaited, never blocks
+// anything it's called alongside.
+function logCameraEvent(event: string, data?: Record<string, unknown>) {
+  try {
+    const payload = JSON.stringify({ event, ...data, ts: Date.now(), ua: navigator.userAgent });
+    fetch("/api/client-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: payload, keepalive: true }).catch(
+      () => {}
+    );
+  } catch {
+    // Logging must never be able to break the actual camera flow.
+  }
+}
+
 // A full-screen in-page camera viewfinder with a capture button — used for
 // Snap and "Take Photo" wherever this app needs a fresh photo, INSTEAD of
 // Capacitor's own Camera.getPhoto() plugin.
@@ -71,6 +87,7 @@ export function InPageCamera({
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!readyRef.current) {
+        logCameraEvent("start_timeout_fired");
         setError((current) => current ?? t("Camera is taking too long to start."));
       }
     }, START_TIMEOUT_MS);
@@ -79,6 +96,7 @@ export function InPageCamera({
   }, []);
 
   useEffect(() => {
+    logCameraEvent("mounted");
     let cancelled = false;
 
     function keepRefocusing(track: MediaStreamTrack) {
@@ -129,20 +147,30 @@ export function InPageCamera({
     }
 
     async function openStream(): Promise<MediaStream> {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        logCameraEvent("getusermedia_unsupported");
+        throw new Error("getUserMedia not supported");
+      }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { ...baseVideo, facingMode: { exact: "environment" } }
         });
+        logCameraEvent("stream_opened", { attempt: "exact-environment" });
         return await ensureStandardBackLens(stream);
-      } catch {
+      } catch (e: any) {
+        logCameraEvent("stream_attempt_failed", { attempt: "exact-environment", name: e?.name, message: e?.message });
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ video: { ...baseVideo, facingMode: "environment" } });
+          logCameraEvent("stream_opened", { attempt: "loose-environment" });
           return await ensureStandardBackLens(stream);
-        } catch {
+        } catch (e2: any) {
+          logCameraEvent("stream_attempt_failed", { attempt: "loose-environment", name: e2?.name, message: e2?.message });
           const deviceId = await findBackCameraDeviceId();
-          return navigator.mediaDevices.getUserMedia({
+          const stream = await navigator.mediaDevices.getUserMedia({
             video: deviceId ? { ...baseVideo, deviceId: { exact: deviceId } } : baseVideo
           });
+          logCameraEvent("stream_opened", { attempt: "device-id-fallback", deviceId: !!deviceId });
+          return stream;
         }
       }
     }
@@ -160,9 +188,11 @@ export function InPageCamera({
           video.srcObject = stream;
           try {
             await video.play();
-          } catch {
+            logCameraEvent("video_play_resolved");
+          } catch (e: any) {
             // Autoplay blocked in rare cases — the person can still tap
             // the shutter once the feed catches up.
+            logCameraEvent("video_play_rejected", { name: e?.name, message: e?.message });
           }
           // `ready` (which is what shows the shutter button) used to flip
           // true the instant play() resolved — but play() resolving only
@@ -175,17 +205,20 @@ export function InPageCamera({
           // HAVE_CURRENT_DATA / videoWidth set) before showing the
           // button at all, not just for playback to have started.
           if (video.readyState >= 2 && video.videoWidth > 0) {
+            logCameraEvent("ready_immediate", { readyState: video.readyState, videoWidth: video.videoWidth });
             setReady(true);
           } else {
             video.addEventListener(
               "loadeddata",
               () => {
+                logCameraEvent("ready_via_loadeddata", { readyState: video.readyState, videoWidth: video.videoWidth });
                 if (!cancelled) setReady(true);
               },
               { once: true }
             );
           }
         } else {
+          logCameraEvent("ready_no_video_element");
           setReady(true);
         }
 
@@ -202,6 +235,7 @@ export function InPageCamera({
           setTorchSupported(Boolean((capabilities as { torch?: boolean } | undefined)?.torch));
         }
       } catch (e: any) {
+        logCameraEvent("start_failed", { name: e?.name, message: e?.message });
         if (!cancelled) {
           const message =
             e?.name === "NotAllowedError"
@@ -233,35 +267,52 @@ export function InPageCamera({
   }
 
   function capture(retriesLeft = 30) {
-    if (capturingRef.current) return;
+    if (capturingRef.current) {
+      logCameraEvent("capture_tap_ignored_already_capturing");
+      return;
+    }
     const video = videoRef.current;
-    if (!video) return;
+    if (!video) {
+      logCameraEvent("capture_tap_no_video_element");
+      return;
+    }
     if (video.videoWidth === 0) {
       // Belt-and-braces alongside the loadeddata gating above: if a frame
       // still somehow isn't there yet when the shutter is tapped, wait a
       // few animation frames for one instead of silently doing nothing —
       // give up with an actual error after ~0.5s rather than forever.
       if (retriesLeft <= 0) {
+        logCameraEvent("capture_giveup_width_zero", { readyState: video.readyState });
         onError?.(t("Couldn't capture — try again."));
         return;
       }
+      if (retriesLeft === 30) logCameraEvent("capture_width_zero_retrying", { readyState: video.readyState });
       requestAnimationFrame(() => capture(retriesLeft - 1));
       return;
     }
+    logCameraEvent("capture_running", { videoWidth: video.videoWidth, videoHeight: video.videoHeight });
     capturingRef.current = true;
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
     if (!ctx) {
+      logCameraEvent("capture_no_canvas_context");
       capturingRef.current = false;
+      onError?.(t("Couldn't capture — try again."));
       return;
     }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     canvas.toBlob(
       (blob) => {
         capturingRef.current = false;
-        if (blob) onCapture(new File([blob], "snap.jpg", { type: "image/jpeg" }));
+        if (blob) {
+          logCameraEvent("capture_blob_ok", { size: blob.size });
+          onCapture(new File([blob], "snap.jpg", { type: "image/jpeg" }));
+        } else {
+          logCameraEvent("capture_blob_null");
+          onError?.(t("Couldn't capture — try again."));
+        }
       },
       "image/jpeg",
       0.85
