@@ -29,11 +29,25 @@ import { useLanguage } from "@/lib/i18n/LanguageProvider";
 export function InPageCamera({
   onCapture,
   onClose,
-  onError
+  onError,
+  // Lets a caller offer a way out that doesn't depend on getUserMedia at
+  // all (typically falling back to a plain `<input type="file" capture>`,
+  // handing off to the OS's own camera app) — shown once the stream fails
+  // to start, OR once it's taking suspiciously long to (see START_TIMEOUT_MS
+  // below). Some embedding contexts (an in-app browser inside a social
+  // app, an older WebView, a camera permission prompt that never actually
+  // surfaces) can leave getUserMedia's promise simply never settling —
+  // no resolve, no reject — which otherwise reads as "the camera opens
+  // [a blank/frozen full-screen view] and then nothing happens," with no
+  // error for the existing catch block to ever catch. Without this,
+  // there'd be no way out of that state at all except force-closing the
+  // app/tab.
+  onFallback
 }: {
   onCapture: (file: File) => void;
   onClose: () => void;
   onError?: (message: string) => void;
+  onFallback?: () => void;
 }) {
   const { t } = useLanguage();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -45,6 +59,24 @@ export function InPageCamera({
   const [ready, setReady] = useState(false);
   const capturingRef = useRef(false);
   const refocusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const readyRef = useRef(false);
+  useEffect(() => {
+    readyRef.current = ready;
+  }, [ready]);
+
+  // If the stream hasn't become ready (and hasn't already failed with its
+  // own error) within this long, treat it as stuck rather than leaving the
+  // person staring at a frozen/blank camera view with no way forward.
+  const START_TIMEOUT_MS = 7000;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!readyRef.current) {
+        setError((current) => current ?? t("Camera is taking too long to start."));
+      }
+    }, START_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -241,9 +273,26 @@ export function InPageCamera({
       {error && (
         <div className="absolute inset-x-0 bottom-24 px-6 text-center">
           <p className="text-sm text-white">{error}</p>
-          <button onClick={onClose} className="mt-3 rounded-sm bg-white px-4 py-2 font-display text-sm font-medium text-ink">
-            {t("Close")}
-          </button>
+          <div className="mt-3 flex flex-col items-center gap-2">
+            {onFallback && (
+              <button
+                onClick={onFallback}
+                className="rounded-sm bg-white px-4 py-2 font-display text-sm font-medium text-ink"
+              >
+                {t("Use phone's camera instead")}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className={
+                onFallback
+                  ? "font-display text-sm font-medium text-white underline underline-offset-2"
+                  : "rounded-sm bg-white px-4 py-2 font-display text-sm font-medium text-ink"
+              }
+            >
+              {t("Close")}
+            </button>
+          </div>
         </div>
       )}
     </div>,

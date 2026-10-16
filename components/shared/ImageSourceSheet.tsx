@@ -45,6 +45,14 @@ export function ImageSourceSheet({
   const { t } = useLanguage();
   const choosePhotoInputRef = useRef<HTMLInputElement>(null);
   const uploadFileInputRef = useRef<HTMLInputElement>(null);
+  // The escape hatch InPageCamera's own "Use phone's camera instead" button
+  // falls back to when its in-page getUserMedia feed won't start at all (a
+  // permission prompt that never surfaces in some embedded/in-app
+  // browsers, an older WebView without full getUserMedia support) —
+  // hands off to the OS's own camera app the old way. Deliberately only
+  // reachable as a fallback, not the default path: see handleTakePhoto's
+  // own comment for why the OS camera app is normally avoided.
+  const takePhotoFallbackInputRef = useRef<HTMLInputElement>(null);
   // "Take Photo" never goes through the OS's own camera app/Activity, on
   // native OR plain mobile web — see InPageCamera's own comment for the
   // native reasoning (Android's low-memory killer reclaiming the whole app
@@ -137,6 +145,14 @@ export function ImageSourceSheet({
           goes through InPageCamera below instead, see handleTakePhoto.) */}
       <input ref={choosePhotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleInputChange} />
       <input ref={uploadFileInputRef} type="file" accept={uploadAccept} className="hidden" onChange={handleInputChange} />
+      <input
+        ref={takePhotoFallbackInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleInputChange}
+      />
 
       {/* Rendered through a portal straight onto <body>, not in place here.
           AppPage wraps every screen's content in a couple of nested
@@ -208,6 +224,10 @@ export function ImageSourceSheet({
           }}
           onClose={() => setShowInPageCamera(false)}
           onError={onError}
+          onFallback={() => {
+            setShowInPageCamera(false);
+            takePhotoFallbackInputRef.current?.click();
+          }}
         />
       )}
     </>
