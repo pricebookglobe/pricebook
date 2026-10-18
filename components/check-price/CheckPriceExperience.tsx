@@ -402,15 +402,14 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   const [pendingMoveStoreId, setPendingMoveStoreId] = useState<string | null>(null);
   const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
   // The store a "You are at [Store]" popup is currently confirming — set
-  // whenever the automatic geofencing logic resolves the anchor WITHOUT
-  // the shopper already having explicitly approved it (the very first fix
-  // of a visit, or the >20m-away auto-switch, which otherwise only ever
-  // updated the ribbon silently). Left null the rest of the time,
-  // including after a manual "Modify Location" pick or after the
-  // ribbon's own "Seems you have moved to X — Confirm" has already been
-  // tapped — both of those are already an explicit choice, so popping
-  // this up again right after would just be a redundant second prompt
-  // for the same decision. See setAnchor's needsConfirmation option.
+  // on every genuinely new automatic detection: the very first fix of a
+  // visit, the >20m-away auto-switch, and the within-20m-buffer "Seems you
+  // have moved to X" case too (that one pops up alongside the ribbon, not
+  // instead of it — the user asked to keep both). Left null while anchored
+  // to the same store (no popup for staying put), and cleared again as
+  // soon as the shopper actually makes a choice — via the popup itself, a
+  // manual "Modify Location" pick, or the ribbon's own Confirm — so it
+  // never lingers as a stale prompt for a decision that's already made.
   const [confirmPopupStoreId, setConfirmPopupStoreId] = useState<string | null>(null);
 
   // Mirror of the latest coords for the background polling effect below to
@@ -543,7 +542,15 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
       // Still within the 20m buffer of the current anchor — a different
       // store being technically closer doesn't switch anything on its
       // own; it only raises the "Seems you have moved to X" prompt, and
-      // the shopper has to tap Confirm for it to actually take over.
+      // the shopper has to tap Confirm (on the ribbon OR the "You are at"
+      // popup — see below) for it to actually take over. This still
+      // counts as "a new store detected" for the popup, so it shows here
+      // too — but only the first time this particular candidate comes up,
+      // not on every single poll while it's still pending (that would pop
+      // it up again every ~10s for the exact same unresolved candidate).
+      if (candidate.store_id !== pendingMoveStoreId) {
+        setConfirmPopupStoreId(candidate.store_id);
+      }
       setPendingMoveStoreId(candidate.store_id);
       return stores;
     }
@@ -1072,11 +1079,17 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
   function handleConfirmMove() {
     if (pendingMoveStore) setAnchor(pendingMoveStore.store_id);
+    // The ribbon's own Confirm is just as much "already decided" as the
+    // popup's — if the popup happened to be up for this exact same
+    // candidate (the buffer case pops up both at once), tapping the
+    // ribbon dismisses it too rather than leaving a stale prompt.
+    setConfirmPopupStoreId(null);
   }
   // "Modify Location" — a shopper's own explicit pick always wins outright,
   // the same single setAnchor the automatic rules use.
   function handleModifyLocation(storeId: string) {
     setAnchor(storeId);
+    setConfirmPopupStoreId(null);
   }
 
   // The "You are at [Store]" popup's own store/handlers — separate from
@@ -1085,6 +1098,14 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // on either action, which the ribbon has no equivalent of.
   const confirmPopupStore = nearbyStores.find((s) => s.store_id === confirmPopupStoreId) ?? null;
   function handleConfirmPopupConfirm() {
+    // Usually the anchor has already switched by the time this popup shows
+    // (the >20m auto-switch case) and Confirm is just dismissing — but for
+    // the within-20m-buffer case the anchor hasn't moved yet (that's the
+    // whole point of the buffer), so Confirm here has to actually apply
+    // it, same as tapping the ribbon's own Confirm would.
+    if (confirmPopupStoreId && confirmPopupStoreId !== anchorStoreId) {
+      setAnchor(confirmPopupStoreId);
+    }
     setConfirmPopupStoreId(null);
   }
   function handleConfirmPopupPick(storeId: string) {

@@ -9,13 +9,14 @@ import type { NearbyStore } from "@/lib/api";
 // A centered "You are at [Store]" popup with Confirm/Modify, on top of
 // (not instead of) the existing orange LocationCorrectionBar ribbon — by
 // request, the ribbon stays exactly as it already behaves, and this adds
-// an explicit modal confirmation for every automatic store resolution the
+// an explicit modal confirmation for every automatic store detection the
 // shopper hasn't already approved (see CheckPriceExperience's
-// confirmPopupStoreId / setAnchor's needsConfirmation option for exactly
-// when that is: the first fix of a visit, and any later automatic switch
-// to a different store — but NOT a manual "Modify Location" pick, and NOT
-// the ribbon's own already-explicit "Seems you have moved to X — Confirm"
-// tap, both of which are already a decision the shopper just made).
+// confirmPopupStoreId for exactly when that is: the first fix of a visit,
+// any later detection of a different store — whether it's the >20m
+// auto-switch or the within-20m-buffer "Seems you have moved to" case —
+// but NOT while still anchored to the same store, and NOT right after a
+// manual "Modify Location" pick, both of which are already a decision the
+// shopper just made).
 export function StoreConfirmPopup({
   store,
   alternativeStores,
