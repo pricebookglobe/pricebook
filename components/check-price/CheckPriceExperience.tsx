@@ -12,6 +12,7 @@ import { GuidedTextEntry } from "@/components/check-price/GuidedTextEntry";
 import { FreeTextSearch } from "@/components/check-price/FreeTextSearch";
 import { searchProducts, findNearbyStores, reportPrice, type SearchResponse, type SearchResult, type NearbyStore } from "@/lib/api";
 import { LocationCorrectionBar } from "./LocationCorrectionBar";
+import { StoreConfirmPopup } from "./StoreConfirmPopup";
 import { BarcodeScanner } from "@/components/shared/BarcodeScanner";
 import { InPageCamera } from "@/components/shared/InPageCamera";
 import { AppPage } from "@/components/shared/AppPage";
@@ -400,6 +401,17 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // buffer (see resolveAnchor below).
   const [pendingMoveStoreId, setPendingMoveStoreId] = useState<string | null>(null);
   const [checkPriceRevealed, setCheckPriceRevealed] = useState(false);
+  // The store a "You are at [Store]" popup is currently confirming — set
+  // whenever the automatic geofencing logic resolves the anchor WITHOUT
+  // the shopper already having explicitly approved it (the very first fix
+  // of a visit, or the >20m-away auto-switch, which otherwise only ever
+  // updated the ribbon silently). Left null the rest of the time,
+  // including after a manual "Modify Location" pick or after the
+  // ribbon's own "Seems you have moved to X — Confirm" has already been
+  // tapped — both of those are already an explicit choice, so popping
+  // this up again right after would just be a redundant second prompt
+  // for the same decision. See setAnchor's needsConfirmation option.
+  const [confirmPopupStoreId, setConfirmPopupStoreId] = useState<string | null>(null);
 
   // Mirror of the latest coords for the background polling effect below to
   // read without being in its dependency array — that effect manages its
@@ -454,11 +466,19 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
   // Sets the anchor directly — used by the automatic rules below AND by a
   // shopper's own "Modify Location" pick, so both write through the same
-  // single place.
-  function setAnchor(storeId: string | null) {
+  // single place. needsConfirmation pops up the "You are at [Store]"
+  // confirm/modify dialog for a resolution the shopper hasn't already
+  // explicitly approved (see confirmPopupStoreId's own comment) — left
+  // false for a manual pick or an already-confirmed ribbon prompt, which
+  // don't need asking about twice.
+  function setAnchor(storeId: string | null, opts?: { needsConfirmation?: boolean }) {
+    const changed = storeId !== anchorStoreIdRef.current;
     anchorStoreIdRef.current = storeId;
     setAnchorStoreId(storeId);
     setPendingMoveStoreId(null);
+    if (opts?.needsConfirmation && storeId && changed) {
+      setConfirmPopupStoreId(storeId);
+    }
   }
 
   // Runs on every location poll (the initial fix and every 10s refresh
@@ -477,8 +497,10 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
 
     if (currentAnchorId === null) {
       // First-ever fix — nothing to hold steady against yet, so resolve
-      // immediately to the nearest registered store.
-      setAnchor(candidate.store_id);
+      // immediately to the nearest registered store. Nothing's been
+      // confirmed yet either, so this is exactly when the "You are at
+      // [Store]" popup should ask.
+      setAnchor(candidate.store_id, { needsConfirmation: true });
       return stores;
     }
 
@@ -495,9 +517,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     if (singleStoreArea) {
       // Only one registered store is in range at all, and it isn't the
       // current anchor — the anchor must have moved out of range entirely
-      // (fetch radius is 100m), and there's nothing else nearby to ask
-      // about, so just follow it directly.
-      setAnchor(candidate.store_id);
+      // (fetch radius is 100m). There's no neighbor to ask the shopper to
+      // pick between, but this is still a real, un-confirmed change of
+      // store, so the popup still confirms it (Modify still works from
+      // there if this guess is somehow wrong).
+      setAnchor(candidate.store_id, { needsConfirmation: true });
       return stores;
     }
 
@@ -525,8 +549,11 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     }
 
     // More than 20m from the anchor, and genuinely closer to a different
-    // registered store — switch automatically, no confirmation needed.
-    setAnchor(candidate.store_id);
+    // registered store — switches automatically (no need to ask "should
+    // I switch," that's already clearly correct), but the shopper hasn't
+    // actually approved THIS particular store yet, so the "You are at
+    // [Store]" popup still confirms which one it landed on.
+    setAnchor(candidate.store_id, { needsConfirmation: true });
     return stores;
   }
   const [scanningBarcode, setScanningBarcode] = useState(false);
@@ -699,6 +726,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     anchorStoreIdRef.current = null;
     setAnchorStoreId(null);
     setPendingMoveStoreId(null);
+    setConfirmPopupStoreId(null);
     setUseGuidedForm(false);
     setMode(initialMode);
     setCheckPriceRevealed(true);
@@ -1051,6 +1079,19 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     setAnchor(storeId);
   }
 
+  // The "You are at [Store]" popup's own store/handlers — separate from
+  // the ribbon's, even though they end up calling the same setAnchor,
+  // because the popup needs to dismiss ITSELF (clear confirmPopupStoreId)
+  // on either action, which the ribbon has no equivalent of.
+  const confirmPopupStore = nearbyStores.find((s) => s.store_id === confirmPopupStoreId) ?? null;
+  function handleConfirmPopupConfirm() {
+    setConfirmPopupStoreId(null);
+  }
+  function handleConfirmPopupPick(storeId: string) {
+    setAnchor(storeId);
+    setConfirmPopupStoreId(null);
+  }
+
   // The "You're at [store], price: X" card below is about THIS search
   // result at the shopper's current/anchored store — so it has to be the
   // exact same store as the orange ribbon and the red "{store} doesn't
@@ -1336,6 +1377,23 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
           alternativeStores={alternativeStores}
           onConfirmMove={handleConfirmMove}
           onModifyLocation={handleModifyLocation}
+        />
+      )}
+
+      {/* "You are at [Store]" popup — on top of, not instead of, the
+          ribbon above (by request, the ribbon's own behavior/look is
+          unchanged). Pops up for every automatic store resolution the
+          shopper hasn't already explicitly approved; see
+          confirmPopupStoreId's own comment for exactly when that is. Keyed
+          on the store id so Modify's "picking" sub-view always resets back
+          to the two-button view for a genuinely new store to confirm. */}
+      {initialMode === "menu" && confirmPopupStore && (
+        <StoreConfirmPopup
+          key={confirmPopupStore.store_id}
+          store={confirmPopupStore}
+          alternativeStores={nearbyStores.filter((s) => s.store_id !== confirmPopupStore.store_id)}
+          onConfirm={handleConfirmPopupConfirm}
+          onPick={handleConfirmPopupPick}
         />
       )}
 
