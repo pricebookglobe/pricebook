@@ -370,6 +370,21 @@ function SearchingIndicator() {
   return <StatusDotsCard label={t("Searching…")} />;
 }
 
+// Lives OUTSIDE the component on purpose — it's the one thing that has to
+// survive this component unmounting/remounting, which happens on every
+// single tab switch (Check Price <-> Search Items <-> anything else, all
+// separate routes). Without this, anchorStoreId/anchorStoreIdRef below
+// would reset to null on every tab switch, resolveAnchor would treat that
+// as "first fix of a visit" again, and the "You are at" popup would pop
+// up again every single time the tab is opened — even for the exact same
+// store the shopper never left. A module-level variable is the right
+// scope for "as long as you're using the app": it keeps its value across
+// remounts within the same JS session, but still starts out null the
+// next time the app's JS actually reloads from scratch (a real fresh
+// launch, not just switching tabs), which is exactly "first time you
+// open the app" in the request this is answering.
+let lastKnownAnchorStoreId: string | null = null;
+
 // Powers both /check-price (camera, upload, or type it in — starts on the
 // three-button menu) and /search-items (starts straight on the type-it-in
 // form, since that's the whole point of that tab). Kept as one component so
@@ -391,7 +406,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   // "Modify Location" pick write to this one piece of state, so there's a
   // single source of truth for "the" store rather than two separate ideas
   // (an auto pick vs. a manual override) that could disagree.
-  const [anchorStoreId, setAnchorStoreId] = useState<string | null>(null);
+  const [anchorStoreId, setAnchorStoreId] = useState<string | null>(lastKnownAnchorStoreId);
   // Set only while the shopper is still within the 20m buffer of the
   // current anchor AND a different registered store has become the
   // closest candidate — the ribbon then asks "Seems you have moved to
@@ -445,7 +460,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   //   CONFIDENCE_MARGIN_M below) — a few meters' edge is noise, not a real
   //   move, and gets ignored outright rather than triggering a switch or
   //   even a "moved to" prompt.
-  const anchorStoreIdRef = useRef<string | null>(null);
+  const anchorStoreIdRef = useRef<string | null>(lastKnownAnchorStoreId);
   const BUFFER_M = 20;
   const SINGLE_STORE_RADIUS_M = 100;
   // A raw GPS fix is only ever accurate to within some margin (reported by
@@ -473,6 +488,7 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
   function setAnchor(storeId: string | null, opts?: { needsConfirmation?: boolean }) {
     const changed = storeId !== anchorStoreIdRef.current;
     anchorStoreIdRef.current = storeId;
+    lastKnownAnchorStoreId = storeId;
     setAnchorStoreId(storeId);
     setPendingMoveStoreId(null);
     if (opts?.needsConfirmation && storeId && changed) {
@@ -730,8 +746,13 @@ export function CheckPriceExperience({ initialMode }: { initialMode: Mode }) {
     setResult(null);
     setError(null);
     setLocationCheck(null);
-    anchorStoreIdRef.current = null;
-    setAnchorStoreId(null);
+    // Deliberately does NOT touch anchorStoreId/anchorStoreIdRef — "start a
+    // new check" means a new item search, not a new store visit. Resetting
+    // the anchor here used to make the very next poll treat this as a
+    // first-ever fix again (currentAnchorId === null in resolveAnchor),
+    // which re-popped the "You are at" popup for a store the shopper never
+    // actually left. Leaving it alone keeps the existing anchor (and the
+    // fact that it's already been confirmed) intact across a new check.
     setPendingMoveStoreId(null);
     setConfirmPopupStoreId(null);
     setUseGuidedForm(false);
